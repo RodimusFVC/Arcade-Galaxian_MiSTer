@@ -34,7 +34,7 @@
         <dip name="Bonus Life" bits="19" ids="500000,750000" values="1,0"/>
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
     <rom index="0" md5="none" zip="warofbug.zip">
         <part crc="b8dfb7e3" name="warofbug.u"/>
         <part crc="fd8854e0" name="warofbug.v"/>
@@ -49,7 +49,7 @@
         <part crc="8688e64b" name="warofbug.clr"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
     <rom index="1">
         <part>
             00 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00
@@ -61,7 +61,7 @@
     <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
     <rom index="3" md5="none">
         <part>
-            00 25 1F 62 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 3D DE F8 00 FF 00 02 00 02 00 01 11 11 00 00
             00 00 40 34 00 03 00 00
             00 00 52 41 00 01 00 00
             00 00 52 21 00 01 00 00

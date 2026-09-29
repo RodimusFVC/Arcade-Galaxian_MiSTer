@@ -36,7 +36,7 @@
         <dip name="Difficulty" bits="19" ids="Easy,Hard"/>
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
     <rom index="0" md5="none" zip="galaxcirsa.zip|galaxian.zip">
         <part crc="ac64aabe" name="cirsagal.1"/>
         <part crc="a433067e" name="cirsagal.2"/>
@@ -51,7 +51,7 @@
         <part crc="c3ac9467" name="6113_1.bin"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
     <rom index="1">
         <part>
             00 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00
@@ -63,7 +63,7 @@
     <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
     <rom index="3" md5="none">
         <part>
-            04 4D 4D AD 00 FF 00 02 00 02 00 01 11 11 00 00
+            06 7A 24 69 00 FF 00 02 00 02 00 01 11 11 00 00
             00 00 40 A8 00 03 00 00
         </part>
     </rom>

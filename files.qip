@@ -5,6 +5,8 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_board.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_video.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_sound.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_sndcpu.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_konami_snd.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_ppi.sv
 
 set_global_assignment -name QIP_FILE rtl/cpu/T80/T80.qip
 set_global_assignment -name QIP_FILE rtl/sound/v_sound.qip

@@ -15,7 +15,7 @@ module galaxian_board
     input               pause,
 
     input         [7:0] variant,        // memory map: 0 Galaxian, 1 Moon Cresta, 2 Scorpion (MC), 3 Crazy Kong (MC),
-                                        // 4 Jump Bug
+                                        // 4 Jump Bug, 5 Frogger
     input         [7:0] vflags,         // [0] Scramble shells, [1] RGB -> GBR harness (Eagle)
     input         [7:0] bflags,         // [0] NMI enable on latch 0, [1] 2K work RAM, [2] stars cut, [3] Moon Cresta
                                         // decryption, [4] same on opcodes only, [5] latch 2 is gfx bank 0,
@@ -30,6 +30,9 @@ module galaxian_board
     input         [7:0] bflags4,        // [0] 1K object RAM, [1] Zig Zag ROM 2000/3000 swap on 7002, [2] Fantastic ROM
                                         // unscramble, [3] two AYs at 8800 (Fantastic), [4] AY written through
                                         // 4800-4FFF address lines (Zig Zag), [5] AY clock 3.072 MHz
+    input         [7:0] vflags3,        // see galaxian_video.sv
+    input         [7:0] bflags5,        // [0] Konami sound board (Z80 + AY + filters), [1] its second AY (Scramble),
+                                        // [2] first sound ROM D0 / D1 swapped (Frogger)
     input         [7:0] rom_top,        // end of program ROM >> 8 (0 = 40)
     input         [7:0] ext_mode,       // tile/sprite code extension (see galaxian_video.sv)
 
@@ -53,6 +56,7 @@ module galaxian_board
     output reg          video_vblank = 1'b1,
 
     output signed [15:0] audio,
+    output        [2:0] dbg,            // DIAG-REVERT-2026-09-29: Konami sound board activity
 
     // hiscore (CPU paused): work RAM second port; video RAM through the CPU port
     input        [15:0] hs_address,
@@ -113,6 +117,8 @@ end
 // Crazy Kong (ckongmc_map): ROM 0000-5FFF, RAM 6000-6BFF, video 9000-93FF, objects 9800-9BFF (1K), I/O at A000.
 // Jump Bug (jumpbug_map): ROM 0000-3FFF + 8000-AFFF, RAM 4000-47FF, video 4800, objects 5000, AY 5800/5900,
 // I/O 6000-7FFF, protection B000-BFFF.
+// Frogger (frogger_map): ROM 0000-3FFF, RAM 8000-87FF, watchdog 8800, video A800, objects B000, latches B800 on
+// A4-A2, PPIs C000-FFFF (A13 PPI 0, A12 PPI 1, port on A2-A1).
 wire [7:0] top = rom_top == 8'd0 ? 8'h40 : rom_top;
 
 // {rom, ram, vid, obj, io, ram index[11:0]}
@@ -142,6 +148,13 @@ function [16:0] decode(input [15:0] a);
                 vid = a[15:11] == 5'b10010;
                 obj = a[15:11] == 5'b10011;
                 io  = a[15:13] == 3'b101;
+            end
+            3'd5: begin
+                ram = a[15:11] == 5'b10000;
+                ri  = {1'b0, a[10:0]};
+                vid = a[15:11] == 5'b10101;
+                obj = a[15:11] == 5'b10110;
+                io  = 1'b0;
             end
             3'd4: begin
                 rom = a < 16'h4000 || (a >= 16'h8000 && a < 16'hB000);
@@ -211,6 +224,10 @@ wire  [1:0] io_sel = cpu_addr[12:11];   // 6000, 6800, 7000, 7800
 wire        jb     = variant[2:0] == 3'd4;
 wire        ay_cs  = jb && cpu_addr[15:9] == 7'b0101100;     // 5800 data, 5900 address
 wire        prot_cs = jb && cpu_addr[15:12] == 4'hB;
+wire        fg      = variant[2:0] == 3'd5;
+wire        fg_lat  = fg && cpu_addr[15:11] == 5'b10111;              // B800-BFFF
+wire        fg_wd   = fg && cpu_addr[15:11] == 5'b10001;              // 8800 watchdog
+wire        fg_ppi  = fg && cpu_addr[15:14] == 2'b11;                 // C000-FFFF
 
 // one write strobe per CPU write cycle
 reg  wr_d = 1'b1;
@@ -230,6 +247,14 @@ always @(posedge clk) begin
         pitch   <= 8'd0;
         gfxbank <= 4'd0;
         gfxbank4 <= 1'b0;
+    end
+    else if (wr && fg_lat) begin
+        case (cpu_addr[4:2])
+            3'd2: ctl_9n[1] <= cpu_dout[0];
+            3'd3: ctl_9n[7] <= cpu_dout[0];
+            3'd4: ctl_9n[6] <= cpu_dout[0];
+            default: ;
+        endcase
     end
     else if (wr && io_cs) begin
         case (io_sel)
@@ -253,7 +278,7 @@ end
 
 // NMI flip-flop: set at VBLANK, held clear while the enable latch is 0; watchdog = 8 frames (MAME)
 wire nmi_en = bflags[0] ? ctl_9n[0] : ctl_9n[1];
-wire wdr    = mem & ~cpu_rd_n & io_cs & io_sel == 2'd3;
+wire wdr    = mem & ~cpu_rd_n & ((io_cs & io_sel == 2'd3) | fg_wd);
 
 always @(posedge clk) begin
     if (!nmi_en)                  cpu_nmi_n <= 1'b1;
@@ -368,6 +393,24 @@ function [7:0] cm_decrypt(input [7:0] d, input [2:0] a);
     end
 endfunction
 
+// Konami PPIs: 0 = IN0 / IN1 / IN2, 1 = sound command / sound control / IN3
+wire [7:0] ppi0_q, ppi1_q, ppi1_pa, ppi1_pb;
+wire       ppi0_sel = fg_ppi & cpu_addr[13];
+wire       ppi1_sel = fg_ppi & cpu_addr[12];
+wire [1:0] ppi_a    = cpu_addr[2:1];
+
+galaxian_ppi ppi0
+(
+    .clk(clk), .reset(reset), .addr(ppi_a), .din(cpu_dout), .we(wr & ppi0_sel), .dout(ppi0_q),
+    .pa_in(in0), .pb_in(in1), .pc_in(in2), .pa_out(), .pb_out(), .pc_out(), .pc_we()
+);
+
+galaxian_ppi ppi1
+(
+    .clk(clk), .reset(reset), .addr(ppi_a), .din(cpu_dout), .we(wr & ppi1_sel), .dout(ppi1_q),
+    .pa_in(8'hFF), .pb_in(8'hFF), .pc_in(in3), .pa_out(ppi1_pa), .pb_out(ppi1_pb), .pc_out(), .pc_we()
+);
+
 wire [7:0] ay_dout, ay2_dout;
 wire       io_rd = ~cpu_iorq_n & cpu_m1_n & ~cpu_rd_n;
 
@@ -377,6 +420,7 @@ wire       fa_cs = bflags4[3] && mem && cpu_addr[15:4] == 12'h880;
 always @(*) begin
     cpu_din = 8'hFF;
     if (io_rd) cpu_din = bflags2[2] && cpu_addr[7:0] == 8'h02 ? ay_dout : 8'hFF;
+    else if (fg_ppi) cpu_din = (ppi0_sel ? ppi0_q : 8'hFF) & (ppi1_sel ? ppi1_q : 8'hFF);
     else if (fa_cs) cpu_din = cpu_addr[3:0] == 4'h7 ? ay_dout : cpu_addr[3:0] == 4'hD ? ay2_dout : 8'hFF;
     else if (prot_cs) cpu_din = prot_q;
     else if (cm_prot) cpu_din = cm_prot_q;
@@ -414,6 +458,7 @@ galaxian_video video
     .rgb_gbr(vflags[1]),
     .ext_mode(ext_mode[3:0]),
     .vflags2(vflags2[3:0]),
+    .vflags3(vflags3[3:0]),
     .gfxbank(gfxbank),
     .gfxbank4(gfxbank4),
     .stars_232(bflags2[5]),
@@ -584,8 +629,28 @@ jt49_dcrm2 #(.sw(16)) ay_dcrm
     .dout(ay_audio)
 );
 
-// discrete (unless cut) plus AY; an AY that is never written stays at 0
-wire signed [16:0] mix = (bflags2[1] ? 17'sd0 : {disc_audio[15], disc_audio}) + {ay_audio[15], ay_audio};
-assign audio = mix > 17'sd32767 ? 16'sd32767 : mix < -17'sd32768 ? -16'sd32768 : mix[15:0];
+wire signed [15:0] konami_audio;
+
+galaxian_konami_snd konami_snd
+(
+    .clk(clk),
+    .reset(reset | ~bflags5[0]),
+    .two_ay(bflags5[1]),
+    .pause(pause),
+    .latch_we(wr & ppi1_sel & ppi_a == 2'd0),
+    .latch_d(cpu_dout),
+    .control(ppi1_pb),
+    .rom_addr(ioctl_addr[12:0]),
+    .rom_data(ioctl_dout),
+    .rom_we(ioctl_wr0 & snd_cs),
+    .rom_swap01(bflags5[2]),
+    .out(konami_audio),
+    .dbg(dbg)                           // DIAG-REVERT-2026-09-29
+);
+
+// discrete (unless cut) plus AY plus the Konami board; a sound source that is idle stays at 0
+wire signed [17:0] mix = (bflags2[1] ? 18'sd0 : {{2{disc_audio[15]}}, disc_audio}) + {{2{ay_audio[15]}}, ay_audio} +
+                         {{2{konami_audio[15]}}, konami_audio};
+assign audio = mix > 18'sd32767 ? 16'sd32767 : mix < -18'sd32767 ? -16'sd32767 : mix[15:0];
 
 endmodule

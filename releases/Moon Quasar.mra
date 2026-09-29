@@ -34,7 +34,7 @@
         <dip name="Coin B" bits="18,19" ids="1C/1C,1C/2C,1C/3C,Free Play"/>
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
     <rom index="0" md5="none" zip="moonqsr.zip">
         <part crc="132c13ec" name="mq1"/>
         <part crc="c8eb74f1" name="mq2"/>
@@ -54,7 +54,7 @@
         <part crc="0b878b54" name="vid_e6.bin"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
     <rom index="1">
         <part>
             01 90 00 51 00 02 00 00 00 00 00 00 00 00 00 00
@@ -66,7 +66,7 @@
     <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
     <rom index="3" md5="none">
         <part>
-            00 31 7F 2D 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 3D DE F8 00 FF 00 02 00 02 00 01 11 11 00 00
             00 00 80 4E 00 30 00 9F
         </part>
     </rom>

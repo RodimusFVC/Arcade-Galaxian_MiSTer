@@ -34,7 +34,7 @@
         <dip name="Cabinet" bits="31" ids="Upright,Cocktail"/>
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
     <rom index="0" md5="none" zip="bongog.zip|bongo.zip">
         <part crc="ebcc50bb" name="1-2532.bin"/>
         <part crc="a19da662" name="2-2532.bin"/>
@@ -50,7 +50,7 @@
         <part crc="c5f12bc3" name="82s123.6l"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
     <rom index="1">
         <part>
             01 90 00 40 60 04 18 00 00 00 00 00 00 00 00 00

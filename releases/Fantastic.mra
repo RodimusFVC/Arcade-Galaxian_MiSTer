@@ -1,0 +1,88 @@
+<misterromdescription>
+    <name>Fantastic</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Fantastic</series>
+    <year>198?</year>
+    <manufacturer>Taito do Brasil</manufacturer>
+    <category>Shooter</category>
+
+    <setname>fantastc</setname>
+    <parent>fantastc</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="C1,3C,F1,FF">
+        <dip name="Unknown" bits="0" ids="Off,On" values="1,0"/>
+        <dip name="Service Mode" bits="5" ids="Off,On"/>
+        <dip name="Extended Bonus Life" bits="6" ids="Off,On"/>
+        <dip name="Unknown" bits="7" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="10" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="11" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="12" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="13" ids="Off,On" values="1,0"/>
+        <dip name="Coinage" bits="14" ids="1C/1C,2C/1C"/>
+        <dip name="Lives" bits="15" ids="3,5"/>
+        <dip name="Difficulty" bits="16,17" ids="Easy,Medium,Hard,Hardest"/>
+        <dip name="Bonus Life" bits="18,19" ids="20000 80000,30000 80000,20000 120000,30000 120000"/>
+        <dip name="Unknown" bits="20" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="21" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="22" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="23" ids="Off,On" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="fantastc.zip">
+        <part crc="8019f0b7" name="f1"/>
+        <part crc="988a9bc6" name="f2"/>
+        <part crc="a3c0cc0b" name="f3"/>
+        <part crc="c1361be8" name="f4"/>
+        <part crc="6787e93f" name="f5"/>
+        <part crc="597029ae" name="f6"/>
+        <part crc="8de08d9a" name="f7"/>
+        <part crc="489e2fb7" name="f8"/>
+        <part repeat="0x8000">00</part>
+        <part crc="3a54f749" name="37"/>
+        <part repeat="0x1000">00</part>
+        <part crc="88b71264" name="38"/>
+        <part repeat="0x1000">00</part>
+        <part crc="800f5718" name="prom-74g138"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            01 90 00 03 80 04 02 00 03 2D 00 00 00 00 00 00
+            00 11 03 04 05 00 00 00 13 14 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 25 1F 62 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 82 AF 00 1B D0 07
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="27"></nvram>
+
+    <remark>Fantastic (Galaga Conversion On Galaxian Hardware) (Taito Do Brasil)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

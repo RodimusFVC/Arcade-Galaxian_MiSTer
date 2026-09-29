@@ -24,12 +24,14 @@ HISCORE_DAT = Path("/CybertronMD/Mame/plugins/hiscore/hiscore.dat")   # current 
 HISCORE_HEADER_TAIL = "00 FF 00 02 00 02 00 01 11 11 00 00"
 # START_WAIT = last boot-time write to the hiscore.dat ranges, measured in MAME (write taps, 30 s, bytes rewritten
 # every frame excluded), + 2 frames. Keyed by a reference set per distinct hiscore.dat layout.
-HISCORE_INIT_FRAME = {"galaxian": 87, "starfght": 211, "moonaln": 215, "exodus": 217, "warofbug": 1, "blkhole": 0,
-                      "orbitron": 0, "azurian": 1, "mooncrst": 2, "mooncrsto": 2, "mooncrstg": 2, "mooncrgx": 2,
-                      "moonqsr": 2, "moonal2": 40, "thepitm": 0, "ckongmc": 5, "porter": 2, "skybase": 66, "kong": 5,
-                      "scorpionmc": 0, "bongo": 3, "jumpbug": 4, "levers": 0,
-                      "checkman": 0, "checkmanj": 0, "dingo": 12,
-                      "zigzagb": 13, "fantastc": 0, "timefgtr": 1}
+# Measured on the CORE (Verilator write trace, verilator/hsmeasure/run.py): the last boot-time change to the table,
+# ignoring attract-mode rewrites and live counters inside a range. MAME frames are too early: the core boots up to
+# ~44 frames later, and a restore that lands mid-boot loops the RAM test (Galaxian, 2026-09-29).
+HISCORE_INIT_FRAME = {"galaxian": 132, "starfght": 127, "exodus": 133, "warofbug": 3, "blkhole": 1, "orbitron": 0,
+                      "azurian": 2, "mooncrst": 3, "mooncrsto": 3, "mooncrstg": 3, "mooncrgx": 3, "moonqsr": 3,
+                      "moonal2": 127, "thepitm": 0, "ckongmc": 8, "porter": 3, "skybase": 36, "kong": 6,
+                      "scorpionmc": 107, "bongo": 160, "jumpbug": 7, "levers": 2, "checkman": 0, "checkmanj": 0,
+                      "dingo": 13, "zigzagb": 17, "fantastc": 1, "timefgtr": 2, "frogger": 1, "moonaln": 131}
 # colour PROMs never dumped: stand-in from a related set, (zip, file, crc). Kong (Taito do Brasil) takes Crazy Kong's
 # first palette PROM (user, 2026-09-29) - same byte layout; which colour group goes where is a guess
 PROM_STANDIN = {"kong": ("ckong.zip", "ck6v.bin", "751c3325"),
@@ -37,6 +39,8 @@ PROM_STANDIN = {"kong": ("ckong.zip", "ck6v.bin", "751c3325"),
                 "timefgtr": ("fantastc.zip", "prom-74g138", "800f5718")}
 # hiscore.dat entries that can't work here: atlantisb's range is live game state, omegab's C060 is unmapped
 HISCORE_SKIP = {"atlantisb", "omegab"}
+# layouts (by reference set) waiting for a core measurement: no hiscore entry for any set on them until then
+HISCORE_PENDING = set()
 CLK_HZ, FRAME_HZ = 49_152_000, 60.61
 
 # region -> (base in ioctl index 0, size taken); "gfx1" is split by plane into gfx1_p0 / gfx1_p1
@@ -45,7 +49,7 @@ REGIONS = {
     "gfx1_p0": (0x10000, 0x02000),
     "gfx1_p1": (0x12000, 0x02000),
     "proms":   (0x14000, 0x00020),
-    "audiocpu": (0x18000, 0x01000),
+    "audiocpu": (0x18000, 0x02000),
     "gfx2_p0": (0x11000, 0x01000),         # separate sprite ROM: upper half of each plane (code extension 8)
     "gfx2_p1": (0x13000, 0x01000),
 }
@@ -67,6 +71,10 @@ S_BOARD, S_JAPAN, S_CMD_OUT, S_DECRYPT, S_PROT_CM, S_PROT_DINGO = 0x01, 0x02, 0x
 V2_SPR2, V2_SHELLS_C0, V2_NOSHELLS, V2_PAGE = 0x01, 0x02, 0x04, 0x08
 B4_OBJ1K, B4_ROMSWAP, B4_UNSCRAMBLE, B4_AY2, B4_ZZAY, B4_AY3M = 0x01, 0x02, 0x04, 0x08, 0x10, 0x20
 X_SPRITE_ROM = 8
+M_FROGGER = 5
+# video flags 3 (10th field), board flags 5 (11th field)
+V3_FROGGER = 0x0F                                               # nibble swap, colour rotate, blue river, gfx D0/D1
+B5_KONAMI, B5_TWO_AY, B5_SND_SWAP01 = 0x01, 0x02, 0x04
 MC = B_NMI0 | B_MCSND                                           # mooncrst_map: NMI enable at B000, MOONCRST_SOUND
 SUPPORTED = {
     ("galaxian", "init_galaxian"):  (M_GAL, 0, 0, 0, 0),
@@ -99,6 +107,9 @@ SUPPORTED = {
                                      B4_OBJ1K | B4_UNSCRAMBLE | B4_AY2 | B4_AY3M),
     ("timefgtr", "init_timefgtr"):  (M_MC, 0, B_NMI0 | B_RAM2K, 0x80, X_UPPER, B2_NODISC, 0,
                                      V2_SPR2 | V2_SHELLS_C0 | V2_PAGE, B4_OBJ1K | B4_AY2 | B4_AY3M),
+    # Konami sound board
+    ("frogger", "init_frogger"):    (M_FROGGER, 0, 0, 0, 0, B2_NODISC, 0, V2_NOSHELLS, 0, V3_FROGGER,
+                                     B5_KONAMI | B5_SND_SWAP01),
 }
 
 F_4WAY, F_IMPULSE, F_VERT, F_ROT90 = 0x01, 0x04, 0x10, 0x80
@@ -448,7 +459,8 @@ HISCORES = parse_hiscores(HISCORE_DAT) if HISCORE_DAT.exists() else {}
 
 def hiscore_xml(g):
     lines = HISCORES.get(g["name"])
-    if not lines or g["name"] in HISCORE_SKIP:
+    pending = {tuple(HISCORES[n]) for n in HISCORE_PENDING if n in HISCORES}
+    if not lines or g["name"] in HISCORE_SKIP or tuple(lines) in pending:
         return ""
     ents = []
     for line in lines:
@@ -480,7 +492,7 @@ def hiscore_xml(g):
 def mra(g, games, segs, build_inputs):
     variant, vflags, bflags, rom_top, ext, *rest = SUPPORTED[(g["machine"], g["init"])]
     bflags2 = rest[0] if rest else 0
-    bflags3, vflags2, bflags4 = (list(rest[1:]) + [0, 0, 0])[:3]
+    bflags3, vflags2, bflags4, vflags3, bflags5 = (list(rest[1:]) + [0] * 5)[:5]
     idle, dips, imap, fourway, buttons, tb_rev, impulse = input_config(g, build_inputs(g["inputs"]))
     flags = (F_4WAY if fourway else 0) | (F_IMPULSE if impulse else 0) | \
             (F_VERT if g["rot"] in ("ROT90", "ROT270") else 0) | \
@@ -512,7 +524,8 @@ def mra(g, games, segs, build_inputs):
 
     dip_lines = "\n".join(f'        <dip name="{n}" bits="{b}" ids="{i}"' + (f' values="{v}"' if v else "") + "/>"
                           for n, b, i, v in dips)
-    cfg = [variant, flags, vflags, bflags, rom_top, ext, bflags2, bflags3, vflags2, bflags4] + [0] * 6 + imap
+    cfg = [variant, flags, vflags, bflags, rom_top, ext, bflags2, bflags3, vflags2, bflags4, vflags3, bflags5] + \
+          [0] * 4 + imap
     cfg_rows = "\n".join("            " + " ".join(f"{b:02X}" for b in cfg[i:i + 16]) for i in range(0, len(cfg), 16))
     return f"""<misterromdescription>
     <name>{display_name(g)}</name>

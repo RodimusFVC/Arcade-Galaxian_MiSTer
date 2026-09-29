@@ -34,7 +34,7 @@
         <dip name="Coinage" bits="16,19" ids="4C/1C,6C / 2C,3C/1C,6C / 3C,7C / 3C,4C/2C,2C/1C,3C/2C,4C/3C,1C/1C,1C / 1C (duplicate 1),1C / 1C (duplicate 2),1C / 1C (duplicate 3),1C/2C,2C/3C,Free Play" values="2,7,12,3,11,13,4,9,5,8,6,10,14,0,1,15"/>
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
     <rom index="0" md5="none" zip="kamikazp.zip|galaxian.zip">
         <part crc="4a29bbe4" name="kk1pmc.bin"/>
         <part crc="65c57131" name="kk2pmc.bin"/>
@@ -50,7 +50,7 @@
         <part crc="6a0c7d87" name="prom.6l"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
     <rom index="1">
         <part>
             00 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00

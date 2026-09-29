@@ -10,7 +10,7 @@
 //   0x10000 - 0x11FFF  gfx plane 0       "gfx1" first half
 //   0x12000 - 0x13FFF  gfx plane 1       "gfx1" second half
 //   0x14000 - 0x1401F  colour PROM       "proms"
-//   0x18000 - 0x18FFF  sound CPU         "audiocpu"
+//   0x18000 - 0x19FFF  sound CPU         "audiocpu"
 //
 // ioctl index 1: board variant, flags and input map (see the top level)
 // ioctl indexes 3 and 4 are reserved for hiscore config and NVRAM
@@ -31,6 +31,6 @@ module selector
         else if (ioctl_addr < 25'h12000) gfx0_cs = 1'b1;
         else if (ioctl_addr < 25'h14000) gfx1_cs = 1'b1;
         else if (ioctl_addr < 25'h14020) pal_cs  = 1'b1;
-        else if (ioctl_addr >= 25'h18000 && ioctl_addr < 25'h19000) snd_cs = 1'b1;
+        else if (ioctl_addr >= 25'h18000 && ioctl_addr < 25'h1A000) snd_cs = 1'b1;
     end
 endmodule

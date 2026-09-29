@@ -34,7 +34,7 @@
         <dip name="Cabinet" bits="31" ids="Upright,Cocktail"/>
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
     <rom index="0" md5="none" zip="bongo.zip">
         <part crc="de9a8ec6" name="bg1.bin"/>
         <part crc="a19da662" name="bg2.bin"/>
@@ -50,7 +50,7 @@
         <part crc="c4761ada" name="b-clr.bin"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
     <rom index="1">
         <part>
             01 90 00 00 60 04 06 00 00 00 00 00 00 00 00 00
@@ -62,7 +62,7 @@
     <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
     <rom index="3" md5="none">
         <part>
-            00 3D DE F8 00 FF 00 02 00 02 00 01 11 11 00 00
+            07 D4 9E A5 00 FF 00 02 00 02 00 01 11 11 00 00
             00 00 83 00 00 11 00 15
             00 00 83 01 00 01 05 05
         </part>

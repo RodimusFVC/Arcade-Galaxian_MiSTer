@@ -25,6 +25,9 @@ module galaxian_video
                                         // 8 sprites from the upper half of the planes (separate sprite ROM, Zig Zag)
     input         [3:0] vflags2,        // [0] second sprite generator (objram 60-7F), [1] shells at objram C0,
                                         // [2] no shells, [3] sprite RAM page per 64 lines (Time Fighter)
+    input         [3:0] vflags3,        // Frogger: [0] scroll and sprite Y nibbles swapped, [1] colour rotated right,
+                                        // [2] blue (47) background on one half, [3] second gfx plane D0 / D1 swapped
+                                        // (undone on reads: the config arrives after the ROM download)
     input         [3:0] gfxbank,        // bank 0 (D1-D0), bank 1, bank 2
     input               gfxbank4,       // Jump Bug bank 4
     input               stars_232,      // no stars from H = 232 on (Jump Bug status area)
@@ -92,6 +95,7 @@ dpram_dc #(.widthad_a(10)) objram_s
 // gfx planes: port A = ROM load / sprite fetch, port B = tile fetch
 reg  [12:0] gs_addr, gt_addr;
 wire  [7:0] g0s_q, g1s_q, g0t_q, g1t_q;
+wire  [7:0] g1s_raw, g1t_raw;
 wire [12:0] ga = gfx0_we | gfx1_we ? ioctl_addr[12:0] : gs_addr;
 
 dpram_dc #(.widthad_a(13)) gfx0
@@ -102,9 +106,12 @@ dpram_dc #(.widthad_a(13)) gfx0
 
 dpram_dc #(.widthad_a(13)) gfx1
 (
-    .clock_a(clk), .address_a(ga), .data_a(ioctl_dout), .wren_a(gfx1_we), .q_a(g1s_q),
-    .clock_b(clk), .address_b(gt_addr), .q_b(g1t_q)
+    .clock_a(clk), .address_a(ga), .data_a(ioctl_dout), .wren_a(gfx1_we), .q_a(g1s_raw),
+    .clock_b(clk), .address_b(gt_addr), .q_b(g1t_raw)
 );
+
+assign g1s_q = vflags3[3] ? {g1s_raw[7:2], g1s_raw[0], g1s_raw[1]} : g1s_raw;
+assign g1t_q = vflags3[3] ? {g1t_raw[7:2], g1t_raw[0], g1t_raw[1]} : g1t_raw;
 
 reg [7:0] pal[32];
 always @(posedge clk) if (pal_we) pal[ioctl_addr[4:0]] <= ioctl_dout;
@@ -161,7 +168,12 @@ reg  [2:0] cur_col = 3'd0, nxt_col = 3'd0;
 reg  [2:0] t_line;
 wire [7:0] xn    = {x[7:3] + 5'd1, 3'b000} ^ {8{flip_x}};
 wire [7:0] vf    = y ^ {8{flip_y}};
-wire [7:0] t_sum = vf + ot_q;
+// Frogger: the scroll byte's nibbles are swapped entering the adder; colours rotate right by one
+wire [7:0] ot_sc = vflags3[0] ? {ot_q[3:0], ot_q[7:4]} : ot_q;
+wire [7:0] t_sum = vf + ot_sc;
+function [2:0] col_fix(input [2:0] c);
+    col_fix = vflags3[1] ? {c[0], c[2:1]} : c;
+endfunction
 
 always @(posedge clk) begin
     if (x[2:0] == 3'd0) begin
@@ -169,7 +181,7 @@ always @(posedge clk) begin
             3'd1: ot_addr <= {2'b00, xn[7:3], 1'b0};
             3'd2: ot_addr <= {2'b00, xn[7:3], 1'b1};
             3'd3: begin vr_addr <= {t_sum[7:3], xn[7:3]}; t_line <= t_sum[2:0]; end
-            3'd4: nxt_col <= ot_q[2:0];
+            3'd4: nxt_col <= col_fix(ot_q[2:0]);
             3'd5: gt_addr <= {tile_code(vr_q, ot_q), t_line};
             3'd7: begin nxt_p0 <= g0t_q; nxt_p1 <= g1t_q; end
             default: ;
@@ -257,9 +269,9 @@ always @(posedge clk) begin
             4'd0: case (ph)
                 3'd1: os_addr <= {spage, 3'b010, sn, 2'd0};
                 3'd2: os_addr <= {spage, 3'b010, sn, 2'd1};
-                3'd3: begin os_addr <= {spage, 3'b010, sn, 2'd2}; s_sum <= s_vf + os_q; end
+                3'd3: begin os_addr <= {spage, 3'b010, sn, 2'd2}; s_sum <= s_vf + (vflags3[0] ? {os_q[3:0], os_q[7:4]} : os_q); end
                 3'd4: begin os_addr <= {spage, 3'b010, sn, 2'd3}; s_code <= os_q[5:0]; s_fx <= os_q[6]; s_fy <= os_q[7]; end
-                3'd5: begin s_color <= os_q[2:0]; s_attr <= os_q; end
+                3'd5: begin s_color <= col_fix(os_q[2:0]); s_attr <= os_q; end
                 3'd6: begin s_x <= os_q; s_hit <= s_sum[7:4] == 4'hF; end
                 default: ;
             endcase
@@ -402,12 +414,16 @@ wire       st_en  = (y[0] ^ flip_y) ^ (x[3] ^ flip_x);
 wire [6:0] st     = star_b[6] ? star_b : star_a;
 wire       st_on  = stars_on & st_en & st[6] & ~(stars_232 & bx >= 8'd232);
 
+// Frogger river: blue left of H = 128 (right of it when flipped), per MAME frogger_draw_background
+wire bg_blue = vflags3[2] & (flip_x ? x >= 8'd128 : x < 8'd128);
+
 reg [23:0] rgb;
 always @(*) begin
     if (missile_on)                  rgb = 24'hFFFF00;
     else if (shell_on)               rgb = bullet_mode ? 24'hFFFF00 : 24'hFFFFFF;
     else if (pen != 2'd0)            rgb = {RG_LUT[pv[2:0]*8 +: 8], RG_LUT[pv[5:3]*8 +: 8], B_LUT[pv[7:6]*8 +: 8]};
     else if (st_on)                  rgb = {ST_LUT[{st[4], st[5]}*8 +: 8], ST_LUT[{st[2], st[3]}*8 +: 8], ST_LUT[{st[0], st[1]}*8 +: 8]};
+    else if (bg_blue)                rgb = 24'h000047;
     else                             rgb = 24'd0;
 end
 

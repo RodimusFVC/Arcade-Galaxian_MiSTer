@@ -1,0 +1,64 @@
+<misterromdescription>
+    <name>Frogger - New Serie 92 (Bootleg)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Frogger</series>
+    <year>1992</year>
+    <manufacturer>bootleg (Eurobed)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>froggereb</setname>
+    <parent>frogger</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>4-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>0</num_buttons>
+    <buttons names="Not Used,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FC,F1,00">
+        <dip name="Lives" bits="8,9" ids="3,5,7,256 (Cheat)"/>
+        <dip name="Coinage" bits="17,18" ids="A 2/1 B 2/1 C 2/1,A 2/1 B 1/3 C 2/1,A 1/1 B 1/1 C 1/1,A 1/1 B 1/6 C 1/1" values="1,2,0,3"/>
+        <dip name="Cabinet" bits="19" ids="Upright,Cocktail"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="froggereb.zip|frogger.zip">
+        <part crc="597696d6" name="epr-26.ic5"/>
+        <part crc="b6e6fcc3" name="epr-27.ic6"/>
+        <part crc="a9947b9a" name="ic7"/>
+        <part repeat="0xD000">00</part>
+        <part crc="05f7d883" name="epr-607.ic101"/>
+        <part repeat="0x1800">00</part>
+        <part crc="f524ee30" name="epr-606.ic102"/>
+        <part repeat="0x1800">00</part>
+        <part crc="413703bf" name="pr-91.6l"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="e8ab0256" name="epr-608.ic32"/>
+        <part crc="7380a48f" name="epr-609.ic33"/>
+        <part crc="31d7eb27" name="epr-610.ic34"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            05 91 00 00 00 00 02 00 04 00 0F 05 00 00 00 00
+            09 00 16 00 04 03 12 11 00 00 00 00 0C 0B 14 13
+            0A 00 00 00 01 00 02 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Frogger - New Serie 92 (Bootleg) (Eurobed Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>
