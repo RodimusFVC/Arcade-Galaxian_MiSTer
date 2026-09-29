@@ -1,0 +1,79 @@
+<misterromdescription>
+    <name>Moon Alien Part 2 (Older Version)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Moon Alien Part 2</series>
+    <year>1980</year>
+    <manufacturer>Namco / Nichibutsu</manufacturer>
+    <category>Shooter</category>
+
+    <setname>moonal2b</setname>
+    <parent>moonal2</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,00,FF">
+        <dip name="Cabinet" bits="5" ids="Upright,Cocktail"/>
+        <dip name="Service Mode" bits="6" ids="Off,On"/>
+        <dip name="Coinage" bits="14,15" ids="2C/1C,1C/1C,1C/2C,Free Play" values="1,0,2,3"/>
+        <dip name="Bonus Life" bits="16,17" ids="4000,5000,7000,None" values="1,2,3,0"/>
+        <dip name="Lives" bits="18" ids="3,5"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="moonal2b.zip|moonal2.zip">
+        <part crc="d41fd873" name="md-1.a"/>
+        <part crc="8318b187" name="md-2.b"/>
+        <part crc="b2170d3b" name="md-3.d"/>
+        <part crc="baa4d0bf" name="md-4.g"/>
+        <part crc="61afb53c" name="md-5.h"/>
+        <part crc="9cc973e0" name="md-6.f"/>
+        <part repeat="0xD000">00</part>
+        <part crc="a1287bf6" name="md-13.h1" offset="0x0" length="0x800"/>
+        <part crc="a1287bf6" name="md-13.h1" offset="0x0" length="0x800"/>
+        <part repeat="0x1000">00</part>
+        <part crc="528f1481" name="md-12.k1" offset="0x0" length="0x800"/>
+        <part crc="528f1481" name="md-12.k1" offset="0x0" length="0x800"/>
+        <part repeat="0x1000">00</part>
+        <part crc="c3ac9467" name="6331.l6"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            01 90 00 41 00 00 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 05 00 00 16 13 14 0B 0C 0D 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            02 07 B7 5A 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 80 A8 00 03 00 00
+            00 00 83 F4 00 02 FF FF
+            00 00 83 FD 00 01 FF FF
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="6"></nvram>
+
+    <remark>Moon Alien Part 2 (Older Version) (Namco / Nichibutsu)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

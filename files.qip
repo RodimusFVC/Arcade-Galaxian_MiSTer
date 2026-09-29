@@ -1,0 +1,16 @@
+set_global_assignment -name VHDL_INPUT_VERSION VHDL_2008
+
+set_global_assignment -name SYSTEMVERILOG_FILE Arcade-Galaxian.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_board.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_video.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_sound.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_sndcpu.sv
+
+set_global_assignment -name QIP_FILE rtl/cpu/T80/T80.qip
+set_global_assignment -name QIP_FILE rtl/sound/v_sound.qip
+
+set_global_assignment -name VERILOG_FILE rtl/mister_custom/pause.v
+set_global_assignment -name VERILOG_FILE rtl/mister_custom/hiscore.v
+
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/ram_rom/rom_loader.sv
+set_global_assignment -name VHDL_FILE rtl/ram_rom/dpram_dc.vhd

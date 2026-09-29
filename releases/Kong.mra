@@ -1,0 +1,91 @@
+<misterromdescription>
+    <name>Kong</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Kong</series>
+    <year>198?</year>
+    <manufacturer>Taito do Brasil</manufacturer>
+    <category>Shooter</category>
+
+    <setname>kong</setname>
+    <parent>kong</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="One Player Start/Jump,Two Player Start/Jump,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="11,1C,F8,FF">
+        <dip name="Unknown" bits="0" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="4" ids="Off,On" values="1,0"/>
+        <dip name="Service Mode" bits="5" ids="Off,On"/>
+        <dip name="99 Men/Max Timer (Cheat)" bits="6" ids="Off,On"/>
+        <dip name="Unknown" bits="10" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="11" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="12" ids="Off,On" values="1,0"/>
+        <dip name="Lives" bits="14" ids="3,5"/>
+        <dip name="Coinage" bits="15" ids="1C/1C,2C/1C"/>
+        <dip name="Bonus Life" bits="16,17" ids="10000,20000,30000,None"/>
+        <dip name="Mode" bits="18" ids="Tournament (harder),Normal" values="1,0"/>
+        <dip name="Unknown" bits="19" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="20" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="21" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="22" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="23" ids="Off,On" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="kong.zip|ckong.zip">
+        <part crc="a206beb5" name="1"/>
+        <part crc="d75597b6" name="2"/>
+        <part crc="54e0b87b" name="3"/>
+        <part crc="356c4ca2" name="4"/>
+        <part crc="2d295976" name="5"/>
+        <part crc="77131cca" name="6"/>
+        <part crc="3d5ec3f1" name="7"/>
+        <part crc="015fe5e5" name="8"/>
+        <part repeat="0x8000">00</part>
+        <part crc="fe42a052" name="9"/>
+        <part crc="ad2b2cdd" name="11"/>
+        <part repeat="0x1000">00</part>
+        <part crc="91fa187e" name="10"/>
+        <part crc="b74724df" name="12"/>
+        <part repeat="0x1000">00</part>
+        <part crc="751c3325" name="ck6v.bin"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            01 90 00 43 80 04 00 00 00 00 00 00 00 00 00 00
+            00 11 03 04 00 00 00 01 05 06 00 00 00 02 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 56 9E 8F 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 82 7F 00 19 10 00
+            00 00 82 96 00 01 46 46
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="26"></nvram>
+
+    <remark>Kong (Donkey Kong Conversion On Galaxian Hardware) (Taito Do Brasil)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

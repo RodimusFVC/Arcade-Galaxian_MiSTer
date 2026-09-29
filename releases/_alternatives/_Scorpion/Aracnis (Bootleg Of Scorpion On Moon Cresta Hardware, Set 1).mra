@@ -1,0 +1,92 @@
+<misterromdescription>
+    <name>Aracnis (Bootleg Of Scorpion On Moon Cresta Hardware, Set 1)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Scorpion</series>
+    <year>19??</year>
+    <manufacturer>bootleg</manufacturer>
+    <category>Shooter</category>
+
+    <setname>aracnis</setname>
+    <parent>scorpion</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="20,F8,F5,FF">
+        <dip name="Unknown" bits="5" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="11" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="12" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="13" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="14" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="15" ids="Off,On" values="1,0"/>
+        <dip name="Coinage" bits="16,17" ids="2C/1C,1C/1C,1C/2C,1C/3C"/>
+        <dip name="Lives" bits="18,19" ids="2,3,4,5"/>
+        <dip name="Unknown" bits="20" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="21" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="22" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="23" ids="Off,On" values="1,0"/>
+        <dip name="0xb002" bits="24" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="25" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="26" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="27" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="28" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="29" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="30" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="31" ids="Off,On" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="aracnis.zip|scorpion.zip">
+        <part crc="c7e0d6b9" name="00sc.bin"/>
+        <part crc="03eb27dc" name="01sc.bin"/>
+        <part crc="f3d49d4f" name="02sc.bin"/>
+        <part crc="0e741984" name="03sc.bin"/>
+        <part repeat="0x1000">00</part>
+        <part crc="f27ee3e4" name="05sc.bin"/>
+        <part crc="fdfc2c82" name="06sc.bin"/>
+        <part repeat="0x9800">00</part>
+        <part crc="1e5da9d6" name="08sc.1h"/>
+        <part repeat="0x1000">00</part>
+        <part crc="a57adb0a" name="07sc.1k"/>
+        <part repeat="0x1000">00</part>
+        <part crc="24652bc4" name="mmi6331-1.6l"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            02 90 00 40 00 05 00 00 00 00 00 00 00 00 00 00
+            16 11 03 04 05 00 06 01 13 14 02 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 18 BF 97 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 42 07 00 0F 00 00
+            00 00 42 AD 00 0F 10 10
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="30"></nvram>
+
+    <remark>Aracnis (Bootleg Of Scorpion On Moon Cresta Hardware, Set 1)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

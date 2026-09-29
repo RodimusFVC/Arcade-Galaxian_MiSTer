@@ -1,0 +1,80 @@
+<misterromdescription>
+    <name>Moon Alien</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Galaxian</series>
+    <year>1979</year>
+    <manufacturer>Namco / Nichibutsu (Karateco license?)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>moonaln</setname>
+    <parent>galaxian</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,01,FF">
+        <dip name="Cabinet" bits="5" ids="Upright,Cocktail"/>
+        <dip name="Service Mode" bits="6" ids="Off,On"/>
+        <dip name="Coinage" bits="14,15" ids="2C/1C,1C/1C,1C/2C,Free Play" values="1,0,2,3"/>
+        <dip name="Bonus Life" bits="16,17" ids="None,4000,5000,7000"/>
+        <dip name="Lives" bits="18" ids="3,5"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="moonaln.zip|galaxian.zip">
+        <part crc="79e4007d" name="galx.u"/>
+        <part crc="59580b30" name="prg2.bin"/>
+        <part crc="b64e9d12" name="prg3.bin"/>
+        <part crc="9463f753" name="superg.y"/>
+        <part crc="8bb78987" name="prg5.bin"/>
+        <part repeat="0xD800">00</part>
+        <part crc="074271dd" name="ca1.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="84d90397" name="ca2.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="c3ac9467" name="6l.bpr"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 05 00 00 16 13 14 0B 0C 0D 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            0A 7D 33 51 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 44 A8 00 03 00 00
+            00 00 55 A1 00 01 90 90
+            00 00 55 C1 00 01 90 90
+            00 00 55 E1 00 01 10 10
+            00 00 56 01 00 01 10 10
+            00 00 56 21 00 01 10 10
+            00 00 56 41 00 01 10 10
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="9"></nvram>
+
+    <remark>Moon Alien (Namco / Nichibutsu (Karateco License?))</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

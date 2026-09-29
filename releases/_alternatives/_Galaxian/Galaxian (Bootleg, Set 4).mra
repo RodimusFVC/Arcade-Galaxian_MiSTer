@@ -1,0 +1,74 @@
+<misterromdescription>
+    <name>Galaxian (Bootleg, Set 4)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Galaxian</series>
+    <year>1979</year>
+    <manufacturer>bootleg</manufacturer>
+    <category>Shooter</category>
+
+    <setname>galaxianbl2</setname>
+    <parent>galaxian</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,04,FF">
+        <dip name="Cabinet" bits="5" ids="Upright,Cocktail"/>
+        <dip name="Service Mode" bits="6" ids="Off,On"/>
+        <dip name="Coinage" bits="14,15" ids="2C/1C,1C/1C,1C/2C,Free Play" values="1,0,2,3"/>
+        <dip name="Lives" bits="18" ids="2,3"/>
+        <dip name="Bonus Life" bits="16,17" ids="None,10000,20000,30000"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="galaxianbl2.zip|galaxian.zip">
+        <part crc="d09b9f1a" name="h7.7h"/>
+        <part crc="f58283e3" name="j7.7j"/>
+        <part crc="4c7031c0" name="k7.7k"/>
+        <part crc="9471cdd3" name="l7.7l"/>
+        <part crc="5766c95b" name="m7.7m"/>
+        <part repeat="0xD800">00</part>
+        <part crc="977e37cf" name="kl1.1kl"/>
+        <part repeat="0x1800">00</part>
+        <part crc="d0ba22c9" name="hj1.1hj"/>
+        <part repeat="0x1800">00</part>
+        <part crc="c3ac9467" name="6331-1j.6l"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 05 00 00 16 13 14 0B 0C 0D 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            04 4D 4D AD 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 40 A8 00 03 00 00
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="3"></nvram>
+
+    <remark>Galaxian (Bootleg, Set 4)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

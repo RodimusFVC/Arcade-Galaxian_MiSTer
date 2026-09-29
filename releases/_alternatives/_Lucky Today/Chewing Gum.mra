@@ -1,0 +1,58 @@
+<misterromdescription>
+    <name>Chewing Gum</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Lucky Today</series>
+    <year>19??</year>
+    <manufacturer><unknown></manufacturer>
+    <category>Shooter</category>
+
+    <setname>chewing</setname>
+    <parent>luctoday</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,F0,FF">
+
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="chewing.zip|luctoday.zip">
+        <part crc="7470b347" name="1.bin"/>
+        <part repeat="0x1000">00</part>
+        <part crc="78ebed36" name="7l.bin"/>
+        <part repeat="0xD800">00</part>
+        <part crc="88c605f3" name="2.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="77ac016a" name="3.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="24652bc4" name="74s288.ch"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            11 00 03 04 05 00 00 12 13 00 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Chewing Gum (<unknown>)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

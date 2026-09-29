@@ -1,0 +1,75 @@
+<misterromdescription>
+    <name>Defend The Terra Attack On The Red UFO (Bootleg, Set 1)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Defend The Terra Attack On The Red UFO</series>
+    <year>1981</year>
+    <manufacturer>bootleg</manufacturer>
+    <category>Shooter</category>
+
+    <setname>redufob</setname>
+    <parent>redufo</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,02,FF">
+        <dip name="Cabinet" bits="5" ids="Upright,Cocktail"/>
+        <dip name="Service Mode" bits="6" ids="Off,On"/>
+        <dip name="Coinage" bits="14,15" ids="A 2C/1C  B 1C/3C,A 1C/1C  B 1C/6C,A 1C/2C  B 1C/12C,Free Play" values="1,0,2,3"/>
+        <dip name="Bonus Life" bits="16,17" ids="4000,5000,7000,None" values="1,2,3,0"/>
+        <dip name="Lives" bits="18" ids="3,5"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="redufob.zip|redufo.zip">
+        <part crc="5a8e4f37" name="ru1a"/>
+        <part crc="c624f52d" name="ru2a"/>
+        <part crc="e1030d1c" name="ru3a"/>
+        <part crc="7692069e" name="ru4a"/>
+        <part crc="cb648ff3" name="ru5a"/>
+        <part crc="e1a9f58e" name="ru6a"/>
+        <part repeat="0xD000">00</part>
+        <part crc="8a422b0d" name="ruhja"/>
+        <part repeat="0x1800">00</part>
+        <part crc="1eb84cb1" name="rukla"/>
+        <part repeat="0x1800">00</part>
+        <part crc="c3ac9467" name="6l.bpr"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 05 00 00 16 13 14 0B 0C 0D 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            04 4D 4D AD 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 40 A8 00 03 00 00
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="3"></nvram>
+
+    <remark>Defend The Terra Attack On The Red UFO (Bootleg, Set 1)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

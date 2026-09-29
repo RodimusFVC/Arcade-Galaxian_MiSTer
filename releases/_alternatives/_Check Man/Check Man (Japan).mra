@@ -1,0 +1,74 @@
+<misterromdescription>
+    <name>Check Man (Japan)</name>
+    <region>Japan</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Check Man</series>
+    <year>1982</year>
+    <manufacturer>Zilec-Zenitone (Jaleco license)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>checkmanj</setname>
+    <parent>checkman</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="P1 Tiles Left,P1 Tiles Right,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,00,FF">
+        <dip name="Coinage" bits="14" ids="A 2C/1C  B 1C/3C,A 1C/1C  B 1C/6C" values="1,0"/>
+        <dip name="Cabinet" bits="15" ids="Upright,Cocktail"/>
+        <dip name="Lives" bits="16,17" ids="3,4,5,6"/>
+        <dip name="Bonus Life" bits="18" ids="100000,200000"/>
+        <dip name="Difficulty Increases At Level" bits="19" ids="3,5" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="checkmanj.zip|checkman.zip">
+        <part crc="456a118f" name="cm_1.bin"/>
+        <part crc="146b2c44" name="cm_2.bin"/>
+        <part crc="73e1c945" name="cm_3.bin"/>
+        <part repeat="0xD800">00</part>
+        <part crc="476a7cc3" name="cm_6.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="b3df2b5f" name="cm_5.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="57a45057" name="checkman.clr"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="923cffa1" name="cm_4.bin"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 00 00 00 02 13 00 00 00 00 00 00 00 00
+            11 12 03 04 01 0E 0A 02 13 14 0B 0C 09 0D 00 00
+            00 00 00 00 06 05 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 18 BF 97 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 40 1B 00 48 00 00
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="72"></nvram>
+
+    <remark>Check Man (Japan) (Zilec-Zenitone (Jaleco License))</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

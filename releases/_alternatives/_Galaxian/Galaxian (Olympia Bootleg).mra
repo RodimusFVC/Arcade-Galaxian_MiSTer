@@ -1,0 +1,69 @@
+<misterromdescription>
+    <name>Galaxian (Olympia Bootleg)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Galaxian</series>
+    <year>1979</year>
+    <manufacturer>bootleg (Olympia)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>galaxianoly</setname>
+    <parent>galaxian</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,04,FF">
+        <dip name="Cabinet" bits="5" ids="Upright,Cocktail"/>
+        <dip name="Service Mode" bits="6" ids="Off,On"/>
+        <dip name="Coinage" bits="14,15" ids="2C/1C,1C/1C,1C/2C,Free Play" values="1,0,2,3"/>
+        <dip name="Lives" bits="18" ids="2,3"/>
+        <dip name="Bonus Life" bits="16,17" ids="None,10000,20000,30000"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="galaxianoly.zip|galaxian.zip">
+        <part crc="164b5c73" name="20.bin"/>
+        <part crc="cad1e702" name="21.bin"/>
+        <part crc="30e28016" name="22.bin"/>
+        <part crc="de7e7770" name="23.bin"/>
+        <part crc="a916c919" name="24.bin"/>
+        <part crc="9175882b" name="25.bin"/>
+        <part crc="5af35f13" name="26.bin"/>
+        <part crc="47f0d18a" name="27.bin"/>
+        <part crc="44b93d2e" name="28.bin"/>
+        <part crc="ad127c30" name="29.bin"/>
+        <part repeat="0xD800">00</part>
+        <part crc="724a2044" name="1h.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="656000a7" name="1k.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="c3ac9467" name="6l.bpr"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 05 00 00 16 13 14 0B 0C 0D 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Galaxian (Olympia Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

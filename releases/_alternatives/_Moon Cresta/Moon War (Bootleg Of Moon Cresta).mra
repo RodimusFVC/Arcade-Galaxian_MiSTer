@@ -1,0 +1,84 @@
+<misterromdescription>
+    <name>Moon War (Bootleg Of Moon Cresta)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Moon Cresta</series>
+    <year>198?</year>
+    <manufacturer>bootleg</manufacturer>
+    <category>Shooter</category>
+
+    <setname>mooncmw</setname>
+    <parent>mooncrst</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,80,00,FF">
+        <dip name="Cabinet" bits="5" ids="Upright,Cocktail"/>
+        <dip name="Bonus Life" bits="14" ids="30000,50000"/>
+        <dip name="Language" bits="15" ids="English,Japanese" values="1,0"/>
+        <dip name="Coinage" bits="18,19" ids="1C/1C,1C/2C,1C/3C,Free Play"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="mooncmw.zip|mooncrst.zip">
+        <part crc="322859e6" name="60.1x"/>
+        <part crc="c249902d" name="61.2x"/>
+        <part crc="29a2b0ab" name="62.3x"/>
+        <part crc="4c6a5a6d" name="63.4x"/>
+        <part crc="06d378a6" name="64.5x"/>
+        <part crc="6e84a927" name="65.6x"/>
+        <part crc="f23cd8ce" name="66.7x"/>
+        <part crc="66da55d5" name="67.8x"/>
+        <part repeat="0xC000">00</part>
+        <part crc="78663d86" name="68.1h" offset="0x0" length="0x800"/>
+        <part crc="78663d86" name="68.1h" offset="0x800" length="0x200"/>
+        <part crc="78663d86" name="68.1h" offset="0xC00" length="0x200"/>
+        <part crc="78663d86" name="68.1h" offset="0xA00" length="0x200"/>
+        <part crc="78663d86" name="68.1h" offset="0xE00" length="0x200"/>
+        <part repeat="0x1000">00</part>
+        <part crc="162c50d3" name="69.1k" offset="0x0" length="0x800"/>
+        <part crc="162c50d3" name="69.1k" offset="0x800" length="0x200"/>
+        <part crc="162c50d3" name="69.1k" offset="0xC00" length="0x200"/>
+        <part crc="162c50d3" name="69.1k" offset="0xA00" length="0x200"/>
+        <part crc="162c50d3" name="69.1k" offset="0xE00" length="0x200"/>
+        <part repeat="0x1000">00</part>
+        <part crc="6a0c7d87" name="prom-sn74s288n-71.6l"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            01 90 00 41 00 01 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 05 00 00 00 13 14 0B 0C 0D 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 31 7F 2D 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 80 42 00 54 00 24
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="84"></nvram>
+
+    <remark>Moon War (Bootleg Of Moon Cresta)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

@@ -1,0 +1,64 @@
+<misterromdescription>
+    <name>Galaxian Test ROM</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Galaxian</series>
+    <year>19??</year>
+    <manufacturer><unknown></manufacturer>
+    <category>Shooter</category>
+
+    <setname>tst_galx</setname>
+    <parent>galaxian</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,04,FF">
+        <dip name="Cabinet" bits="5" ids="Upright,Cocktail"/>
+        <dip name="Service Mode" bits="6" ids="Off,On"/>
+        <dip name="Coinage" bits="14,15" ids="2C/1C,1C/1C,1C/2C,Free Play" values="1,0,2,3"/>
+        <dip name="Bonus Life" bits="16,17" ids="7000,10000,12000,20000"/>
+        <dip name="Lives" bits="18" ids="2,3"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="tst_galx.zip|galaxian.zip">
+        <part crc="0614cd7f" name="test.u"/>
+        <part crc="9c999a40" name="galmidw.v"/>
+        <part crc="b5894925" name="galmidw.w"/>
+        <part crc="6b3ca10b" name="galmidw.y"/>
+        <part crc="1b933207" name="7l"/>
+        <part repeat="0xD800">00</part>
+        <part crc="39fb43a4" name="1h.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="7e3f56a2" name="1k.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="c3ac9467" name="6l.bpr"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 05 00 00 16 13 14 0B 0C 0D 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Galaxian Test ROM (<unknown>)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

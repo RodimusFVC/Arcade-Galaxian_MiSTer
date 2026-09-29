@@ -1,0 +1,64 @@
+<misterromdescription>
+    <name>GX Part 2 (Hack Of Galaxian)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Galaxian</series>
+    <year>1979</year>
+    <manufacturer>hack (International Scientific)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>galap2</setname>
+    <parent>galaxian</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,01,FF">
+        <dip name="Cabinet" bits="5" ids="Upright,Cocktail"/>
+        <dip name="Service Mode" bits="6" ids="Off,On"/>
+        <dip name="Coinage" bits="14,15" ids="2C/1C,1C/1C,1C/2C,Free Play" values="1,0,2,3"/>
+        <dip name="Bonus Life" bits="16,17" ids="None,4000,5000,7000"/>
+        <dip name="Lives" bits="18" ids="3,5"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="galap2.zip|galaxian.zip">
+        <part crc="acfde501" name="p2-1.1"/>
+        <part crc="65cf3c77" name="p2-2.2"/>
+        <part crc="9eef9ae6" name="p2-3.3"/>
+        <part crc="56a5ddd1" name="p2-4.4"/>
+        <part crc="f4bc7262" name="p2-5.5"/>
+        <part repeat="0xD800">00</part>
+        <part crc="3dcdb3d2" name="galii.1j"/>
+        <part repeat="0x1800">00</part>
+        <part crc="25789c21" name="galii.1k"/>
+        <part repeat="0x1800">00</part>
+        <part crc="c3ac9467" name="6l.bpr"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 05 00 00 16 13 14 0B 0C 0D 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <remark>GX Part 2 (Hack Of Galaxian) (Hack (International Scientific))</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

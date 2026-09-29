@@ -1,0 +1,74 @@
+<misterromdescription>
+    <name>Dingo</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Dingo</series>
+    <year>1983</year>
+    <manufacturer>Ashby Computers and Graphics Ltd. (Jaleco license)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>dingo</setname>
+    <parent>dingo</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,80,C1,FF">
+        <dip name="Cabinet" bits="14" ids="Upright,Cocktail"/>
+        <dip name="Coinage" bits="15" ids="A 1C/1C  B 1C/5C,A 2C/1C  B 1C/3C" values="1,0"/>
+        <dip name="Difficulty" bits="16,17" ids="Easiest,Easy,Hard,Hardest"/>
+        <dip name="Lives" bits="18" ids="3,4"/>
+        <dip name="Bonus Life" bits="19" ids="20000,40000"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="dingo.zip">
+        <part crc="d088550f" name="003.e7"/>
+        <part crc="a228446a" name="004.h7"/>
+        <part crc="14d680bb" name="005.j7"/>
+        <part repeat="0xD800">00</part>
+        <part crc="1ab1dd4d" name="001.h1"/>
+        <part repeat="0x1800">00</part>
+        <part crc="4be375ee" name="002.k1"/>
+        <part repeat="0x1800">00</part>
+        <part crc="3061d0f9" name="18s030.l6"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="047092e0" name="6.7l"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 00 00 00 02 23 00 00 00 00 00 00 00 00
+            11 12 03 04 01 0D 0A 02 13 14 0B 0C 09 0D 00 00
+            00 00 00 00 05 05 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 AD 3D 1E 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 40 28 00 31 00 00
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="49"></nvram>
+
+    <remark>Dingo (Ashby Computers And Graphics Ltd. (Jaleco License))</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

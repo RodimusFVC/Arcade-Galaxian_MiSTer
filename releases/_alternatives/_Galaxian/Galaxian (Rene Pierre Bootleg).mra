@@ -1,0 +1,74 @@
+<misterromdescription>
+    <name>Galaxian (Rene Pierre Bootleg)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Galaxian</series>
+    <year>1979</year>
+    <manufacturer>bootleg (Valadon Automation / Rene Pierre)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>galaxianrp</setname>
+    <parent>galaxian</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,01,FF">
+        <dip name="Cabinet" bits="5" ids="Upright,Cocktail"/>
+        <dip name="Service Mode" bits="6" ids="Off,On"/>
+        <dip name="Coinage" bits="14,15" ids="2C/1C,1C/1C,1C/2C,Free Play" values="1,0,2,3"/>
+        <dip name="Bonus Life" bits="16,17" ids="None,4000,5000,7000"/>
+        <dip name="Lives" bits="18" ids="3,5"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="galaxianrp.zip|galaxian.zip">
+        <part crc="e8f3aa67" name="4.7k"/>
+        <part crc="f58283e3" name="5.7j"/>
+        <part crc="4c7031c0" name="6.7h"/>
+        <part crc="097d92a2" name="7.7f"/>
+        <part crc="5341d75a" name="3.7l"/>
+        <part repeat="0xD800">00</part>
+        <part crc="b8629cc6" name="2.1j"/>
+        <part repeat="0x1800">00</part>
+        <part crc="6d42351c" name="1.1l"/>
+        <part repeat="0x1800">00</part>
+        <part crc="c3ac9467" name="6l.bpr"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 05 00 00 16 13 14 0B 0C 0D 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            04 4D 4D AD 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 40 A8 00 03 00 00
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="3"></nvram>
+
+    <remark>Galaxian (Rene Pierre Bootleg) (Valadon Automation / Rene Pierre Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

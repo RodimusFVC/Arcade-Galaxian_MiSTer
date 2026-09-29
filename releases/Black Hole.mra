@@ -1,0 +1,73 @@
+<misterromdescription>
+    <name>Black Hole</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Black Hole</series>
+    <year>1981</year>
+    <manufacturer>TDS & MINTS</manufacturer>
+    <category>Shooter</category>
+
+    <setname>blkhole</setname>
+    <parent>blkhole</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,02,FF">
+        <dip name="Coinage" bits="14,15" ids="2C/1C,1C/1C,1C/2C,1C/3C" values="3,0,1,2"/>
+        <dip name="Bonus Life" bits="16" ids="5000,10000"/>
+        <dip name="Cabinet" bits="17" ids="Upright,Cocktail" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="blkhole.zip">
+        <part crc="64998819" name="bh1"/>
+        <part crc="26f26ce4" name="bh2"/>
+        <part crc="3418bc45" name="bh3"/>
+        <part crc="735ff481" name="bh4"/>
+        <part crc="3f657be9" name="bh5"/>
+        <part crc="a057ab35" name="bh6"/>
+        <part repeat="0xD000">00</part>
+        <part crc="975ba821" name="bh7"/>
+        <part repeat="0x1800">00</part>
+        <part crc="03d11020" name="bh8"/>
+        <part repeat="0x1800">00</part>
+        <part crc="c3ac9467" name="6l.bpr"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            11 00 03 04 05 00 00 00 13 14 0B 0C 0D 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 18 BF 97 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 41 40 00 09 58 00
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="9"></nvram>
+
+    <remark>Black Hole (TDS & MINTS)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

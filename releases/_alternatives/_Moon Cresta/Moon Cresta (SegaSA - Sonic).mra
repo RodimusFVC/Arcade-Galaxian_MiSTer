@@ -1,0 +1,69 @@
+<misterromdescription>
+    <name>Moon Cresta (SegaSA / Sonic)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Moon Cresta</series>
+    <year>1980</year>
+    <manufacturer>bootleg (Sonic)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>mooncrstso</setname>
+    <parent>mooncrst</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,C0,03,FF">
+        <dip name="Cabinet" bits="5" ids="Upright,Cocktail"/>
+        <dip name="Difficulty" bits="14" ids="Easy,Hard" values="1,0"/>
+        <dip name="Player's Bullet Speed" bits="15" ids="Slow,Fast"/>
+        <dip name="Coin B" bits="18,19" ids="1C/1C,1C/2C,1C/3C,Free Play"/>
+        <dip name="Coin A" bits="16,17" ids="1C/2C,2C/3C,3C/4C,4C/5C"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000, colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="mooncrstso.zip|mooncrst.zip">
+        <part crc="0357ab1a" name="1.bin"/>
+        <part crc="cf6e78f5" name="2.bin"/>
+        <part crc="716eaa10" name="3.bin"/>
+        <part crc="cea864f2" name="4.bin"/>
+        <part crc="32cd9adc" name="5.bin"/>
+        <part crc="f0230048" name="6.bin"/>
+        <part crc="73783cee" name="7.bin"/>
+        <part crc="1644965a" name="8.bin"/>
+        <part repeat="0xC000">00</part>
+        <part crc="be26b561" name="epr203"/>
+        <part crc="13932a15" name="mcs_d"/>
+        <part repeat="0x1000">00</part>
+        <part crc="26c7e800" name="epr202"/>
+        <part crc="24cfd145" name="mcs_c"/>
+        <part repeat="0x1000">00</part>
+        <part crc="6a0c7d87" name="mmi6331.6l"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            01 90 00 41 00 01 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 05 00 00 00 13 14 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Moon Cresta (SegaSA / Sonic) (Sonic Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>
