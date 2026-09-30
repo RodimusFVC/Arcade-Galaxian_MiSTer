@@ -1,0 +1,64 @@
+<misterromdescription>
+    <name>Frog (Hermatic, Bootleg On Galaxian Hardware From Electro Game)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Frogger</series>
+    <year>1981</year>
+    <manufacturer>bootleg (Hermatic)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>froggeg</setname>
+    <parent>frogger</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>4-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>0</num_buttons>
+    <buttons names="Not Used,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="20,E0,F5,00">
+        <dip name="Lives" bits="14,15" ids="3,5,7,256 (Cheat)" values="3,2,1,0"/>
+        <dip name="Cabinet" bits="16" ids="Upright,Cocktail" values="1,0"/>
+        <dip name="Coinage" bits="18" ids="2C/1C,1C/1C"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="froggeg.zip|frogger.zip">
+        <part crc="1762b266" name="f1-2716-satellite_low.bin"/>
+        <part crc="c4037087" name="f2-2716-satellite_low.bin"/>
+        <part crc="28bd6151" name="f3-2716-satellite_low.bin"/>
+        <part crc="5a69ab18" name="f4-2516-satellite_low.bin"/>
+        <part crc="7acfd5e3" name="f5-2516-satellite_up.bin"/>
+        <part crc="0cbdf821" name="f6-2716-satellite_up.bin"/>
+        <part crc="de3edc8c" name="f7-2716-satellite_up.bin"/>
+        <part repeat="0xC800">00</part>
+        <part crc="05f7d883" name="fr8-2716.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="658745f8" name="fr7-2716.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="c5f12bc3" name="82s123.bin"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 91 00 06 00 00 00 00 00 00 06 00 00 00 00 00
+            11 12 03 04 01 00 0A 02 13 14 0B 0C 09 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Frog (Hermatic, Bootleg On Galaxian Hardware From Electro Game) (Hermatic Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

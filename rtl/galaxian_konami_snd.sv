@@ -15,20 +15,23 @@ module galaxian_konami_snd
     input               clk,            // 49.152 MHz
     input               reset,
     input               two_ay,         // 0 Frogger (1 AY, timer bits 3/5 swapped), 1 Scramble (2 AYs)
+    input               fr_timer,       // Frogger timer on a 2-AY board (Quaak)
+    input               timer_9000,     // the timer also reads at 9000 (Turpin S)
+    input               no_filter,      // no RC filters fitted (Hustler)
+    input               hb_map,         // Hustler bootleg: ROM 0000-2FFF, RAM 8000-8FFF, AY A6 address / A7 data
     input               pause,
 
     input               latch_we,       // PPI 1 port A: command
     input         [7:0] latch_d,
     input         [7:0] control,        // PPI 1 port B: [3] falling edge = IRQ, [4] mute
 
-    input        [12:0] rom_addr,       // ROM load (8K)
+    input        [13:0] rom_addr,       // ROM load (16K)
     input         [7:0] rom_data,
     input               rom_we,
     input               rom_swap01,     // Frogger: the first 2K has D0 / D1 swapped (undone on reads: the config
                                         // arrives after the ROM download)
 
-    output signed [15:0] out,
-    output        [2:0] dbg             // DIAG-REVERT-2026-09-29: {IRQ ack toggle, M1 heartbeat, AY write toggle}
+    output signed [15:0] out
 );
 
 // 1.789772 MHz = 49.152 MHz x 5.6 / 153.8 ~ 30 / 824 (as the Time Pilot core)
@@ -82,37 +85,27 @@ end
 wire mem = ~mreq_n & rfsh_n;
 wire io  = ~iorq_n & m1_n;
 
-// DIAG-REVERT-2026-09-29: sound board activity for the LEDs (remove with the dbg port)
-reg        dbg_ack = 1'b0, dbg_ay = 1'b0, dbg_ack_d = 1'b0, dbg_ay_d = 1'b0, dbg_m1_d = 1'b0;
-reg [19:0] dbg_m1 = 20'd0;
-always @(posedge clk) begin
-    dbg_ack_d <= ~iorq_n & ~m1_n;
-    if (~iorq_n & ~m1_n & ~dbg_ack_d) dbg_ack <= ~dbg_ack;
-    dbg_ay_d <= ~iorq_n & m1_n & ~wr_n;
-    if (~iorq_n & m1_n & ~wr_n & ~dbg_ay_d) dbg_ay <= ~dbg_ay;
-    dbg_m1_d <= ~m1_n;
-    if (~m1_n & ~dbg_m1_d) dbg_m1 <= dbg_m1 + 20'd1;
-end
-assign dbg = {dbg_ack, dbg_m1[19], dbg_ay};
 
 // Frogger: ROM 0000-1FFF, RAM 4000-43FF (mirror to 5FFF), filters 6000-7FFF (A15 ignored)
 // Scramble: ROM 0000-1FFF, RAM 8000-83FF (mirror to EFFF), filters 9000-9FFF (+ B/D/F000)
-wire rom_cs = mem && (two_ay ? addr[15:13] == 3'b000 : addr[14:13] == 2'b00);
-wire ram_cs = mem && (two_ay ? addr[15] && !addr[12] : addr[14:13] == 2'b10);
-wire flt_cs = mem && ~wr_n && (two_ay ? addr[15] && addr[12] : addr[14:13] == 2'b11);
+wire rom_cs = mem && (hb_map ? addr[15:14] == 2'b00 : two_ay ? addr[15:13] == 3'b000 : addr[14:13] == 2'b00);
+wire ram_cs = mem && (hb_map ? addr[15:12] == 4'h8 : two_ay ? addr[15] && !addr[12] : addr[14:13] == 2'b10);
+wire flt_cs = mem && ~wr_n && !hb_map && (two_ay ? addr[15] && addr[12] : addr[14:13] == 2'b11);
 
 wire [7:0] rom_q, ram_q;
-wire [7:0] rom_d = rom_swap01 && addr[12:11] == 2'b00 ? {rom_q[7:2], rom_q[0], rom_q[1]} : rom_q;
+wire [7:0] rom_d = rom_swap01 && addr[13:11] == 3'b000 ? {rom_q[7:2], rom_q[0], rom_q[1]} : rom_q;
 
-dpram_dc #(.widthad_a(13)) rom
+dpram_dc #(.widthad_a(14)) rom
 (
     .clock_a(clk), .address_a(rom_addr), .data_a(rom_data), .wren_a(rom_we),
-    .clock_b(clk), .address_b(addr[12:0]), .q_b(rom_q)
+    .clock_b(clk), .address_b(addr[13:0]), .q_b(rom_q)
 );
 
-dpram_dc #(.widthad_a(10)) ram
+// 1K mirrored, 4K on the Hustler bootleg
+dpram_dc #(.widthad_a(12)) ram
 (
-    .clock_a(clk), .address_a(addr[9:0]), .data_a(dout), .wren_a(ram_cs & ~wr_n), .q_a(ram_q)
+    .clock_a(clk), .address_a({hb_map ? addr[11:10] : 2'b00, addr[9:0]}), .data_a(dout), .wren_a(ram_cs & ~wr_n),
+    .q_a(ram_q)
 );
 
 //------------------------------------------------------------ AY --------------------------------------------------------------//
@@ -120,9 +113,10 @@ dpram_dc #(.widthad_a(10)) ram
 // AY #1 (3D): A6 data, A7 address (Frogger: A6 data, else A7 address); AY #2 (3C, Scramble): A4 address, else A5 data
 wire io_w = io & ~wr_n;
 wire io_r = io & ~rd_n;
-wire a1_addr_w = io_w & (two_ay ? addr[6] : ~addr[6] & addr[7]);
-wire a1_data_w = io_w & (two_ay ? ~addr[6] & addr[7] : addr[6]);
-wire a1_rd     = io_r & (two_ay ? addr[7] : addr[6]);
+wire ay_k    = two_ay | hb_map;       // A6 address / A7 data decode
+wire a1_addr_w = io_w & (ay_k ? addr[6] : ~addr[6] & addr[7]);
+wire a1_data_w = io_w & (ay_k ? ~addr[6] & addr[7] : addr[6]);
+wire a1_rd     = io_r & (ay_k ? addr[7] : addr[6]);
 wire a2_addr_w = two_ay & io_w & addr[4];
 wire a2_data_w = two_ay & io_w & ~addr[4] & addr[5];
 wire a2_rd     = two_ay & io_r & addr[5];
@@ -143,7 +137,7 @@ jt49_bus #(.COMP(3'b100)) ay1
     .rst_n(~reset), .clk(clk), .clk_en(cen),
     .bdir(a1_addr_w | a1_data_w), .bc1(a1_addr_w | a1_rd), .din(dout),
     .sel(1'b1), .dout(a1_dout), .sound(), .A(a1A), .B(a1B), .C(a1C), .sample(),
-    .IOA_in(latch), .IOA_out(), .IOB_in(two_ay ? timer : timer_fr), .IOB_out()
+    .IOA_in(latch), .IOA_out(), .IOB_in(two_ay && !fr_timer ? timer : timer_fr), .IOB_out()
 );
 
 jt49_bus #(.COMP(3'b100)) ay2
@@ -159,6 +153,7 @@ always @(*) begin
     if      (rom_cs) din = rom_d;
     else if (ram_cs) din = ram_q;
     else if (io_r)   din = (a1_rd ? a1_dout : 8'hFF) & (a2_rd ? a2_dout : 8'hFF);
+    else if (timer_9000 && mem && addr == 16'h9000) din = timer;
 end
 
 //---------------------------------------------------------- Filters -----------------------------------------------------------//
@@ -197,7 +192,7 @@ generate
         tp_lpf_heavy  f_h(.clk(clk), .reset(reset), .in(dcr), .out(hv));
         // AY #1 uses A6-A11, AY #2 A0-A5; per channel {high, low} = {A(n+1), A(n)}
         wire [1:0] sel = i < 3 ? {flt[7 + 2 * i], flt[6 + 2 * i]} : {flt[1 + 2 * (i - 3)], flt[2 * (i - 3)]};
-        assign ch_out[i] = pick(sel, dcr, lt, md, hv);
+        assign ch_out[i] = no_filter ? dcr : pick(sel, dcr, lt, md, hv);
     end
 endgenerate
 

@@ -46,6 +46,7 @@ wire  [7:0] ioctl_index;
 wire [24:0] ioctl_addr;
 wire  [7:0] ioctl_dout;
 wire [15:0] joystick_0, joystick_1;
+wire [15:0] joy_la0, joy_la1, joy_ra0, joy_ra1;   // analog sticks {Y, X}, signed, -Y = up
 wire [21:0] gamma_bus;
 wire        direct_video;
 wire        video_rotated;
@@ -72,25 +73,22 @@ assign AUDIO_R = pause_cpu ? 16'd0 : audio;
 assign AUDIO_S = 1;   // signed
 assign AUDIO_MIX = 0;
 
-// DIAG-REVERT-2026-09-29: original below, uncomment to restore
-// assign LED_DISK  = 0;
-// assign LED_POWER = 0;
-// assign LED_USER  = ioctl_download;
-wire [2:0] snd_dbg;
-assign LED_USER  = snd_dbg[2];          // DIAG: toggles per sound-CPU IRQ acknowledge (per command)
-assign LED_DISK  = {1'b1, snd_dbg[1]};  // DIAG: blinks while the sound CPU fetches instructions
-assign LED_POWER = {1'b1, snd_dbg[0]};  // DIAG: toggles per AY write
+assign LED_DISK  = 0;
+assign LED_POWER = 0;
+assign LED_USER  = ioctl_download;
 assign BUTTONS = 0;
 
 ///////////////////////////////////////////////////
 
 // MRA index 1:
 //   byte 0      memory map (see rtl/galaxian_board.sv)
-//   byte 1      flags: [0] 4-way joystick, [2] coins are 2-frame pulses, [4] vertical, [7] vertical is ROT90
+//   byte 1      flags: [0] 4-way joystick, [2] coins are 2-frame pulses, [3] twin sticks (right analog stick = fire
+//               directions on buttons 1-4), [4] vertical, [7] vertical is ROT90
 //   byte 2      video flags (see rtl/galaxian_board.sv)
 //   byte 3      board flags, byte 4 program ROM top >> 8, byte 5 tile/sprite code extension, byte 6 board flags 2,
 //               byte 7 board flags 3, byte 8 video flags 2, byte 9 board flags 4, byte 10 video flags 3,
-//               byte 11 board flags 5 (rtl/galaxian_board.sv)
+//               byte 11 board flags 5, byte 12 video flags 4, byte 13 board flags 6, byte 14 board flags 7
+//               (rtl/galaxian_board.sv)
 //   bytes 16-47 input map, one byte per port bit (IN0, IN1, IN2, IN3; bit 0 first): control id, 0 = none
 // DIP switch bytes 0-3 hold the idle level of every bit of IN0-IN3; a pressed control inverts its bit
 reg [7:0] game_var   = 8'd0;
@@ -105,6 +103,9 @@ reg [7:0] vid_flags2 = 8'd0;
 reg [7:0] brd_flags4 = 8'd0;
 reg [7:0] vid_flags3 = 8'd0;
 reg [7:0] brd_flags5 = 8'd0;
+reg [7:0] vid_flags4 = 8'd0;
+reg [7:0] brd_flags6 = 8'd0;
+reg [7:0] brd_flags7 = 8'd0;
 reg [5:0] in_map[32];
 
 always @(posedge CLK_49M) begin
@@ -121,6 +122,9 @@ always @(posedge CLK_49M) begin
         if (ioctl_addr == 25'd9) brd_flags4 <= ioctl_dout;
         if (ioctl_addr == 25'd10) vid_flags3 <= ioctl_dout;
         if (ioctl_addr == 25'd11) brd_flags5 <= ioctl_dout;
+        if (ioctl_addr == 25'd12) vid_flags4 <= ioctl_dout;
+        if (ioctl_addr == 25'd13) brd_flags6 <= ioctl_dout;
+        if (ioctl_addr == 25'd14) brd_flags7 <= ioctl_dout;
         if (ioctl_addr[24:5] == 20'd0 && ioctl_addr[4]) in_map[{1'b0, ioctl_addr[3:0]}] <= ioctl_dout[5:0];
         if (ioctl_addr[24:5] == 20'd1 && ioctl_addr[4] == 1'b0) in_map[{1'b1, ioctl_addr[3:0]}] <= ioctl_dout[5:0];
     end
@@ -186,6 +190,10 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 
 	.joystick_0(joystick_0),
 	.joystick_1(joystick_1),
+	.joystick_l_analog_0(joy_la0),
+	.joystick_l_analog_1(joy_la1),
+	.joystick_r_analog_0(joy_ra0),
+	.joystick_r_analog_1(joy_ra1),
 	.ps2_key(ps2_key)
 );
 
@@ -262,8 +270,17 @@ end
 //////////////////  Arcade Buttons/Interfaces   ///////////////////////////
 
 // Joystick bits: 0 R, 1 L, 2 D, 3 U, 4-7 Btn 1-4, 8 Coin, 9 Start 1P, 10 Start 2P, 11 Pause, 12-13 Btn 5-6
-wire [3:0] dir1_raw = {joystick_0[3] | kb_up, joystick_0[2] | kb_down, joystick_0[1] | kb_left, joystick_0[0] | kb_right};
-wire [3:0] dir2_raw = joystick_1[3:0];
+// analog sticks as 4 directions {U, D, L, R} (threshold +/-40 of 127): left sticks steer every game, right sticks
+// fire in the twin-stick games (Rescue, Minefield) alongside the D-pad / buttons
+function [3:0] stick(input [15:0] a);
+    stick = {$signed(a[15:8]) < -8'sd40, $signed(a[15:8]) > 8'sd40, $signed(a[7:0]) < -8'sd40, $signed(a[7:0]) > 8'sd40};
+endfunction
+wire [3:0] al1 = stick(joy_la0), al2 = stick(joy_la1);
+wire [3:0] ar1 = game_flags[3] ? stick(joy_ra0) : 4'd0, ar2 = game_flags[3] ? stick(joy_ra1) : 4'd0;
+
+wire [3:0] dir1_raw = {joystick_0[3] | kb_up, joystick_0[2] | kb_down, joystick_0[1] | kb_left, joystick_0[0] | kb_right} |
+                      al1;
+wire [3:0] dir2_raw = joystick_1[3:0] | al2;
 wire [3:0] dir1, dir2;   // {U, D, L, R}
 
 joy4way joy4way_1(.clk(CLK_49M), .en(game_flags[0]), .in(dir1_raw), .out(dir1));
@@ -302,7 +319,8 @@ end
 // control ids used by the MRA input map
 wire [63:0] ctl =
 {
-	16'd0,
+	8'd0,
+	dip_sw[4],                                      // 55-48 DIP byte 4 (MAME fake IN4 lines, Strategy X coinage)
 	dip_sw[3],                                      // 47-40 DIP byte 3 (MAME FAKE port lines)
 	4'd0,
 	joystick_1[13:12],                              // 35-34 P2 Btn 6-5
@@ -315,9 +333,10 @@ wire [63:0] ctl =
 	joystick_0[9]  | joystick_1[9]  | kb_start1,    // 19 start 1
 	coin2,                                          // 18 coin 2
 	coin1,                                          // 17 coin 1
-	joystick_1[7:4],                                // 16-13 P2 Btn 4-1
+	joystick_1[7:4] | {ar2[0], ar2[1], ar2[2], ar2[3]},   // 16-13 P2 Btn 4-1 (twin: fire R, L, D, U)
 	dir2[0], dir2[1], dir2[2], dir2[3],             // 12 R, 11 L, 10 D, 9 U
-	joystick_0[7:6], joystick_0[5] | kb_b2, joystick_0[4] | kb_b1,   // 8-5 P1 Btn 4-1
+	joystick_0[7] | ar1[0], joystick_0[6] | ar1[1], joystick_0[5] | kb_b2 | ar1[2], joystick_0[4] | kb_b1 | ar1[3],
+	                                                // 8-5 P1 Btn 4-1 (twin: fire R, L, D, U)
 	dir1[0], dir1[1], dir1[2], dir1[3],             // 4 R, 3 L, 2 D, 1 U
 	1'b0                                            // 0 none
 };
@@ -383,6 +402,9 @@ galaxian_board board
 	.bflags4(brd_flags4),
 	.vflags3(vid_flags3),
 	.bflags5(brd_flags5),
+	.vflags4(vid_flags4),
+	.bflags6(brd_flags6),
+	.bflags7(brd_flags7),
 	.rom_top(rom_top),
 	.ext_mode(ext_mode),
 
@@ -406,7 +428,6 @@ galaxian_board board
 	.video_vblank(vblank),
 
 	.audio(audio),
-	.dbg(snd_dbg),                      // DIAG-REVERT-2026-09-29
 
 	.hs_address(hs_address),
 	.hs_data_in(hs_data_in),

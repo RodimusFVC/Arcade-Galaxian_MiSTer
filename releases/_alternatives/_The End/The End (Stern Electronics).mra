@@ -1,0 +1,83 @@
+<misterromdescription>
+    <name>The End (Stern Electronics)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>The End</series>
+    <year>1980</year>
+    <manufacturer>Konami (Stern Electronics license)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>theends</setname>
+    <parent>theend</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FC,F1,00">
+        <dip name="Lives" bits="8,9" ids="3,4,5,256 (Cheat)"/>
+        <dip name="Coinage" bits="17,18" ids="3C/1C,2C/1C,1C/1C,1C/2C" values="2,1,0,3"/>
+        <dip name="Cabinet" bits="19" ids="Upright,Cocktail"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="theends.zip|theend.zip">
+        <part crc="90e5ab14" name="the_end_ra3_13.ic13"/>
+        <part crc="950f0a07" name="the_end_ra3_14.ic14"/>
+        <part crc="6786bcf5" name="the_end_ra3_15.ic15"/>
+        <part crc="380a0017" name="the_end_ra3_16.ic16"/>
+        <part crc="af067b7f" name="the_end_ra3_17.ic17"/>
+        <part crc="a0411b93" name="the_end_ra3_18.ic18"/>
+        <part repeat="0xD000">00</part>
+        <part crc="527fd384" name="the_end_ra3_30.ic30"/>
+        <part repeat="0x1800">00</part>
+        <part crc="af6d09b6" name="the_end_ra3_31.ic31"/>
+        <part repeat="0x1800">00</part>
+        <part crc="24652bc4" name="6331-1j.86"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="3b2c2f70" name="the_end_ra3_56.ic56"/>
+        <part crc="e0429e50" name="the_end_ra2_55.ic55"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            06 90 00 00 00 00 02 00 00 00 40 0B 00 00 00 00
+            00 06 16 05 04 03 12 11 00 00 0E 0D 0C 0B 14 13
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 4A 3E C4 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 43 C0 00 0F 00 00
+            00 00 40 A8 00 03 00 00
+            00 00 4D A1 00 01 00 00
+            00 00 4D C1 00 01 00 00
+            00 00 4D E1 00 01 10 10
+            00 00 4E 01 00 01 10 10
+            00 00 4E 21 00 01 10 10
+            00 00 4E 41 00 01 10 10
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="24"></nvram>
+
+    <remark>The End (Stern Electronics) (Konami (Stern Electronics License))</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

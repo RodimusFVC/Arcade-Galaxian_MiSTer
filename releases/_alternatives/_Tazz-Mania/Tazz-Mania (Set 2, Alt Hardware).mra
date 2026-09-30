@@ -1,0 +1,69 @@
+<misterromdescription>
+    <name>Tazz-Mania (Set 2, Alt Hardware)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Tazz-Mania</series>
+    <year>1982</year>
+    <manufacturer>Stern Electronics</manufacturer>
+    <category>Shooter</category>
+
+    <setname>tazmani2</setname>
+    <parent>tazmania</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FD,FB,FF">
+        <dip name="Lives" bits="8" ids="3,5" values="1,0"/>
+        <dip name="Demo Sounds" bits="9" ids="Off,On" values="1,0"/>
+        <dip name="Coinage" bits="17,18" ids="1C/1C,Coin A 1/2 Coin B 2/1,Coin A 1/3 Coin B 3/1,Coin A 1/4 Coin B 4/1" values="1,0,2,3"/>
+        <dip name="Cabinet" bits="19" ids="Upright,Cocktail" values="1,0"/>
+        <dip name="Unknown" bits="20" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="21" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="23" ids="Off,On" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="tazmani2.zip|tazmania.zip">
+        <part crc="bf0492bf" name="2ck.cpu"/>
+        <part crc="6636c4d0" name="2ek.cpu"/>
+        <part crc="ce59a57b" name="2fk.cpu"/>
+        <part crc="8bda3380" name="2hk.cpu"/>
+        <part crc="a4095e35" name="2jk.cpu"/>
+        <part crc="f308ca36" name="2kk.cpu"/>
+        <part repeat="0xA000">00</part>
+        <part crc="2c5b612b" name="5f.cpu"/>
+        <part repeat="0x1800">00</part>
+        <part crc="3f5ff3ac" name="5h.cpu"/>
+        <part repeat="0x1800">00</part>
+        <part crc="fce333c7" name="colr6f.cpu"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="b8d741f1" name="rom0.snd"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            0C 90 01 00 80 00 02 00 00 00 30 03 00 10 00 00
+            06 05 01 02 04 03 12 11 00 00 09 0A 0C 0B 0E 0D
+            13 00 00 00 00 00 14 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Tazz-Mania (Set 2, Alt Hardware) (Stern Electronics)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

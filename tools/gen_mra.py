@@ -31,7 +31,11 @@ HISCORE_INIT_FRAME = {"galaxian": 132, "starfght": 127, "exodus": 133, "warofbug
                       "azurian": 2, "mooncrst": 3, "mooncrsto": 3, "mooncrstg": 3, "mooncrgx": 3, "moonqsr": 3,
                       "moonal2": 127, "thepitm": 0, "ckongmc": 8, "porter": 3, "skybase": 36, "kong": 6,
                       "scorpionmc": 107, "bongo": 160, "jumpbug": 7, "levers": 2, "checkman": 0, "checkmanj": 0,
-                      "dingo": 13, "zigzagb": 17, "fantastc": 1, "timefgtr": 2, "frogger": 1, "moonaln": 131}
+                      "dingo": 13, "zigzagb": 17, "fantastc": 1, "timefgtr": 2, "frogger": 1, "moonaln": 131,
+                      "amidars": 162, "theend": 4, "theendss": 0, "atlantis": 0, "scobra": 162, "suprheli": 162,
+                      "armorcar": 50, "tazmania": 47, "spdcoin": 38,
+                      "turtles": 3, "amidar": 162, "frogg": 1, "froggers": 1, "froggrs": 1, "frogf": 1, "quaak": 1,
+                      "froggeram": 1, "froggert": 1, "turpins": 3}
 # colour PROMs never dumped: stand-in from a related set, (zip, file, crc). Kong (Taito do Brasil) takes Crazy Kong's
 # first palette PROM (user, 2026-09-29) - same byte layout; which colour group goes where is a guess
 PROM_STANDIN = {"kong": ("ckong.zip", "ck6v.bin", "751c3325"),
@@ -39,8 +43,9 @@ PROM_STANDIN = {"kong": ("ckong.zip", "ck6v.bin", "751c3325"),
                 "timefgtr": ("fantastc.zip", "prom-74g138", "800f5718")}
 # hiscore.dat entries that can't work here: atlantisb's range is live game state, omegab's C060 is unmapped
 HISCORE_SKIP = {"atlantisb", "omegab"}
-# layouts (by reference set) waiting for a core measurement: no hiscore entry for any set on them until then
-HISCORE_PENDING = set()
+# sets waiting for a core measurement: no hiscore entry until then (safe: the top gates an unconfigured hiscore)
+HISCORE_PENDING = {"froggervd", "stratgyx", "stratgys", "strongx", "tazmani2", "tazmani3", "tazmaniet", "rescue",
+                   "aponow", "minefld", "hustler", "hustlerd", "billiard", "hustlerb", "hustlerb4", "hustlerb5"}
 CLK_HZ, FRAME_HZ = 49_152_000, 60.61
 
 # region -> (base in ioctl index 0, size taken); "gfx1" is split by plane into gfx1_p0 / gfx1_p1
@@ -49,12 +54,13 @@ REGIONS = {
     "gfx1_p0": (0x10000, 0x02000),
     "gfx1_p1": (0x12000, 0x02000),
     "proms":   (0x14000, 0x00020),
-    "audiocpu": (0x18000, 0x02000),
+    "audiocpu": (0x18000, 0x04000),
+    "user1":   (0x14100, 0x00020),         # Strategy X background PROM
     "gfx2_p0": (0x11000, 0x01000),         # separate sprite ROM: upper half of each plane (code extension 8)
     "gfx2_p1": (0x13000, 0x01000),
 }
 
-IGNORED_REGIONS = {"plds", "unknown", "unk"}        # dumps MAME does not use
+IGNORED_REGIONS = {"plds", "unknown", "unk", "unused_proms"}   # dumps MAME does not use
 
 # (machine config, init) pairs the board implements -> (memory map, video flags, board flags, ROM top >> 8, code
 # extension); see rtl/galaxian_board.sv
@@ -74,7 +80,22 @@ X_SPRITE_ROM = 8
 M_FROGGER = 5
 # video flags 3 (10th field), board flags 5 (11th field)
 V3_FROGGER = 0x0F                                               # nibble swap, colour rotate, blue river, gfx D0/D1
-B5_KONAMI, B5_TWO_AY, B5_SND_SWAP01 = 0x01, 0x02, 0x04
+V3_SCR_BG, V3_SCR_STARS, V3_THEEND_SHELLS = 0x10, 0x20, 0x40
+B5_KONAMI, B5_TWO_AY, B5_SND_SWAP01, B5_PROT, B5_WD7800 = 0x01, 0x02, 0x04, 0x08, 0x10
+B5_FR_TIMER, B5_TIMER9000, B5_TURPINNV = 0x20, 0x40, 0x80
+M_FROGF, M_FROGGERAM, M_TURPINS = 9, 10, 11
+V3_FROG_COL = 0x06                                              # Frogger colour rotate + blue river, no nibble swap
+M_STERN2 = 12
+# video flags 4 (12th field), board flags 6 (13th field): Stern boards (scobra.cpp)
+V4_RESCUE_BG, V4_MINEFLD_BG, V4_STARS_LEFT, V4_STRAT_BG, V4_GFX_RESCUE, V4_GFX_MINEFLD = 0x01, 0x02, 0x04, 0x08, 0x10, 0x20
+B6_TAZ3, B6_RESCUEB, B6_TAZET, B6_STRAT_RGB, B6_TAZ2_BG, B6_HUSTLER, B6_BILLIARD = 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40
+# board flags 7 (14th field)
+B7_NO_FILTER, B7_HB_SOUND = 0x01, 0x02
+M_HUSTLERB, M_HUSTLERB6 = 13, 14
+HUS = B5_KONAMI | B5_SND_SWAP01                                 # Frogger-style 1-AY sound board, D0/D1-swapped ROM
+M_SCRAMBLE, M_SCOBRA, M_TURTLES = 6, 7, 8
+V3_TURTLES_BG = 0x80
+SCR = (V3_SCR_BG | V3_SCR_STARS, B5_KONAMI | B5_TWO_AY)                  # Scramble background + 2-AY sound board
 MC = B_NMI0 | B_MCSND                                           # mooncrst_map: NMI enable at B000, MOONCRST_SOUND
 SUPPORTED = {
     ("galaxian", "init_galaxian"):  (M_GAL, 0, 0, 0, 0),
@@ -110,13 +131,72 @@ SUPPORTED = {
     # Konami sound board
     ("frogger", "init_frogger"):    (M_FROGGER, 0, 0, 0, 0, B2_NODISC, 0, V2_NOSHELLS, 0, V3_FROGGER,
                                      B5_KONAMI | B5_SND_SWAP01),
+    ("scramble", "init_scramble"):  (M_SCRAMBLE, V_SCRAMBLE_SHELLS, 0, 0, 0, B2_NODISC, 0, 0, 0, SCR[0], SCR[1] | B5_PROT),
+    ("scobra", "init_scobra"):      (M_SCOBRA, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, SCR[0], SCR[1]),
+    ("theend", "init_theend"):      (M_SCRAMBLE, 0, 0, 0, 0, B2_NODISC, 0, 0, 0, V3_THEEND_SHELLS,
+                                     B5_KONAMI | B5_TWO_AY | B5_PROT),
+    ("theend", "init_atlantis"):    (M_SCRAMBLE, V_SCRAMBLE_SHELLS, 0, 0, 0, B2_NODISC, 0, 0, 0, SCR[0],
+                                     SCR[1] | B5_PROT | B5_WD7800),
+    ("turtles", "init_turtles"):    (M_TURTLES, 0, 0, 0x80, 0, B2_NODISC, 0, V2_NOSHELLS, 0, V3_TURTLES_BG,
+                                     B5_KONAMI | B5_TWO_AY),
+    # Frogger / Turtles bootlegs and conversions
+    ("frogg", "init_frogg"):        (M_GAL, 0, B_RAM2K | B_NOSTARS, 0, 0, 0, 0, 0, 0, V3_FROG_COL, 0),
+    ("froggers", "init_froggers"):  (M_SCRAMBLE, 0, B_NOSTARS, 0, 0, B2_NODISC, 0, V2_NOSHELLS, 0, V3_FROG_COL,
+                                     B5_KONAMI | B5_SND_SWAP01),
+    ("froggers", "init_froggrs"):   (M_SCRAMBLE, 0, B_NOSTARS, 0, 0, B2_NODISC, 0, V2_NOSHELLS, 0, V3_FROG_COL | 0x08,
+                                     B5_KONAMI | B5_SND_SWAP01),
+    ("frogf", "init_froggers"):     (M_FROGF, 0, B_NOSTARS, 0, 0, B2_NODISC, 0, V2_NOSHELLS, 0, V3_FROG_COL,
+                                     B5_KONAMI | B5_SND_SWAP01),
+    ("froggervd", "init_quaak"):    (M_SCRAMBLE, 0, B_NOSTARS, 0, 0, B2_NODISC, 0, V2_NOSHELLS, 0, V3_FROG_COL,
+                                     B5_KONAMI | B5_WD7800),
+    ("quaak", "init_quaak"):        (M_SCOBRA, 0, B_NOSTARS, 0x80, 0, B2_NODISC, 0, V2_NOSHELLS, 0, V3_FROG_COL,
+                                     B5_KONAMI | B5_TWO_AY | B5_FR_TIMER),
+    ("froggeram", "init_quaak"):    (M_FROGGERAM, 0, B_NOSTARS, 0, 0, B2_NODISC, 0, V2_NOSHELLS, 0, V3_FROG_COL,
+                                     B5_KONAMI | B5_TWO_AY | B5_FR_TIMER),
+    ("turtles", "init_quaak"):      (M_TURTLES, 0, 0, 0x80, 0, B2_NODISC, 0, V2_NOSHELLS, 0, V3_FROG_COL,
+                                     B5_KONAMI | B5_TWO_AY),
+    ("turpinnv", "init_turtles"):   (M_SCRAMBLE, 0, B_NOSTARS, 0, 0, B2_NODISC, 0, V2_NOSHELLS, 0, V3_TURTLES_BG,
+                                     B5_KONAMI | B5_TWO_AY | B5_TURPINNV),
+    ("turpins", "init_turtles"):    (M_TURPINS, 0, 0, 0x80, 0, B2_NODISC, 0, V2_NOSHELLS, 0, V3_TURTLES_BG,
+                                     B5_KONAMI | B5_TWO_AY | B5_TIMER9000),
+    # scobra.cpp (Stern): type 1 = the Super Cobra map; keys carry the driver (config names repeat across drivers)
+    ("scobra.cpp", "rescue", "init_rescue"):   (M_SCOBRA, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, V3_SCR_STARS,
+                                                B5_KONAMI | B5_TWO_AY, V4_RESCUE_BG | V4_STARS_LEFT | V4_GFX_RESCUE),
+    ("scobra.cpp", "rescueb", "init_rescue"):  (M_SCOBRA, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, V3_SCR_STARS,
+                                                B5_KONAMI | B5_TWO_AY, V4_RESCUE_BG | V4_STARS_LEFT | V4_GFX_RESCUE,
+                                                B6_RESCUEB),
+    ("scobra.cpp", "minefld", "init_minefld"): (M_SCOBRA, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, V3_SCR_STARS,
+                                                B5_KONAMI | B5_TWO_AY,
+                                                V4_RESCUE_BG | V4_MINEFLD_BG | V4_STARS_LEFT | V4_GFX_MINEFLD),
+    ("scobra.cpp", "stratgyx", "init_stratgyx"): (M_STERN2, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, 0,
+                                                  B5_KONAMI | B5_TWO_AY, V4_STRAT_BG, B6_STRAT_RGB),
+    ("scobra.cpp", "type2", "init_tazmani2"):  (M_STERN2, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, SCR[0],
+                                                B5_KONAMI | B5_TWO_AY, 0, B6_TAZ2_BG),
+    ("scobra.cpp", "tazmani3", "empty_init"):  (M_STERN2, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, SCR[0],
+                                                B5_KONAMI | B5_TWO_AY, 0, B6_TAZ3),
+    ("scobra.cpp", "tazmani3", "init_tazmaniet"): (M_STERN2, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, SCR[0],
+                                                   B5_KONAMI | B5_TWO_AY, 0, B6_TAZ3 | B6_TAZET | B6_TAZ2_BG),
+    # Hustler (Konami): the Frog (Falcon) map; 1 AY without RC filters
+    ("scobra.cpp", "hustler", "init_hustler"):  (M_FROGF, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, 0, HUS, 0,
+                                                 B6_HUSTLER, B7_NO_FILTER),
+    ("scobra.cpp", "hustler", "init_billiard"): (M_FROGF, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, 0, HUS, 0,
+                                                 B6_BILLIARD, B7_NO_FILTER),
+    ("scobra.cpp", "hustler", "init_hustlerd"): (M_FROGF, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, 0, HUS, 0,
+                                                 0, B7_NO_FILTER),
+    ("scobra.cpp", "hustlerb", "empty_init"):   (M_HUSTLERB, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, 0,
+                                                 B5_KONAMI, 0, 0, B7_NO_FILTER | B7_HB_SOUND),
+    ("scobra.cpp", "hustlerb4", "empty_init"):  (M_HUSTLERB, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, 0,
+                                                 B5_KONAMI, 0, 0, B7_NO_FILTER),
+    ("scobra.cpp", "hustlerb6", "empty_init"):  (M_HUSTLERB6, V_SCRAMBLE_SHELLS, 0, 0x40, 0, B2_NODISC | B2_NOWDOG, 0, 0,
+                                                 0, 0, B5_KONAMI, 0, 0, B7_NO_FILTER),
 }
 
-F_4WAY, F_IMPULSE, F_VERT, F_ROT90 = 0x01, 0x04, 0x10, 0x80
+F_4WAY, F_IMPULSE, F_TWIN, F_VERT, F_ROT90 = 0x01, 0x04, 0x08, 0x10, 0x80
 
 # port order on the board: DIP bytes 0-3 and input map bytes 16-47
-PORTS = [("IN0",), ("IN1",), ("IN2",), ("IN3", "FAKE", "DSW")]   # first name present wins
+PORTS = [("IN0",), ("IN1",), ("IN2",), ("IN3", "FAKE", "DSW"), ("IN4",)]   # first name present wins; IN4 = DIPs only
 LINE_BASE = 40      # control ids 40-47 = DIP byte 3 bits: a port bit that reads a line of the FAKE port
+LINE4_BASE = 48     # control ids 48-55 = DIP byte 4 bits (fake IN4, read through other ports: Strategy X coinage)
 
 # control ids (Arcade-Galaxian.sv)
 CTL = {("JOYSTICK_UP", 1): 1, ("JOYSTICK_DOWN", 1): 2, ("JOYSTICK_LEFT", 1): 3, ("JOYSTICK_RIGHT", 1): 4,
@@ -125,7 +205,14 @@ CTL = {("JOYSTICK_UP", 1): 1, ("JOYSTICK_DOWN", 1): 2, ("JOYSTICK_LEFT", 1): 3, 
        ("BUTTON1", 2): 13, ("BUTTON2", 2): 14, ("BUTTON3", 2): 15, ("BUTTON4", 2): 16,
        ("BUTTON5", 1): 32, ("BUTTON6", 1): 33, ("BUTTON5", 2): 34, ("BUTTON6", 2): 35,
        ("COIN1", 0): 17, ("COIN2", 0): 18, ("START1", 0): 19, ("START2", 0): 20,
-       ("TILT", 0): 21, ("BILL1", 0): 18, ("SERVICE1", 0): 22, ("SERVICE2", 0): 22, ("SERVICE", 0): 22, ("COIN3", 0): 23}
+       ("TILT", 0): 21, ("BILL1", 0): 18, ("SERVICE1", 0): 22, ("SERVICE2", 0): 22, ("SERVICE", 0): 22, ("COIN3", 0): 23,
+       # twin sticks (Rescue, Minefield): left stick = joystick, right stick = buttons 1-4 (fire up / down / left / right)
+       ("JOYSTICKLEFT_UP", 1): 1, ("JOYSTICKLEFT_DOWN", 1): 2, ("JOYSTICKLEFT_LEFT", 1): 3, ("JOYSTICKLEFT_RIGHT", 1): 4,
+       ("JOYSTICKRIGHT_UP", 1): 5, ("JOYSTICKRIGHT_DOWN", 1): 6, ("JOYSTICKRIGHT_LEFT", 1): 7, ("JOYSTICKRIGHT_RIGHT", 1): 8,
+       ("JOYSTICKLEFT_UP", 2): 9, ("JOYSTICKLEFT_DOWN", 2): 10, ("JOYSTICKLEFT_LEFT", 2): 11, ("JOYSTICKLEFT_RIGHT", 2): 12,
+       ("JOYSTICKRIGHT_UP", 2): 13, ("JOYSTICKRIGHT_DOWN", 2): 14, ("JOYSTICKRIGHT_LEFT", 2): 15, ("JOYSTICKRIGHT_RIGHT", 2): 16}
+TWIN_FIRE = {"JOYSTICKRIGHT_UP": (1, "Fire Up"), "JOYSTICKRIGHT_DOWN": (2, "Fire Down"),
+             "JOYSTICKRIGHT_LEFT": (3, "Fire Left"), "JOYSTICKRIGHT_RIGHT": (4, "Fire Right")}
 TRACKBALL = {}
 IGNORED_TYPES = {"UNUSED", "UNKNOWN"}
 
@@ -308,6 +395,13 @@ def parse_inputs(src):
             elif mac == "PORT_NAME":
                 fld["name"] = args[0].strip('"')
             elif mac == "PORT_READ_LINE_MEMBER":
+                sc = re.fullmatch(r'FUNC\(\w+::stratgyx_coinage_r<0x0?([0-9a-fA-F]+)>\)', args[0])
+                if sc:
+                    fld["line4"] = int(sc.group(1), 16).bit_length() - 1
+                    continue
+                if re.fullmatch(r'FUNC\(\w+::theend_protection_alt_r<\d>\)', args[0]):
+                    fld["board"] = True                 # driven by the board's protection PAL model
+                    continue
                 lm = re.fullmatch(r'FUNC\(\w+::azurian_port_r<(\d)>\)', args[0])
                 if not lm:
                     raise SystemExit(f"INPUT_PORTS({name}): unhandled read line {args[0]}")
@@ -389,7 +483,8 @@ def input_config(g, ports):
         tag = next((n for n in names if n in ports), names[0])
         fields = ports.get(tag)
         if fields is None:
-            idle.append(0xFF)
+            if p < 4:                                  # IN4 only exists as a fifth DIP byte when the game has it
+                idle.append(0xFF)
             continue
         level = 0xFF
         for f in fields:
@@ -406,6 +501,14 @@ def input_config(g, ports):
                 dips.append((f["name"], bits, ids, None if seq else ",".join(str(v) for v in vals)))
             elif f["kind"] == "input":
                 t, pl = f["type"], f["player"]
+                if p >= 4 and not (t == "CUSTOM" or t in IGNORED_TYPES):
+                    raise SystemExit(f'{g["name"]}: input {t} on port {tag}: only DIPs are supported past IN3')
+                if t == "CUSTOM" and "line4" in f:
+                    imap[p * 8 + f["mask"].bit_length() - 1] = LINE4_BASE + f["line4"]
+                    level &= ~f["mask"]
+                    continue
+                if t == "CUSTOM" and f.get("board"):
+                    continue                           # the board overrides this bit
                 if t == "CUSTOM" and "line" in f:
                     imap[p * 8 + f["mask"].bit_length() - 1] = LINE_BASE + f["line"]
                     level &= ~f["mask"]
@@ -420,6 +523,8 @@ def input_config(g, ports):
                     tb_rev |= (1 if t == "TRACKBALL_X" else 2) if f.get("reverse") else 0
                     continue
                 key = (t, pl if t.startswith(("JOYSTICK", "BUTTON")) else 0)
+                if t in TWIN_FIRE and pl == 1:
+                    buttons[TWIN_FIRE[t][0]] = TWIN_FIRE[t][1]
                 if key not in CTL:
                     raise SystemExit(f'{g["name"]}: unmapped input {t} player {pl} in {tag}')
                 if f["mask"] & (f["mask"] - 1):
@@ -447,6 +552,8 @@ def parse_hiscores(path):
             if body:
                 names, body = [], False
             names.append(line[:-1])
+        elif line.startswith("@delay"):
+            continue                                   # MAME's own restore delay; ours is measured on the core
         elif line.startswith("@"):
             for n in names:
                 out.setdefault(n, []).append(line)
@@ -459,8 +566,7 @@ HISCORES = parse_hiscores(HISCORE_DAT) if HISCORE_DAT.exists() else {}
 
 def hiscore_xml(g):
     lines = HISCORES.get(g["name"])
-    pending = {tuple(HISCORES[n]) for n in HISCORE_PENDING if n in HISCORES}
-    if not lines or g["name"] in HISCORE_SKIP or tuple(lines) in pending:
+    if not lines or g["name"] in HISCORE_SKIP or g["name"] in HISCORE_PENDING:
         return ""
     ents = []
     for line in lines:
@@ -471,7 +577,9 @@ def hiscore_xml(g):
     rows = "\n".join(f"            {a >> 24 & 0xFF:02X} {a >> 16 & 0xFF:02X} {a >> 8 & 0xFF:02X} {a & 0xFF:02X} "
                       f"{n >> 8:02X} {n & 0xFF:02X} {s:02X} {e:02X}" for a, n, s, e in ents)
     total = sum(n for _, n, _, _ in ents)
-    ref = next((k for k in HISCORE_INIT_FRAME if HISCORES.get(k) == lines), None)
+    # the set's own measurement, then its parent's, then any set with the same layout (same layout != same boot)
+    ref = next((k for k in (g["name"], g["parent"]) if k in HISCORE_INIT_FRAME and HISCORES.get(k) == lines),
+               next((k for k in HISCORE_INIT_FRAME if HISCORES.get(k) == lines), None))
     if ref is None:
         raise SystemExit(f'{g["name"]}: no measured table-init frame for this hiscore layout')
     wait = round((HISCORE_INIT_FRAME[ref] + 2) / FRAME_HZ * CLK_HZ)
@@ -489,12 +597,21 @@ def hiscore_xml(g):
 """
 
 
+def board_cfg(g):
+    """SUPPORTED entry for a set: (driver, config, init) keys for the other drivers, (config, init) for galaxian.cpp
+    (config names such as mooncrst / scobra / galaxian mean different boards in galaxold / scobra / scramble.cpp)."""
+    return SUPPORTED.get((g["drv"], g["machine"], g["init"])) or \
+        (SUPPORTED.get((g["machine"], g["init"])) if g["drv"] == "galaxian.cpp" else None)
+
+
 def mra(g, games, segs, build_inputs):
-    variant, vflags, bflags, rom_top, ext, *rest = SUPPORTED[(g["machine"], g["init"])]
+    variant, vflags, bflags, rom_top, ext, *rest = board_cfg(g)
     bflags2 = rest[0] if rest else 0
-    bflags3, vflags2, bflags4, vflags3, bflags5 = (list(rest[1:]) + [0] * 5)[:5]
-    idle, dips, imap, fourway, buttons, tb_rev, impulse = input_config(g, build_inputs(g["inputs"]))
-    flags = (F_4WAY if fourway else 0) | (F_IMPULSE if impulse else 0) | \
+    bflags3, vflags2, bflags4, vflags3, bflags5, vflags4, bflags6, bflags7 = (list(rest[1:]) + [0] * 8)[:8]
+    ports = build_inputs(g["inputs"])
+    idle, dips, imap, fourway, buttons, tb_rev, impulse = input_config(g, ports)
+    twin = any(f.get("type", "").startswith("JOYSTICKRIGHT") for fl in ports.values() for f in fl)
+    flags = (F_4WAY if fourway else 0) | (F_IMPULSE if impulse else 0) | (F_TWIN if twin else 0) | \
             (F_VERT if g["rot"] in ("ROT90", "ROT270") else 0) | \
             (F_ROT90 if g["rot"] == "ROT90" else 0)
     nbtn = max(buttons) if buttons else 0
@@ -524,8 +641,8 @@ def mra(g, games, segs, build_inputs):
 
     dip_lines = "\n".join(f'        <dip name="{n}" bits="{b}" ids="{i}"' + (f' values="{v}"' if v else "") + "/>"
                           for n, b, i, v in dips)
-    cfg = [variant, flags, vflags, bflags, rom_top, ext, bflags2, bflags3, vflags2, bflags4, vflags3, bflags5] + \
-          [0] * 4 + imap
+    cfg = [variant, flags, vflags, bflags, rom_top, ext, bflags2, bflags3, vflags2, bflags4, vflags3, bflags5,
+           vflags4, bflags6, bflags7] + [0] + imap
     cfg_rows = "\n".join("            " + " ".join(f"{b:02X}" for b in cfg[i:i + 16]) for i in range(0, len(cfg), 16))
     return f"""<misterromdescription>
     <name>{display_name(g)}</name>
@@ -552,7 +669,7 @@ def mra(g, games, segs, build_inputs):
 
     <players>2 (alternating)</players>
     <joystick>{"2-way horizontal" if twoway else "4-way" if fourway else "8-way"}</joystick>
-    <special_controls></special_controls>
+    <special_controls>{"twin joysticks (right stick = fire directions)" if twin else ""}</special_controls>
     <num_buttons>{nbtn}</num_buttons>
     <buttons names="{names}" default="A,Y,B,X,Select,Start,R,L"/>
 
@@ -625,7 +742,14 @@ def foreign_parent(name):
     return _foreign[name]
 
 
+# MRA file names Main_MiSTer would mis-title: its names.txt lookup is a plain substring search for "<file name>:",
+# so a bare "Scramble" matches another core's line and is listed as that game (user, 2026-09-29)
+FILE_NAME_OVERRIDE = {"scramble": "Scramble (Konami)"}
+
+
 def out_path(root, g, games):
+    if g["name"] in FILE_NAME_OVERRIDE:
+        return root / f"{FILE_NAME_OVERRIDE[g['name']]}.mra"
     if g["parent"] is None:
         return root / f"{safe(display_name(g))}.mra"
     top = games.get(g["parent"]) or foreign_parent(g["parent"])
@@ -634,23 +758,40 @@ def out_path(root, g, games):
 
 
 def main():
-    src = "\n".join(Path(f).read_text() for f in sys.argv[1].split(","))
+    """Each driver is parsed on its own: INPUT_PORTS / config names repeat across the galaxian drivers."""
     out_dir = Path(sys.argv[2])
-    games = parse_games(src)
-    build_inputs = parse_inputs(src)
-    names = sys.argv[3:] or [n for n, g in games.items() if (g["machine"], g["init"]) in SUPPORTED and g["working"]]
-    for name in names:
-        g = games[name]
-        if (g["machine"], g["init"]) not in SUPPORTED:
-            raise SystemExit(f'{name}: board {g["machine"]} / {g["init"]} not implemented')
+    wanted = set(sys.argv[3:])
+    drivers = [Path(f) for f in sys.argv[1].split(",")]
+    all_games = {}
+    for d in drivers:
+        for n, g in parse_games(d.read_text()).items():
+            all_games.setdefault(n, dict(g, drv=d.name))
+    for d in drivers:
+        src = d.read_text()
+        games = {n: dict(g, drv=d.name) for n, g in parse_games(src).items()}
+        build_inputs = parse_inputs(src)
+        names = [n for n in games if n in wanted] if wanted else \
+                [n for n, g in games.items() if board_cfg(g) and g["working"]]
+        for name in names:
+            main_one(name, games, all_games, src, build_inputs, out_dir)
+    missing = wanted - set(all_games)
+    if missing:
+        raise SystemExit(f"unknown sets: {sorted(missing)}")
+
+
+def main_one(name, games, all_games, src, build_inputs, out_dir):
+    g = games[name]
+    if not board_cfg(g):
+        raise SystemExit(f'{name}: board {g["drv"]} {g["machine"]} / {g["init"]} not implemented')
+    if True:
         raw = parse_roms(src, name)
         if name in PROM_STANDIN:
             _, fn, crc = PROM_STANDIN[name]
             raw.append(dict(name=fn, crc=crc, src=0, dst=0, len=0x20, flen=0x20, region="proms", rsize=0x20))
         segs = place(raw, name)
-        path = out_path(out_dir, g, games)
+        path = out_path(out_dir, g, all_games)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(mra(g, games, segs, build_inputs))
+        path.write_text(mra(g, all_games, segs, build_inputs))
         print(f'{name:12s} {path.relative_to(out_dir)}')
 
 

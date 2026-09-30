@@ -1,0 +1,83 @@
+<misterromdescription>
+    <name>The End</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>The End</series>
+    <year>1980</year>
+    <manufacturer>Konami</manufacturer>
+    <category>Shooter</category>
+
+    <setname>theend</setname>
+    <parent>theend</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FC,F1,00">
+        <dip name="Lives" bits="8,9" ids="3,4,5,256 (Cheat)"/>
+        <dip name="Coinage" bits="17,18" ids="3C/1C,2C/1C,1C/1C,1C/2C" values="2,1,0,3"/>
+        <dip name="Cabinet" bits="19" ids="Upright,Cocktail"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="theend.zip">
+        <part crc="93e555ba" name="ic13_1t.bin"/>
+        <part crc="2de7ad27" name="ic14_2t.bin"/>
+        <part crc="035f750b" name="ic15_3t.bin"/>
+        <part crc="61286b5c" name="ic16_4t.bin"/>
+        <part crc="434a8f68" name="ic17_5t.bin"/>
+        <part crc="dc4cc786" name="ic18_6t.bin"/>
+        <part repeat="0xD000">00</part>
+        <part crc="68ccf7bf" name="ic30_2c.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="4a48c999" name="ic31_1c.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="24652bc4" name="6331-1j.86"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="7a141f29" name="ic56_1.bin"/>
+        <part crc="218497c1" name="ic55_2.bin"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            06 90 00 00 00 00 02 00 00 00 40 0B 00 00 00 00
+            00 06 16 05 04 03 12 11 00 00 0E 0D 0C 0B 14 13
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 4A 3E C4 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 43 C0 00 0F 00 00
+            00 00 40 A8 00 03 00 00
+            00 00 4D A1 00 01 00 00
+            00 00 4D C1 00 01 00 00
+            00 00 4D E1 00 01 10 10
+            00 00 4E 01 00 01 10 10
+            00 00 4E 21 00 01 10 10
+            00 00 4E 41 00 01 10 10
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="24"></nvram>
+
+    <remark>The End (Konami)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

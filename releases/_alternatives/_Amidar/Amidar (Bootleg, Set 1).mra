@@ -1,0 +1,78 @@
+<misterromdescription>
+    <name>Amidar (Bootleg, Set 1)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Amidar</series>
+    <year>1982</year>
+    <manufacturer>bootleg</manufacturer>
+    <category>Shooter</category>
+
+    <setname>amidarb</setname>
+    <parent>amidar</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>4-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FF,F1,FF">
+        <dip name="Lives" bits="8,9" ids="3,4,5,255 (Cheat)" values="3,2,1,0"/>
+        <dip name="Cabinet" bits="19" ids="Upright,Cocktail"/>
+        <dip name="Demo Sounds" bits="17" ids="Off,On" values="1,0"/>
+        <dip name="Bonus Life" bits="18" ids="30000 70000,50000 80000"/>
+        <dip name="Coin A" bits="24,27" ids="4C/1C,3C/1C,2C/1C,3C/2C,4C/3C,1C/1C,3C/4C,2C/3C,1C/2C,2C/5C,1C/3C,1C/4C,1C/5C,1C/6C,1C/7C,Free Play" values="4,10,1,2,8,15,12,14,7,6,11,3,13,5,9,0"/>
+        <dip name="Coin B" bits="28,31" ids="4C/1C,3C/1C,2C/1C,3C/2C,4C/3C,1C/1C,3C/4C,2C/3C,1C/2C,2C/5C,1C/3C,1C/4C,1C/5C,1C/6C,1C/7C,Invalid" values="4,10,1,2,8,15,12,14,7,6,11,3,13,5,9,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="amidarb.zip|amidar.zip">
+        <part crc="9ad2dcd2" name="ami2gor.2c"/>
+        <part crc="66282ff5" name="2.2f"/>
+        <part crc="b0860e31" name="3.2j"/>
+        <part crc="4a4086c9" name="4.2m"/>
+        <part repeat="0xC000">00</part>
+        <part crc="2082ad0a" name="5.5f"/>
+        <part repeat="0x1800">00</part>
+        <part crc="3029f94f" name="6.5h"/>
+        <part repeat="0x1800">00</part>
+        <part crc="01004d3f" name="n82s123n.6e"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="8ca7b750" name="8.11d"/>
+        <part crc="9b5bdc0a" name="9.9d"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            08 91 00 00 80 00 02 00 04 00 80 03 00 00 00 00
+            09 00 16 05 04 03 12 11 00 00 00 0D 0C 0B 14 13
+            0A 00 00 00 01 00 02 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            07 ED 5E 3B 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 82 00 00 1E 00 01
+            00 00 80 A8 00 03 00 01
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="33"></nvram>
+
+    <remark>Amidar (Bootleg, Set 1)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

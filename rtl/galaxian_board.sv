@@ -15,7 +15,9 @@ module galaxian_board
     input               pause,
 
     input         [7:0] variant,        // memory map: 0 Galaxian, 1 Moon Cresta, 2 Scorpion (MC), 3 Crazy Kong (MC),
-                                        // 4 Jump Bug, 5 Frogger
+                                        // 4 Jump Bug, 5 Frogger, 6 Scramble / The End, 7 Super Cobra, 8 Turtles,
+                                        // 9 Frog (Falcon) / Hustler, 10 Frogger (AM), 11 Turpin (S), 12 Stern type 2,
+                                        // 13 Hustler bootleg, 14 Hustler bootleg without PPIs
     input         [7:0] vflags,         // [0] Scramble shells, [1] RGB -> GBR harness (Eagle)
     input         [7:0] bflags,         // [0] NMI enable on latch 0, [1] 2K work RAM, [2] stars cut, [3] Moon Cresta
                                         // decryption, [4] same on opcodes only, [5] latch 2 is gfx bank 0,
@@ -32,7 +34,18 @@ module galaxian_board
                                         // 4800-4FFF address lines (Zig Zag), [5] AY clock 3.072 MHz
     input         [7:0] vflags3,        // see galaxian_video.sv
     input         [7:0] bflags5,        // [0] Konami sound board (Z80 + AY + filters), [1] its second AY (Scramble),
-                                        // [2] first sound ROM D0 / D1 swapped (Frogger)
+                                        // [2] first sound ROM D0 / D1 swapped (Frogger), [3] Scramble / The End
+                                        // protection on PPI 1 port C, [4] watchdog also at 7800 (Atlantis, Frogger
+                                        // VD), [5] Frogger
+                                        // timer on a 2-AY board (Quaak), [6] timer also read at 9000 (Turpin S),
+                                        // [7] Turpin NV on the Scramble map (ROM C000-CFFF, colour latches 6803-5)
+    input         [7:0] vflags4,        // see galaxian_video.sv
+    input         [7:0] bflags6,        // Stern: [0] type 2 as Tazz-Mania 3 (plain PPIs, latches on A3-A0), [1] PPI 1
+                                        // port C reads FC (Rescue bootleg), [2] ROM A9-A0 inverted in 0000-0FFF,
+                                        // 2000-2FFF, 4000-4FFF (Tazz-Mania ET), [3] Strategy X colour latches B000 G,
+                                        // B002 B, B00A R, [4] B002 = background enable (Tazz-Mania 2), [5] Hustler
+                                        // program decryption, [6] Billiard program decryption
+    input         [7:0] bflags7,        // [0] sound board without RC filters (Hustler), [1] Hustler bootleg sound map
     input         [7:0] rom_top,        // end of program ROM >> 8 (0 = 40)
     input         [7:0] ext_mode,       // tile/sprite code extension (see galaxian_video.sv)
 
@@ -56,7 +69,6 @@ module galaxian_board
     output reg          video_vblank = 1'b1,
 
     output signed [15:0] audio,
-    output        [2:0] dbg,            // DIAG-REVERT-2026-09-29: Konami sound board activity
 
     // hiscore (CPU paused): work RAM second port; video RAM through the CPU port
     input        [15:0] hs_address,
@@ -69,13 +81,14 @@ wire ce6 = (ph == 3'd0);
 
 //------------------------------------------------------- ROM load map --------------------------------------------------------//
 
-wire prog_cs, gfx0_cs, gfx1_cs, pal_cs, snd_cs;
+wire prog_cs, gfx0_cs, gfx1_cs, pal_cs, snd_cs, bgp_cs;
 
 selector rom_selector
 (
     .ioctl_addr(ioctl_addr),
     .prog_cs(prog_cs),
     .snd_cs(snd_cs),
+    .bgp_cs(bgp_cs),
     .gfx0_cs(gfx0_cs),
     .gfx1_cs(gfx1_cs),
     .pal_cs(pal_cs)
@@ -119,6 +132,24 @@ end
 // I/O 6000-7FFF, protection B000-BFFF.
 // Frogger (frogger_map): ROM 0000-3FFF, RAM 8000-87FF, watchdog 8800, video A800, objects B000, latches B800 on
 // A4-A2, PPIs C000-FFFF (A13 PPI 0, A12 PPI 1, port on A2-A1).
+// Scramble / The End (theend_map): ROM, RAM 4000-47FF, video 4800, objects 5000, latches 6800, watchdog 7000,
+// PPIs 8000-FFFF (A8 PPI 0, A9 PPI 1, port on A1-A0).
+// Super Cobra (scobra_map, A14 ignored): ROM 0000-7FFF, RAM 8000-87FF, video 8800, objects 9000, PPI 0 9800,
+// PPI 1 A000, latches A800, watchdog B000.
+// Turtles / Amidar (turtles_map, A14 ignored): ROM 0000-7FFF, RAM 8000-87FF, video 9000, objects 9800, latches
+// A000-A03F on A5-A3, watchdog A800, PPI 0 B000 / PPI 1 B800 (port on A5-A4).
+// Frog (frogf_map): ROM, RAM 8000, video 8800, objects 9000, latches A800 on A3-A1, watchdog B800, PPIs C000-FFFF
+// (A12 PPI 0, A13 PPI 1, port on A4-A3).
+// Frogger AM (froggeram_map): ROM 0000-2FFF, PPIs 4000-43FF (A8 / A9, data bit-reversed), RAM 8000, watchdog 8800,
+// video A800, objects B000, latches B800.
+// Turpin S (turpins_map): ROM 0000-7FFF, RAM 8000, video 9000, objects 9800, PPI 0 A000, latches A800, watchdog
+// B800, PPI 1 C000.
+// Hustler bootleg (hustlerb_map): ROM 0000-7FFF, RAM 8000, video 8800, objects 9000, latches A800 on A2-A0 (A806
+// flip Y, A807 flip X), watchdog B000, PPIs C100 / C200.
+// Hustler bootleg (hustlerb6_map): ROM 0000-3FFF, IN0-2 at 4800 / 4801 / 4803 (4800 write = sound command), sound
+// control 5000, RAM 8000, video 8800, objects 9000, latches A800 on A2-A0, no watchdog.
+// Stern type 2 (scobra.cpp type2_map): ROM 0000-7FFF, RAM 8000, objects 8800, video 9000, watchdog 9800, PPI 0 A000,
+// PPI 1 A800 (port on A3-A2; Tazz-Mania 3 A1-A0), latches B000 on A3-A1 (Tazz-Mania 3 A3-A0).
 wire [7:0] top = rom_top == 8'd0 ? 8'h40 : rom_top;
 
 // {rom, ram, vid, obj, io, ram index[11:0]}
@@ -128,20 +159,20 @@ function [16:0] decode(input [15:0] a);
     begin
         rom = a[15:8] < top;
         ri  = {1'b0, bflags[1] & a[10], a[9:0]};
-        case (variant[2:0])
-            3'd0: begin
+        case (variant[3:0])
+            4'd0: begin
                 ram = a[15:11] == 5'b01000;
                 vid = a[15:11] == 5'b01010;
                 obj = a[15:11] == 5'b01011;
                 io  = a[15:13] == 3'b011;
             end
-            3'd1: begin
+            4'd1: begin
                 ram = a[15:11] == 5'b10000;
                 vid = a[15:11] == 5'b10010;
                 obj = a[15:11] == 5'b10011;
                 io  = a[15:13] == 3'b101;
             end
-            3'd2: begin
+            4'd2: begin
                 rom = a < 16'h4000 || (a >= 16'h5000 && a < 16'h6800);
                 ram = a[15:11] == 5'b01000 || a[15:10] == 6'b100000;
                 ri  = {a[15], a[10:0]};
@@ -149,14 +180,71 @@ function [16:0] decode(input [15:0] a);
                 obj = a[15:11] == 5'b10011;
                 io  = a[15:13] == 3'b101;
             end
-            3'd5: begin
+            4'd5: begin
                 ram = a[15:11] == 5'b10000;
                 ri  = {1'b0, a[10:0]};
                 vid = a[15:11] == 5'b10101;
                 obj = a[15:11] == 5'b10110;
                 io  = 1'b0;
             end
-            3'd4: begin
+            4'd6: begin
+                ram = a[15:11] == 5'b01000;
+                ri  = {1'b0, a[10:0]};
+                vid = a[15:11] == 5'b01001;
+                obj = a[15:11] == 5'b01010;
+                io  = 1'b0;
+            end
+            4'd9: begin
+                ram = a[15:11] == 5'b10000;
+                ri  = {1'b0, a[10:0]};
+                vid = a[15:11] == 5'b10001;
+                obj = a[15:11] == 5'b10010;
+                io  = 1'b0;
+            end
+            4'd10: begin
+                rom = a < 16'h3000;
+                ram = a[15:11] == 5'b10000;
+                ri  = {1'b0, a[10:0]};
+                vid = a[15:10] == 6'b101010;
+                obj = a[15:8] == 8'hB0;
+                io  = 1'b0;
+            end
+            4'd11: begin
+                ram = a[15:11] == 5'b10000;
+                ri  = {1'b0, a[10:0]};
+                vid = a[15:11] == 5'b10010;
+                obj = a[15:8] == 8'h98;
+                io  = 1'b0;
+            end
+            4'd13, 4'd14: begin
+                ram = a[15:11] == 5'b10000;
+                ri  = {1'b0, a[10:0]};
+                vid = a[15:11] == 5'b10001;
+                obj = a[15:11] == 5'b10010;
+                io  = 1'b0;
+            end
+            4'd12: begin
+                ram = a[15:11] == 5'b10000;
+                ri  = {1'b0, a[10:0]};
+                vid = a[15:11] == 5'b10010;
+                obj = a[15:8] == 8'h88;
+                io  = 1'b0;
+            end
+            4'd8: begin
+                ram = a[15] && a[13:11] == 3'b000;
+                ri  = {1'b0, a[10:0]};
+                vid = a[15] && a[13:11] == 3'b010;
+                obj = a[15] && a[13:11] == 3'b011;
+                io  = 1'b0;
+            end
+            4'd7: begin
+                ram = a[15] && a[13:11] == 3'b000;
+                ri  = {1'b0, a[10:0]};
+                vid = a[15] && a[13:11] == 3'b001;
+                obj = a[15] && a[13:11] == 3'b010;
+                io  = 1'b0;
+            end
+            4'd4: begin
                 rom = a < 16'h4000 || (a >= 16'h8000 && a < 16'hB000);
                 ram = a[15:11] == 5'b01000;
                 ri  = {1'b0, a[10:0]};
@@ -191,6 +279,7 @@ reg   [3:0] lfo_9m = 4'hF;              // 6004-6007: background LFO DAC
 reg   [7:0] pitch  = 8'd0;              // 7800
 reg   [3:0] gfxbank = 4'd0;             // 6000-6002: graphics bank 0 (D1-D0), 1, 2 (Moon Cresta, Pisces)
 reg         gfxbank4 = 1'b0;            // Jump Bug 6006
+reg   [2:0] bg_rgb = 3'd0;              // Turtles background colour latches (R, G, B)
 reg   [3:0] watchdog = 4'd0;
 wire        watchdog_reset = (watchdog == 4'd8) & ~bflags2[0];
 
@@ -221,13 +310,44 @@ wire [11:0] ram_idx;
 wire        rom_cs, ram_cs, vid_cs, obj_cs, io_cs;
 assign      {rom_cs, ram_cs, vid_cs, obj_cs, io_cs, ram_idx} = decode(cpu_addr);
 wire  [1:0] io_sel = cpu_addr[12:11];   // 6000, 6800, 7000, 7800
-wire        jb     = variant[2:0] == 3'd4;
+wire        jb     = variant[3:0] == 4'd4;
 wire        ay_cs  = jb && cpu_addr[15:9] == 7'b0101100;     // 5800 data, 5900 address
 wire        prot_cs = jb && cpu_addr[15:12] == 4'hB;
-wire        fg      = variant[2:0] == 3'd5;
+wire        fg      = variant[3:0] == 4'd5;
+wire        sc      = variant[3:0] == 4'd6;
+wire        sb      = variant[3:0] == 4'd7;
+wire        tu      = variant[3:0] == 4'd8;
+wire        ff      = variant[3:0] == 4'd9;                           // Frog (Falcon)
+wire        fa      = variant[3:0] == 4'd10;                          // Frogger (AM)
+wire        ts      = variant[3:0] == 4'd11;                          // Turpin (S)
+wire        st2     = variant[3:0] == 4'd12;                          // Stern type 2
+wire        hb      = variant[3:0] == 4'd13;                          // Hustler bootleg
+wire        hb6     = variant[3:0] == 4'd14;                          // Hustler bootleg without PPIs
+wire        hb_lat  = (hb || hb6) && cpu_addr[15:4] == 12'hA80;
+wire        st2_lat = st2 && cpu_addr[15:4] == 12'hB00;
+wire        tnv     = sc && bflags5[7];                               // Turpin NV
+wire        tnv_rom = tnv && cpu_addr[15:12] == 4'hC;                 // C000-CFFF = ROM 4000-4FFF
 wire        fg_lat  = fg && cpu_addr[15:11] == 5'b10111;              // B800-BFFF
-wire        fg_wd   = fg && cpu_addr[15:11] == 5'b10001;              // 8800 watchdog
-wire        fg_ppi  = fg && cpu_addr[15:14] == 2'b11;                 // C000-FFFF
+wire        tu_lat  = tu && cpu_addr[15] && cpu_addr[13:11] == 3'b100;   // A000-A7FF
+wire        ff_lat  = ff && cpu_addr[15:11] == 5'b10101;              // A800-AFFF, index A3-A1
+wire        x_lat   = (fa && cpu_addr[15:4] == 12'hB80) ||            // B800-B80F (Frogger AM)
+                      (ts && cpu_addr[15:4] == 12'hA80);              // A800-A80F (Turpin S), index A2-A0
+wire        k_lat   = (sc && !tnv && cpu_addr[15:11] == 5'b01101) || // 6800 (Scramble / The End)
+                      (sb && cpu_addr[15] && cpu_addr[13:11] == 3'b101); // A800 (Super Cobra)
+wire        fg_wd   = (fg && cpu_addr[15:11] == 5'b10001) ||          // 8800 watchdog
+                      (sc && (cpu_addr[15:11] == 5'b01110 || (bflags5[4] && cpu_addr[15:11] == 5'b01111))) || // 7000 (+ 7800)
+                      (sb && cpu_addr[15] && cpu_addr[13:11] == 3'b110) ||               // B000
+                      (tu && cpu_addr[15] && cpu_addr[13:11] == 3'b101) ||               // A800
+                      (ff && cpu_addr[15:11] == 5'b10111) ||                             // B800
+                      (fa && cpu_addr == 16'h8800) || (ts && cpu_addr == 16'hB800) ||
+                      (st2 && cpu_addr == 16'h9800) || (hb && cpu_addr == 16'hB000);
+wire        fg_ppi  = (fg && cpu_addr[15:14] == 2'b11) || (sc && cpu_addr[15] && !tnv_rom) ||    // PPIs
+                      (ff && cpu_addr[15:14] == 2'b11) || (fa && cpu_addr[15:10] == 6'b010000) ||
+                      (ts && (cpu_addr[15:2] == 14'h2800 || cpu_addr[15:2] == 14'h3000)) ||
+                      (st2 && (cpu_addr[15:4] == 12'hA00 || cpu_addr[15:4] == 12'hA80)) ||
+                      (hb && cpu_addr[15:10] == 6'b110000) ||
+                      (sb && cpu_addr[15] && (cpu_addr[13:11] == 3'b011 || cpu_addr[13:11] == 3'b100)) ||
+                      (tu && cpu_addr[15] && cpu_addr[13:12] == 2'b11);
 
 // one write strobe per CPU write cycle
 reg  wr_d = 1'b1;
@@ -247,6 +367,69 @@ always @(posedge clk) begin
         pitch   <= 8'd0;
         gfxbank <= 4'd0;
         gfxbank4 <= 1'b0;
+        bg_rgb   <= 3'd0;
+    end
+    else if (wr && k_lat) ctl_9n[cpu_addr[2:0]] <= cpu_dout[0];      // 1 NMI, 3 blue background, 4 stars, 6/7 flip
+    else if (wr && ff_lat) begin
+        case (cpu_addr[3:1])
+            3'd1: ctl_9n[6] <= cpu_dout[0];
+            3'd2: ctl_9n[1] <= cpu_dout[0];
+            3'd3: ctl_9n[7] <= cpu_dout[0];
+            default: ;
+        endcase
+    end
+    else if (wr && x_lat) ctl_9n[cpu_addr[2:0]] <= cpu_dout[0];      // 1 NMI, 6/7 flip
+    else if (wr && hb_lat) begin                                     // Hustler bootlegs: A801 NMI
+        case (cpu_addr[2:0])
+            3'd1: ctl_9n[1] <= cpu_dout[0];
+            3'd2: if (hb6) ctl_9n[6] <= cpu_dout[0];                 // A802 flip X (hustlerb6)
+            3'd6: ctl_9n[7] <= cpu_dout[0];                          // A806 flip Y
+            3'd7: if (hb) ctl_9n[6] <= cpu_dout[0];                  // A807 flip X (hustlerb)
+            default: ;
+        endcase
+    end
+    else if (wr && st2_lat && bflags6[0]) begin                      // Tazz-Mania 3: B000 stars, B001 NMI, B00C/E flip
+        case (cpu_addr[3:0])
+            4'h0: ctl_9n[4] <= cpu_dout[0];
+            4'h1: ctl_9n[1] <= cpu_dout[0];
+            4'h2: if (bflags6[4]) ctl_9n[3] <= cpu_dout[0];          // Tazz-Mania ET background enable
+            4'hC: ctl_9n[7] <= cpu_dout[0];
+            4'hE: ctl_9n[6] <= cpu_dout[0];
+            default: ;
+        endcase
+    end
+    else if (wr && st2_lat) begin                                    // B000 stars (G), B002 (B / bg), B004 NMI, B00A (R),
+        case (cpu_addr[3:1])                                          // B00C flip Y, B00E flip X
+            3'd0: if (bflags6[3]) bg_rgb[1] <= cpu_dout[0]; else ctl_9n[4] <= cpu_dout[0];
+            3'd1: if (bflags6[3]) bg_rgb[0] <= cpu_dout[0]; else if (bflags6[4]) ctl_9n[3] <= cpu_dout[0];
+            3'd2: ctl_9n[1] <= cpu_dout[0];
+            3'd5: if (bflags6[3]) bg_rgb[2] <= cpu_dout[0];
+            3'd6: ctl_9n[7] <= cpu_dout[0];
+            3'd7: ctl_9n[6] <= cpu_dout[0];
+            default: ;
+        endcase
+    end
+    else if (wr && tnv && cpu_addr[15:11] == 5'b01101) begin          // Turpin NV 6800
+        case (cpu_addr[2:0])
+            3'd1: ctl_9n[1] <= cpu_dout[0];
+            3'd3: bg_rgb[0] <= cpu_dout[0];
+            3'd4: bg_rgb[1] <= cpu_dout[0];
+            3'd5: bg_rgb[2] <= cpu_dout[0];
+            3'd6: ctl_9n[6] <= cpu_dout[0];
+            3'd7: ctl_9n[7] <= cpu_dout[0];
+            default: ;
+        endcase
+    end
+    else if (wr && tu_lat) begin
+        case (cpu_addr[5:3])
+            3'd0: bg_rgb[2] <= cpu_dout[0];
+            3'd1: ctl_9n[1] <= cpu_dout[0];
+            3'd2: ctl_9n[7] <= cpu_dout[0];
+            3'd3: ctl_9n[6] <= cpu_dout[0];
+            3'd4: bg_rgb[1] <= cpu_dout[0];
+            3'd5: bg_rgb[0] <= cpu_dout[0];
+            default: ;
+        endcase
     end
     else if (wr && fg_lat) begin
         case (cpu_addr[4:2])
@@ -314,7 +497,9 @@ function [2:0] fa_lut(input [4:0] i);
 endfunction
 
 // Zig Zag swaps ROMs 2000 / 3000 with the 7002 latch
-wire [15:0] rom_a = bflags4[2] && !cpu_addr[15] ? {1'b0, fa_lut(cpu_addr[14:10]), cpu_addr[11:10], cpu_addr[9:0]} :
+wire [15:0] rom_a = tnv_rom ? {4'h4, cpu_addr[11:0]} :
+                    bflags6[2] && !cpu_addr[12] && cpu_addr[15:13] < 3'd3 ? {cpu_addr[15:10], ~cpu_addr[9:0]} :
+                    bflags4[2] && !cpu_addr[15] ? {1'b0, fa_lut(cpu_addr[14:10]), cpu_addr[11:10], cpu_addr[9:0]} :
                     bflags4[1] && cpu_addr[15:13] == 3'b001 ? {cpu_addr[15:13], cpu_addr[12] ^ ctl_9n[2], cpu_addr[11:0]} :
                     cpu_addr;
 
@@ -340,7 +525,10 @@ function [7:0] mc_decrypt(input [7:0] d, input a0);
 endfunction
 
 wire       decrypt = cpu_addr[15:14] == 2'b00 && (bflags[3] || (bflags[4] && !cpu_m1_n));
-wire [7:0] rom_d   = decrypt ? mc_decrypt(rom_q, cpu_addr[0]) : bflags3[3] ? cm_decrypt(rom_q, cpu_addr[2:0]) : rom_q;
+wire       hus_rom = cpu_addr[15:14] == 2'b00;
+wire [7:0] rom_d   = decrypt ? mc_decrypt(rom_q, cpu_addr[0]) : bflags3[3] ? cm_decrypt(rom_q, cpu_addr[2:0]) :
+                     bflags6[5] && hus_rom ? hus_decrypt(rom_q, cpu_addr[7:0]) :
+                     bflags6[6] && hus_rom ? bil_decrypt(rom_q, cpu_addr[7:0]) : rom_q;
 
 // Jump Bug protection reads (MAME jumpbug_protection_r)
 reg [7:0] prot_q;
@@ -395,23 +583,104 @@ endfunction
 
 // Konami PPIs: 0 = IN0 / IN1 / IN2, 1 = sound command / sound control / IN3
 wire [7:0] ppi0_q, ppi1_q, ppi1_pa, ppi1_pb;
-wire       ppi0_sel = fg_ppi & cpu_addr[13];
-wire       ppi1_sel = fg_ppi & cpu_addr[12];
-wire [1:0] ppi_a    = cpu_addr[2:1];
+wire       ppi0_sel = fg_ppi & (fg ? cpu_addr[13] : ff ? cpu_addr[12] : sc | fa | hb ? cpu_addr[8] : tu ? ~cpu_addr[11] :
+                                ts ? cpu_addr[15:13] == 3'b101 : st2 ? ~cpu_addr[11] : cpu_addr[13:11] == 3'b011);
+wire       ppi1_sel = fg_ppi & (fg ? cpu_addr[12] : ff ? cpu_addr[13] : sc | fa | hb ? cpu_addr[9] : tu ?  cpu_addr[11] :
+                                ts ? cpu_addr[15:13] == 3'b110 : st2 ?  cpu_addr[11] : cpu_addr[13:11] == 3'b100);
+wire [1:0] ppi_a    = fg ? cpu_addr[2:1] : ff ? cpu_addr[4:3] : tu ? cpu_addr[5:4] :
+                      st2 && !bflags6[0] ? cpu_addr[3:2] : cpu_addr[1:0];
+// Frogger (AM): the PPI data bus is wired bit-reversed (both directions)
+wire [7:0] ppi_q0   = (ppi0_sel ? ppi0_q : 8'hFF) & (ppi1_sel ? ppi1_q : 8'hFF);
+wire [7:0] ppi_q    = fa ? {ppi_q0[0], ppi_q0[1], ppi_q0[2], ppi_q0[3], ppi_q0[4], ppi_q0[5], ppi_q0[6], ppi_q0[7]} : ppi_q0;
+wire [7:0] ppi_din  = fa ? {cpu_dout[0], cpu_dout[1], cpu_dout[2], cpu_dout[3], cpu_dout[4], cpu_dout[5], cpu_dout[6], cpu_dout[7]} : cpu_dout;
+
+// Scramble / The End protection (MAME theend_protection_w / _r, a PAL at 6J): nibbles written to PPI 1 port C
+// shift through a 12-bit state; the low nibble is the operation. IN2 bits 5 and 7 read ~result[7].
+wire       prot     = bflags5[3];
+wire [7:0] ppi1_pc;
+wire       ppi1_pc_we;
+reg        pc_we_d  = 1'b0;
+reg [11:0] prot_st  = 12'd0;
+reg  [7:0] prot_res = 8'd0;
+always @(posedge clk) begin
+    pc_we_d <= ppi1_pc_we;
+    if (reset) begin
+        prot_st  <= 12'd0;
+        prot_res <= 8'd0;
+    end
+    else if (pc_we_d && prot) begin : prot_step
+        reg [11:0] st;
+        reg  [3:0] n1, n2;
+        st = {prot_st[7:0], ppi1_pc[3:0]};
+        n1 = st[11:8];
+        n2 = st[7:4];
+        prot_st <= st;
+        case (st[3:0])
+            4'h6: prot_res <= prot_res ^ 8'h80;
+            4'h9: prot_res <= {n1 == 4'hF ? 4'hF : n1 + 4'd1, 4'h0};
+            4'hA: prot_res <= 8'h00;
+            4'hB: prot_res <= {n2 > n1 ? n2 - n1 : 4'h0, 4'h0};
+            4'hF: prot_res <= {n1 > n2 ? n1 - n2 : 4'h0, 4'h0};
+            default: ;
+        endcase
+    end
+end
+wire [7:0] in2_k = prot ? {~prot_res[7], in2[6], ~prot_res[7], in2[4:0]} : in2;
 
 galaxian_ppi ppi0
 (
-    .clk(clk), .reset(reset), .addr(ppi_a), .din(cpu_dout), .we(wr & ppi0_sel), .dout(ppi0_q),
-    .pa_in(in0), .pb_in(in1), .pc_in(in2), .pa_out(), .pb_out(), .pc_out(), .pc_we()
+    .clk(clk), .reset(reset), .addr(ppi_a), .din(ppi_din), .we(wr & ppi0_sel), .dout(ppi0_q),
+    .pa_in(in0), .pb_in(in1), .pc_in(in2_k), .pa_out(), .pb_out(), .pc_out(), .pc_we()
 );
 
 galaxian_ppi ppi1
 (
-    .clk(clk), .reset(reset), .addr(ppi_a), .din(cpu_dout), .we(wr & ppi1_sel), .dout(ppi1_q),
-    .pa_in(8'hFF), .pb_in(8'hFF), .pc_in(in3), .pa_out(ppi1_pa), .pb_out(ppi1_pb), .pc_out(), .pc_we()
+    .clk(clk), .reset(reset), .addr(ppi_a), .din(ppi_din), .we(wr & ppi1_sel), .dout(ppi1_q),
+    .pa_in(8'hFF), .pb_in(8'hFF), .pc_in(prot ? prot_res : bflags6[1] ? 8'hFC : in3), .pa_out(ppi1_pa), .pb_out(ppi1_pb),
+    .pc_out(ppi1_pc), .pc_we(ppi1_pc_we)
 );
 
 wire [7:0] ay_dout, ay2_dout;
+
+// Hustler bootleg without PPIs: 4800 write = sound command, 5000 = sound control
+reg  [7:0] hb6_ctl = 8'd0;
+always @(posedge clk) if (reset) hb6_ctl <= 8'd0; else if (wr && hb6 && cpu_addr == 16'h5000) hb6_ctl <= cpu_dout;
+wire       snd_cmd_we = hb6 ? wr && cpu_addr == 16'h4800 : wr & ppi1_sel & ppi_a == 2'd0;
+wire [7:0] snd_ctl    = hb6 ? hb6_ctl : ppi1_pb;
+
+// Hustler / Billiard (MAME init_hustler / init_billiard): 0000-3FFF XOR-masked from A7-A0 (Billiard also shuffled)
+function [7:0] hus_decrypt(input [7:0] d, input [7:0] a);
+    reg [7:0] m;
+    begin
+        m = 8'hFF;
+        if (a[0] ^ a[1]) m = m ^ 8'h01;
+        if (a[3] ^ a[6]) m = m ^ 8'h02;
+        if (a[4] ^ a[5]) m = m ^ 8'h04;
+        if (a[0] ^ a[2]) m = m ^ 8'h08;
+        if (a[2] ^ a[3]) m = m ^ 8'h10;
+        if (a[1] ^ a[5]) m = m ^ 8'h20;
+        if (a[0] ^ a[7]) m = m ^ 8'h40;
+        if (a[4] ^ a[6]) m = m ^ 8'h80;
+        hus_decrypt = d ^ m;
+    end
+endfunction
+
+function [7:0] bil_decrypt(input [7:0] d, input [7:0] a);
+    reg [7:0] m, v;
+    begin
+        m = 8'h55;
+        if (a[2] ^ (a[3] & a[6]))   m = m ^ 8'h01;
+        if (a[4] ^ (a[5] & a[7]))   m = m ^ 8'h02;
+        if (a[0] ^ (a[7] & ~a[3]))  m = m ^ 8'h04;
+        if (a[3] ^ (~a[0] & a[2]))  m = m ^ 8'h08;
+        if (a[5] ^ (~a[4] & a[1]))  m = m ^ 8'h10;
+        if (a[6] ^ (~a[2] & ~a[5])) m = m ^ 8'h20;
+        if (a[1] ^ (~a[6] & ~a[4])) m = m ^ 8'h40;
+        if (a[7] ^ (~a[1] & a[0]))  m = m ^ 8'h80;
+        v = d ^ m;
+        bil_decrypt = {v[6], v[1], v[2], v[5], v[4], v[3], v[0], v[7]};
+    end
+endfunction
 wire       io_rd = ~cpu_iorq_n & cpu_m1_n & ~cpu_rd_n;
 
 // Fantastic AYs: 8803 address / 880B data / 8807 read, second 880C address / 880E data / 880D read
@@ -420,7 +689,10 @@ wire       fa_cs = bflags4[3] && mem && cpu_addr[15:4] == 12'h880;
 always @(*) begin
     cpu_din = 8'hFF;
     if (io_rd) cpu_din = bflags2[2] && cpu_addr[7:0] == 8'h02 ? ay_dout : 8'hFF;
-    else if (fg_ppi) cpu_din = (ppi0_sel ? ppi0_q : 8'hFF) & (ppi1_sel ? ppi1_q : 8'hFF);
+    else if (fg_ppi) cpu_din = ppi_q;
+    else if (hb6 && cpu_addr[15:2] == 14'h1200)                      // 4800 IN0, 4801 IN1, 4803 IN2
+        cpu_din = cpu_addr[1:0] == 2'd0 ? in0 : cpu_addr[1:0] == 2'd1 ? in1 : cpu_addr[1:0] == 2'd3 ? in2 : 8'hFF;
+    else if (tnv_rom) cpu_din = rom_d;
     else if (fa_cs) cpu_din = cpu_addr[3:0] == 4'h7 ? ay_dout : cpu_addr[3:0] == 4'hD ? ay2_dout : 8'hFF;
     else if (prot_cs) cpu_din = prot_q;
     else if (cm_prot) cpu_din = cm_prot_q;
@@ -440,7 +712,7 @@ end
 //----------------------------------------------------------- Video ------------------------------------------------------------//
 
 // object RAM is 256 bytes mirrored, except Crazy Kong's 1K
-wire [9:0] obj_idx = {variant[2:0] == 3'd3 || bflags4[0] ? cpu_addr[9:8] : 2'b00, cpu_addr[7:0]};
+wire [9:0] obj_idx = {variant[3:0] == 4'd3 || bflags4[0] ? cpu_addr[9:8] : 2'b00, cpu_addr[7:0]};
 wire n3a;
 
 galaxian_video video
@@ -458,7 +730,10 @@ galaxian_video video
     .rgb_gbr(vflags[1]),
     .ext_mode(ext_mode[3:0]),
     .vflags2(vflags2[3:0]),
-    .vflags3(vflags3[3:0]),
+    .vflags3(vflags3[7:0]),
+    .vflags4(vflags4[5:0]),
+    .bg_en(ctl_9n[3]),
+    .bg_rgb(bg_rgb),
     .gfxbank(gfxbank),
     .gfxbank4(gfxbank4),
     .stars_232(bflags2[5]),
@@ -475,6 +750,7 @@ galaxian_video video
     .gfx0_we(ioctl_wr0 & gfx0_cs),
     .gfx1_we(ioctl_wr0 & gfx1_cs),
     .pal_we(ioctl_wr0 & pal_cs),
+    .bgp_we(ioctl_wr0 & bgp_cs),
 
     .n3a(n3a),
 
@@ -636,16 +912,19 @@ galaxian_konami_snd konami_snd
     .clk(clk),
     .reset(reset | ~bflags5[0]),
     .two_ay(bflags5[1]),
+    .fr_timer(bflags5[5]),
+    .timer_9000(bflags5[6]),
+    .no_filter(bflags7[0]),
+    .hb_map(bflags7[1]),
     .pause(pause),
-    .latch_we(wr & ppi1_sel & ppi_a == 2'd0),
-    .latch_d(cpu_dout),
-    .control(ppi1_pb),
-    .rom_addr(ioctl_addr[12:0]),
+    .latch_we(snd_cmd_we),
+    .latch_d(ppi_din),
+    .control(snd_ctl),
+    .rom_addr(ioctl_addr[13:0]),
     .rom_data(ioctl_dout),
     .rom_we(ioctl_wr0 & snd_cs),
     .rom_swap01(bflags5[2]),
-    .out(konami_audio),
-    .dbg(dbg)                           // DIAG-REVERT-2026-09-29
+    .out(konami_audio)
 );
 
 // discrete (unless cut) plus AY plus the Konami board; a sound source that is idle stays at 0

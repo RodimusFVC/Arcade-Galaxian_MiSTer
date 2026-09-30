@@ -1,0 +1,65 @@
+<misterromdescription>
+    <name>Video Hustler (Bootleg, Set 5)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Video Hustler</series>
+    <year>1981</year>
+    <manufacturer>bootleg (Marti Colls)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>hustlerb7</setname>
+    <parent>hustler</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,00,02,FF">
+        <dip name="Lives" bits="16,17" ids="1,2,3,Infinite (Cheat)"/>
+        <dip name="Unknown" bits="18" ids="Off,On"/>
+        <dip name="Unknown" bits="19" ids="Off,On"/>
+        <dip name="Unknown" bits="20" ids="Off,On"/>
+        <dip name="Unknown" bits="21" ids="Off,On"/>
+        <dip name="Coinage" bits="22,23" ids="3C/1C,2C/1C,1C/1C,1C/2C" values="2,1,0,3"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="hustlerb7.zip|hustler.zip">
+        <part crc="15748377" name="mcbi.1.10l"/>
+        <part crc="dc6752ec" name="b1.2.10l"/>
+        <part crc="73a011f0" name="mcbi.3.8l"/>
+        <part repeat="0xD000">00</part>
+        <part crc="0bdfad0e" name="mcbi.5f.5h"/>
+        <part repeat="0x1800">00</part>
+        <part crc="8e062177" name="mcbi.5h.3h"/>
+        <part repeat="0x1800">00</part>
+        <part crc="aa1f7f5e" name="mcbi_prom.1k"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="7d4085eb" name="mcbi.7_2732.3b"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            0E 90 01 00 40 00 03 00 00 00 00 01 00 00 01 00
+            00 00 00 05 04 03 12 11 00 00 00 0D 0C 0B 14 13
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Video Hustler (Bootleg, Set 5) (Marti Colls Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

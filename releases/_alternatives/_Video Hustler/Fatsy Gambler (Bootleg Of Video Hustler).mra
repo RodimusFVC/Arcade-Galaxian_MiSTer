@@ -1,0 +1,63 @@
+<misterromdescription>
+    <name>Fatsy Gambler (Bootleg Of Video Hustler)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Video Hustler</series>
+    <year>1981</year>
+    <manufacturer>bootleg</manufacturer>
+    <category>Shooter</category>
+
+    <setname>hustlerb2</setname>
+    <parent>hustler</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FE,F1,FF">
+        <dip name="Lives" bits="8,9" ids="1,2,3,Infinite (Cheat)"/>
+        <dip name="Coinage" bits="17,18" ids="3C/1C,2C/1C,1C/1C,1C/2C" values="2,1,0,3"/>
+        <dip name="Cabinet" bits="19" ids="Upright,Cocktail"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="hustlerb2.zip|hustler.zip">
+        <part crc="2ce5e7b9" name="b1.1"/>
+        <part crc="dc6752ec" name="b1.2"/>
+        <part crc="23092f67" name="b3.3"/>
+        <part repeat="0xD000">00</part>
+        <part crc="0bdfad0e" name="b4.r2"/>
+        <part repeat="0x1800">00</part>
+        <part crc="8e062177" name="b5"/>
+        <part repeat="0x1800">00</part>
+        <part crc="aa1f7f5e" name="27s19.bin"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="7a946544" name="b6.bin"/>
+        <part crc="3db57351" name="b7.bin"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            09 90 01 00 80 00 02 00 00 00 00 05 00 00 01 00
+            09 00 16 05 04 03 12 11 00 00 00 0D 0C 0B 14 13
+            0A 00 00 00 01 00 02 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Fatsy Gambler (Bootleg Of Video Hustler)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

@@ -25,9 +25,19 @@ module galaxian_video
                                         // 8 sprites from the upper half of the planes (separate sprite ROM, Zig Zag)
     input         [3:0] vflags2,        // [0] second sprite generator (objram 60-7F), [1] shells at objram C0,
                                         // [2] no shells, [3] sprite RAM page per 64 lines (Time Fighter)
-    input         [3:0] vflags3,        // Frogger: [0] scroll and sprite Y nibbles swapped, [1] colour rotated right,
+    input         [7:0] vflags3,        // Frogger: [0] scroll and sprite Y nibbles swapped, [1] colour rotated right,
                                         // [2] blue (47) background on one half, [3] second gfx plane D0 / D1 swapped
-                                        // (undone on reads: the config arrives after the ROM download)
+                                        // (undone on reads: the config arrives after the ROM download);
+                                        // Scramble: [4] blue (56) background on bg_en, [5] fixed blinking stars;
+                                        // [6] The End shells (Galaxian shells, blue / green swapped),
+                                        // [7] Turtles background colour from bg_rgb
+    input         [5:0] vflags4,        // Stern (MAME galaxold_v): [0] Rescue blue gradient background, [1] Minefield
+                                        // brown right half, [2] stars on the left half only, [3] Strategy X column
+                                        // background (PROM x colour latches), [4] Rescue gfx address scramble,
+                                        // [5] Minefield gfx address scramble (both undone on reads)
+    input               bgp_we,         // Strategy X background PROM load ("user1")
+    input               bg_en,          // background enable latch (Scramble 6803 / A803)
+    input         [2:0] bg_rgb,         // Turtles background latches R, G, B (390 / 470 / 390 ohm)
     input         [3:0] gfxbank,        // bank 0 (D1-D0), bank 1, bank 2
     input               gfxbank4,       // Jump Bug bank 4
     input               stars_232,      // no stars from H = 232 on (Jump Bug status area)
@@ -96,18 +106,40 @@ dpram_dc #(.widthad_a(10)) objram_s
 reg  [12:0] gs_addr, gt_addr;
 wire  [7:0] g0s_q, g1s_q, g0t_q, g1t_q;
 wire  [7:0] g1s_raw, g1t_raw;
-wire [12:0] ga = gfx0_we | gfx1_we ? ioctl_addr[12:0] : gs_addr;
+// Rescue / Minefield (MAME init_rescue / init_minefld): the ROM holds tile byte j at position i; read i -> fetch j
+function [12:0] gfx_remap(input [12:0] i);
+    reg [12:0] j;
+    begin
+        j = i;
+        if (vflags4[4]) begin
+            j = i & 13'h1A7F;
+            j[7]  = i[3] ^ i[10];
+            j[8]  = i[1] ^ i[7];
+            j[10] = i[0] ^ i[8];
+        end
+        else if (vflags4[5]) begin
+            j = i & 13'h1D5F;
+            j[5] = i[3] ^ i[7];
+            j[7] = i[2] ^ i[9] ^ (i[0] & i[5]) ^ (i[3] & i[7] & (i[0] ^ i[5]));
+            j[9] = i[0] ^ i[5] ^ (i[3] & i[7]);
+        end
+        gfx_remap = j;
+    end
+endfunction
+
+wire [12:0] ga = gfx0_we | gfx1_we ? ioctl_addr[12:0] : gfx_remap(gs_addr);
+wire [12:0] gt_rd = gfx_remap(gt_addr);
 
 dpram_dc #(.widthad_a(13)) gfx0
 (
     .clock_a(clk), .address_a(ga), .data_a(ioctl_dout), .wren_a(gfx0_we), .q_a(g0s_q),
-    .clock_b(clk), .address_b(gt_addr), .q_b(g0t_q)
+    .clock_b(clk), .address_b(gt_rd), .q_b(g0t_q)
 );
 
 dpram_dc #(.widthad_a(13)) gfx1
 (
     .clock_a(clk), .address_a(ga), .data_a(ioctl_dout), .wren_a(gfx1_we), .q_a(g1s_raw),
-    .clock_b(clk), .address_b(gt_addr), .q_b(g1t_raw)
+    .clock_b(clk), .address_b(gt_rd), .q_b(g1t_raw)
 );
 
 assign g1s_q = vflags3[3] ? {g1s_raw[7:2], g1s_raw[0], g1s_raw[1]} : g1s_raw;
@@ -115,6 +147,9 @@ assign g1t_q = vflags3[3] ? {g1t_raw[7:2], g1t_raw[0], g1t_raw[1]} : g1t_raw;
 
 reg [7:0] pal[32];
 always @(posedge clk) if (pal_we) pal[ioctl_addr[4:0]] <= ioctl_dout;
+
+reg [1:0] bgp[32];                      // Strategy X background PROM: bit 1 enables R/G, bit 0 B (active low)
+always @(posedge clk) if (bgp_we) bgp[ioctl_addr[4:0]] <= ioctl_dout[1:0];
 
 // sprite line buffer: {pen[1:0], colour[2:0]}
 // 8 bits wide: dpram_dc's byteena is width_a/8 bits, so narrower widths fail to elaborate in Quartus
@@ -386,8 +421,17 @@ endfunction
 
 reg [6:0] star_a, star_b;
 
+// Scramble (MAME scramble_draw_stars): the field restarts every frame (no scroll) and a 555 (0.83 s) steps a blink
+// state: 0 colour bit 5 only, 1 colour bit 3 only, 2 only when 2V, 3 all
+reg  [25:0] blink_cnt = 26'd0;
+reg   [1:0] blink = 2'd0;
 always @(posedge clk) begin
-    if (!stars_on) sr <= 17'd0;
+    if (blink_cnt == 26'd40874802) begin blink_cnt <= 26'd0; blink <= blink + 2'd1; end
+    else blink_cnt <= blink_cnt + 26'd1;
+end
+
+always @(posedge clk) begin
+    if (!stars_on || (vflags3[5] && vsync)) sr <= 17'd0;
     else if (active && !vsync && (ph == 3'd2 || ph == 3'd5)) begin
         if (sr_hold != 2'd2 && !flip_x) sr_hold <= sr_hold + 2'd1;
         else sr <= sr_n;
@@ -412,18 +456,33 @@ wire       missile_on = missile_v & (bullet_mode ? (missile_d == 9'h1FE || missi
 
 wire       st_en  = (y[0] ^ flip_y) ^ (x[3] ^ flip_x);
 wire [6:0] st     = star_b[6] ? star_b : star_a;
-wire       st_on  = stars_on & st_en & st[6] & ~(stars_232 & bx >= 8'd232);
+wire       st_blk = !vflags3[5] || (blink == 2'd0 ? st[5] : blink == 2'd1 ? st[3] : blink == 2'd2 ? y[1] : 1'b1);
+wire       st_on  = stars_on & st_en & st[6] & st_blk & ~(stars_232 & bx >= 8'd232) & ~(vflags4[2] & x[7]);
 
 // Frogger river: blue left of H = 128 (right of it when flipped), per MAME frogger_draw_background
 wire bg_blue = vflags3[2] & (flip_x ? x >= 8'd128 : x < 8'd128);
 
+// Stern backgrounds (MAME galaxold_v): gradients per column when enabled, Strategy X PROM x latches per 8 columns
+wire [7:0] gi    = x < 8'd128 ? x : x < 8'd248 ? x - 8'd120 : 8'd0;            // Rescue blue: g = i, b = 2i
+wire [7:0] mi    = x - 8'd128;                                                  // Minefield brown: r 1.5i, g .75i, b i/2
+wire       brown = vflags4[1] && x >= 8'd128 && x < 8'd248;
+wire [8:0] br_r  = {1'b0, mi} + {2'b00, mi[7:1]};
+wire [7:0] bg_grad = gi;
+wire [1:0] sp    = bgp[flip_x ? ~x[7:3] : x[7:3]];
+wire [23:0] strat = {~sp[1] & bg_rgb[2] ? 8'h7C : 8'h00, ~sp[1] & bg_rgb[1] ? 8'h3C : 8'h00, ~sp[0] & bg_rgb[0] ? 8'h47 : 8'h00};
+
 reg [23:0] rgb;
 always @(*) begin
-    if (missile_on)                  rgb = 24'hFFFF00;
+    if (missile_on)                  rgb = vflags3[6] ? 24'hFF00FF : 24'hFFFF00;   // The End: yellow -> blue / green swap
     else if (shell_on)               rgb = bullet_mode ? 24'hFFFF00 : 24'hFFFFFF;
     else if (pen != 2'd0)            rgb = {RG_LUT[pv[2:0]*8 +: 8], RG_LUT[pv[5:3]*8 +: 8], B_LUT[pv[7:6]*8 +: 8]};
     else if (st_on)                  rgb = {ST_LUT[{st[4], st[5]}*8 +: 8], ST_LUT[{st[2], st[3]}*8 +: 8], ST_LUT[{st[0], st[1]}*8 +: 8]};
     else if (bg_blue)                rgb = 24'h000047;
+    else if (vflags3[4] && bg_en)    rgb = 24'h000056;
+    else if (vflags4[0] && bg_en)    rgb = brown ? {br_r[7:0], mi - {2'b00, mi[7:2]}, {1'b0, mi[7:1]}} :
+                                                   {8'h00, bg_grad, bg_grad[6:0], 1'b0};
+    else if (vflags4[3])             rgb = strat;
+    else if (vflags3[7])             rgb = {bg_rgb[2] ? 8'h55 : 8'h00, bg_rgb[1] ? 8'h47 : 8'h00, bg_rgb[0] ? 8'h55 : 8'h00};
     else                             rgb = 24'd0;
 end
 

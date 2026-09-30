@@ -1,0 +1,73 @@
+<misterromdescription>
+    <name>Minefield</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Minefield</series>
+    <year>1983</year>
+    <manufacturer>Stern Electronics</manufacturer>
+    <category>Shooter</category>
+
+    <setname>minefld</setname>
+    <parent>minefld</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls>twin joysticks (right stick = fire directions)</special_controls>
+    <num_buttons>4</num_buttons>
+    <buttons names="Fire Up,Fire Down,Fire Left,Fire Right,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FD,FF,FF">
+        <dip name="Starting Level" bits="1" ids="1,3" values="1,0"/>
+        <dip name="Lives" bits="8" ids="3,5" values="1,0"/>
+        <dip name="Demo Sounds" bits="9" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="14" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="15" ids="Off,On" values="1,0"/>
+        <dip name="Coinage" bits="17" ids="1C/1C,Coin A 1/2 Coin B 2/1" values="1,0"/>
+        <dip name="Difficulty" bits="18,19" ids="Easy,Medium,Hard,Hardest" values="3,2,1,0"/>
+        <dip name="Unknown" bits="20" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="21" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="23" ids="Off,On" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="minefld.zip">
+        <part crc="1367a035" name="ma22c"/>
+        <part crc="68946d21" name="ma22e"/>
+        <part crc="7663aee5" name="ma22f"/>
+        <part crc="9787475d" name="ma22h"/>
+        <part crc="2ceceb54" name="ma22j"/>
+        <part crc="85138fc9" name="ma22l"/>
+        <part repeat="0xA000">00</part>
+        <part crc="9f703006" name="ma15f"/>
+        <part repeat="0x1800">00</part>
+        <part crc="ed0dccb1" name="ma15h"/>
+        <part repeat="0x1800">00</part>
+        <part crc="1877368e" name="minefld.clr"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="8bef736b" name="ma15c"/>
+        <part crc="f67b3f97" name="ma15d"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            07 98 01 00 80 00 02 00 00 00 20 03 27 00 00 00
+            05 00 01 02 04 03 12 11 00 00 05 06 08 07 00 00
+            13 00 00 00 00 00 14 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Minefield (Stern Electronics)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

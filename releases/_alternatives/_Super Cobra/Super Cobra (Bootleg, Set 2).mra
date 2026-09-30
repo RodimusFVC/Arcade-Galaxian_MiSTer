@@ -1,0 +1,79 @@
+<misterromdescription>
+    <name>Super Cobra (Bootleg, Set 2)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Super Cobra</series>
+    <year>1981</year>
+    <manufacturer>bootleg (A.V.G. by Zaccaria)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>scobrag</setname>
+    <parent>scobra</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FD,F3,00">
+        <dip name="Allow Continue" bits="8" ids="No,255 Times"/>
+        <dip name="Lives" bits="9" ids="3,5"/>
+        <dip name="Coinage" bits="17,18" ids="2C/1C,4C/3C,1C/1C,99 Credits" values="2,3,1,0"/>
+        <dip name="Cabinet" bits="19" ids="Upright,Cocktail"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="scobrag.zip|scobra.zip">
+        <part crc="04ffab61" name="2c_32.bin"/>
+        <part crc="f82a52de" name="2e_32.bin"/>
+        <part crc="9dee81cc" name="2f_32.bin"/>
+        <part crc="99dee0c6" name="2h_32.bin"/>
+        <part crc="db7fb865" name="2j_32.bin"/>
+        <part crc="6493d2d3" name="2l_32.bin"/>
+        <part repeat="0xA000">00</part>
+        <part crc="64d113b4" name="h5_16.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="a96316d3" name="f5_16.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="4e3caeab" name="super_cobra_288_6e"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="d4346959" name="c5_16.bin"/>
+        <part crc="cc025d95" name="d5_16.bin"/>
+        <part crc="1628c53f" name="e5_16.bin"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            07 90 01 00 80 00 02 00 00 00 30 03 00 00 00 00
+            09 06 16 05 04 03 12 11 00 00 0E 0D 0C 0B 14 13
+            0A 00 00 00 01 00 02 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            07 ED 5E 3B 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 82 00 00 1E 00 01
+            00 00 80 A8 00 03 00 01
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="33"></nvram>
+
+    <remark>Super Cobra (Bootleg, Set 2) (A.V.G. By Zaccaria Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

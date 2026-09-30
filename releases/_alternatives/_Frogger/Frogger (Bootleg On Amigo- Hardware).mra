@@ -1,0 +1,77 @@
+<misterromdescription>
+    <name>Frogger (Bootleg On Amigo? Hardware)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Frogger</series>
+    <year>1981</year>
+    <manufacturer>bootleg</manufacturer>
+    <category>Shooter</category>
+
+    <setname>froggeram</setname>
+    <parent>frogger</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>4-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>0</num_buttons>
+    <buttons names="Not Used,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FE,F0,FF">
+        <dip name="Lives" bits="8,9" ids="5,4,3,2" values="3,1,2,0"/>
+        <dip name="Coinage" bits="18,19" ids="A 1/2 B 1/1,A 1/1 B 1/1,A 2/1 B 2/1,A 1/1 B 2/1" values="3,0,2,1"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="froggeram.zip|frogger.zip">
+        <part crc="b680e622" name="1.d2"/>
+        <part crc="32c56a50" name="2.e2"/>
+        <part crc="4223a053" name="3.f2"/>
+        <part crc="bcd02aa7" name="4.h2"/>
+        <part crc="b11b36f7" name="5.j2"/>
+        <part crc="a239048a" name="6.l2"/>
+        <part repeat="0xD000">00</part>
+        <part crc="05f7d883" name="bl7h"/>
+        <part repeat="0x1800">00</part>
+        <part crc="658745f8" name="bl8h"/>
+        <part repeat="0x1800">00</part>
+        <part crc="a35ec965" name="n82s123.bin"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="b4c2180e" name="top7.c5"/>
+        <part crc="a1aae0bc" name="b.bin"/>
+        <part crc="9d88fd0a" name="c.bin"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            0A 91 00 04 00 00 02 00 04 00 06 23 00 00 00 00
+            00 00 00 00 00 00 12 11 00 00 03 04 01 02 14 13
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 25 1F 62 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 83 F1 00 0A 63 01
+            00 00 83 EF 00 02 63 04
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="12"></nvram>
+
+    <remark>Frogger (Bootleg On Amigo? Hardware)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

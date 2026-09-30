@@ -1,0 +1,75 @@
+<misterromdescription>
+    <name>Frog (Bootleg On Galaxian Hardware)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Frogger</series>
+    <year>1981</year>
+    <manufacturer>bootleg</manufacturer>
+    <category>Shooter</category>
+
+    <setname>frogg</setname>
+    <parent>frogger</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>4-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>0</num_buttons>
+    <buttons names="Not Used,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="20,E0,F5,00">
+        <dip name="Lives" bits="14,15" ids="3,5,7,256 (Cheat)" values="3,2,1,0"/>
+        <dip name="Cabinet" bits="16" ids="Upright,Cocktail" values="1,0"/>
+        <dip name="Coinage" bits="18" ids="2C/1C,1C/1C"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="frogg.zip|frogger.zip">
+        <part crc="1762b266" name="p1.bin"/>
+        <part crc="322f3916" name="p2.bin"/>
+        <part crc="28bd6151" name="p3.bin"/>
+        <part crc="5a69ab18" name="p4.bin"/>
+        <part crc="b4f17745" name="p5.bin"/>
+        <part crc="34be71b5" name="p6.bin"/>
+        <part crc="de3edc8c" name="p7.bin"/>
+        <part repeat="0xC800">00</part>
+        <part crc="05f7d883" name="k.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="658745f8" name="h.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="413703bf" name="pr-91.6l"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 91 00 06 00 00 00 00 00 00 06 00 00 00 00 00
+            11 12 03 04 01 00 0A 02 13 14 0B 0C 09 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 25 1F 62 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 43 F1 00 0A 63 01
+            00 00 43 EF 00 02 63 04
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="12"></nvram>
+
+    <remark>Frog (Bootleg On Galaxian Hardware)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>
