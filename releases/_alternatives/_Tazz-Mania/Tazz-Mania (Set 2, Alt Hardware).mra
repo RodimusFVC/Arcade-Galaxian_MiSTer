@@ -61,8 +61,19 @@
             0C 90 01 00 80 00 02 00 00 00 30 03 00 10 00 00
             06 05 01 02 04 03 12 11 00 00 09 0A 0C 0B 0E 0D
             13 00 00 00 00 00 14 00 00 00 00 00 00 00 00 00
+            00 00 00
         </part>
     </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            02 5E 55 E9 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 80 EF 00 3C 01 4C
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="60"></nvram>
 
     <remark>Tazz-Mania (Set 2, Alt Hardware) (Stern Electronics)</remark>
     <mratimestamp>20260928000000</mratimestamp>

@@ -66,8 +66,21 @@
             0C 00 01 00 80 00 02 00 00 00 00 03 08 08 00 00
             09 06 16 05 04 03 12 11 00 00 0E 0D 0C 0B 14 13
             0A 30 31 00 01 07 02 0F 32 33 00 00 00 00 00 00
+            00 00 00
         </part>
     </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            07 E0 FE 70 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 80 A8 00 03 00 00
+            00 00 81 C0 00 1E 00 00
+            00 00 81 DC 00 01 13 13
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="34"></nvram>
 
     <remark>Strategy X (Konami)</remark>
     <mratimestamp>20260928000000</mratimestamp>

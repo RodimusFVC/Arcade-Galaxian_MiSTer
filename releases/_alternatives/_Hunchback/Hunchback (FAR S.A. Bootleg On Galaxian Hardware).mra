@@ -1,0 +1,67 @@
+<misterromdescription>
+    <name>Hunchback (FAR S.A. Bootleg On Galaxian Hardware)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Hunchback</series>
+    <year>1983</year>
+    <manufacturer>bootleg (FAR S.A.)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>hunchbgb</setname>
+    <parent>hunchbak</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>3</num_buttons>
+    <buttons names="P1 Start/Red,P1 Down,Button 3,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,00,FF">
+        <dip name="Coinage" bits="14" ids="A 2C/1C  B 1C/3C,A 1C/1C  B 1C/5C" values="1,0"/>
+        <dip name="Lives" bits="15" ids="3,5" values="1,0"/>
+        <dip name="Cabinet" bits="16" ids="Upright,Cocktail"/>
+        <dip name="Bonus Life" bits="17,18" ids="10000,20000,40000,80000"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="hunchbgb.zip|hunchbak.zip">
+        <part crc="46590e9b" name="1.bin"/>
+        <part crc="4e6e671c" name="2.bin"/>
+        <part crc="d29dc242" name="3.bin"/>
+        <part crc="d409d292" name="4.bin"/>
+        <part crc="29d3a8c4" name="5.bin"/>
+        <part crc="b016fd15" name="6.bin"/>
+        <part crc="d2731d27" name="7.bin"/>
+        <part crc="e4b1a666" name="8.bin"/>
+        <part repeat="0xC000">00</part>
+        <part crc="83ecf8f4" name="lk.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="106889ec" name="jh.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="2430f47c" name="74s288n.bin"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 00 00 00 00 00 00 00 00 00 00 00 40 00
+            11 12 03 04 07 00 0E 06 05 0D 0B 0C 0F 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <remark>Hunchback (FAR S.A. Bootleg On Galaxian Hardware)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

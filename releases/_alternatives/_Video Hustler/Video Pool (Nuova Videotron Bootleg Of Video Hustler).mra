@@ -1,0 +1,76 @@
+<misterromdescription>
+    <name>Video Pool (Nuova Videotron Bootleg Of Video Hustler)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Video Hustler</series>
+    <year>1981</year>
+    <manufacturer>bootleg (Nuova Videotron)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>hustlerb3</setname>
+    <parent>hustler</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,08,FF">
+        <dip name="Half Coinage" bits="14" ids="Off,On"/>
+        <dip name="Cabinet" bits="15" ids="Upright,Cocktail"/>
+        <dip name="Coin A" bits="16" ids="2C/1C,1C/1C,1C/3C,1C/6C" values="0,0,1,1"/>
+        <dip name="Coin B" bits="17" ids="2C/1C,1C/1C,1C/3C,1C/6C" values="0,0,1,1"/>
+        <dip name="Lives" bits="18,19" ids="1,2,3,Infinite (Cheat)"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="hustlerb3.zip|hustler.zip">
+        <part crc="545a27fd" name="billiard_ic4.a4"/>
+        <part crc="bec503b1" name="billiard_ic3.a3"/>
+        <part repeat="0xC000">00</part>
+        <part crc="0bdfad0e" name="billiard_ic11.d1"/>
+        <part repeat="0x1800">00</part>
+        <part crc="8e062177" name="billiard_ic12.d2"/>
+        <part repeat="0x1800">00</part>
+        <part crc="aa1f7f5e" name="ic10.c3"/>
+        <part repeat="0xE0">00</part>
+        <part crc="4ac17114" name="ic7.b3"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            01 90 00 02 80 00 00 00 00 00 00 00 00 00 20 00
+            11 12 03 04 05 00 00 00 13 14 0B 0C 0D 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 25 1F 62 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 84 C0 00 0F 00 00
+            00 00 80 A8 00 03 00 02
+            00 00 80 03 00 01 0A 0A
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="19"></nvram>
+
+    <remark>Video Pool (Nuova Videotron Bootleg Of Video Hustler)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

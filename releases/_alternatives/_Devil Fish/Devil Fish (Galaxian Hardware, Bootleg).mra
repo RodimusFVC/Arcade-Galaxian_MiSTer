@@ -1,0 +1,82 @@
+<misterromdescription>
+    <name>Devil Fish (Galaxian Hardware, Bootleg)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Devil Fish</series>
+    <year>1984</year>
+    <manufacturer>bootleg (Vision)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>devilfshgb</setname>
+    <parent>devilfsh</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (ccw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>4-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,C0,00,FF">
+        <dip name="Coin A" bits="14" ids="2C/1C,1C/1C"/>
+        <dip name="Coin B" bits="15" ids="1C/3C,1C/5C" values="1,0"/>
+        <dip name="Cabinet" bits="19" ids="Upright,Cocktail"/>
+        <dip name="Bonus Life" bits="16" ids="10000,15000"/>
+        <dip name="Lives" bits="18" ids="4,5"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="devilfshgb.zip|devilfsh.zip">
+        <part crc="2ab19698" name="dfish1.7f" offset="0x800" length="0x800"/>
+        <part crc="4e77f097" name="dfish2.7h" offset="0x800" length="0x800"/>
+        <part crc="3f16a4c6" name="dfish3.7k" offset="0x800" length="0x800"/>
+        <part crc="11fc7e59" name="dfish4.7m" offset="0x800" length="0x800"/>
+        <part crc="2ab19698" name="dfish1.7f" offset="0x0" length="0x800"/>
+        <part crc="4e77f097" name="dfish2.7h" offset="0x0" length="0x800"/>
+        <part crc="3f16a4c6" name="dfish3.7k" offset="0x0" length="0x800"/>
+        <part crc="11fc7e59" name="dfish4.7m" offset="0x0" length="0x800"/>
+        <part repeat="0xC000">00</part>
+        <part crc="ace6e31f" name="dfish5.1h" offset="0x800" length="0x800"/>
+        <part repeat="0x800">00</part>
+        <part crc="ace6e31f" name="dfish5.1h" offset="0x0" length="0x800"/>
+        <part repeat="0x800">00</part>
+        <part crc="d7a6c4c4" name="dfish6.1k" offset="0x800" length="0x800"/>
+        <part repeat="0x800">00</part>
+        <part crc="d7a6c4c4" name="dfish6.1k" offset="0x0" length="0x800"/>
+        <part repeat="0x800">00</part>
+        <part crc="4e3caeab" name="82s123.6e"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 11 00 00 00 08 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 05 02 09 01 13 14 0B 0C 0D 0A 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            10 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 18 BF 97 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 40 A8 00 03 00 00
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="3"></nvram>
+
+    <remark>Devil Fish (Galaxian Hardware, Bootleg) (Vision Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

@@ -1,0 +1,71 @@
+<misterromdescription>
+    <name>Scrabble (Spanish Bootleg Of Scramble)</name>
+    <region>Spain</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Scramble</series>
+    <year>1981</year>
+    <manufacturer>bootleg (Okapi?)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>scrabbleo</setname>
+    <parent>scramble</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,F8,FF">
+        <dip name="Coinage" bits="14,15" ids="A 1/1  B 1/6,A 2/1  B 1/3,A 1/2  B 1/6,A 2/2  B 1/3"/>
+        <dip name="Lives" bits="16,17" ids="3,4,5,255 (Cheat)"/>
+        <dip name="Cabinet" bits="18" ids="Upright,Cocktail"/>
+        <dip name="IN4:3" bits="19" ids="Off,On" values="1,0"/>
+        <dip name="IN4:4" bits="20" ids="Off,On" values="1,0"/>
+        <dip name="IN4:5" bits="21" ids="Off,On" values="1,0"/>
+        <dip name="IN4:6" bits="22" ids="Off,On" values="1,0"/>
+        <dip name="IN4:7" bits="23" ids="Off,On" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="scrabbleo.zip|scramble.zip">
+        <part crc="b363dcc9" name="scr-1-2716.bin"/>
+        <part crc="4f78a15d" name="scr-2-2716.bin"/>
+        <part crc="cd31749a" name="scr-3-2716.bin"/>
+        <part crc="f055e1e3" name="scr-4-2716.bin"/>
+        <part crc="15f10df7" name="scr-5-2716.bin"/>
+        <part crc="dd15f10e" name="scr-6-2716.bin"/>
+        <part crc="0bb49470" name="scr-7-2716.bin"/>
+        <part crc="6db9f380" name="scr-8-2716.bin"/>
+        <part repeat="0xC000">00</part>
+        <part crc="4708845b" name="scr-9-2716.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="11fd2887" name="scr-10-2716.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="6a0c7d87" name="74s288.bin"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 01 01 00 00 00 00 00 00 30 00 00 80 00 00
+            11 12 03 04 05 0E 0A 02 13 14 06 01 09 0D 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <remark>Scrabble (Spanish Bootleg Of Scramble) (Okapi? Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

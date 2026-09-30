@@ -1,0 +1,71 @@
+<misterromdescription>
+    <name>Mighty Monkey (Kaina Games, Bootleg On Scramble Hardware)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Mighty Monkey</series>
+    <year>1982</year>
+    <manufacturer>bootleg (Kaina Games)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>mimonscra</setname>
+    <parent>mimonkey</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FC,51,00">
+        <dip name="Lives" bits="8,9" ids="3,4,5,6"/>
+        <dip name="Coinage" bits="17,18" ids="3C/1C,2C/1C,1C/1C,1C/2C" values="3,1,0,2"/>
+        <dip name="Cabinet" bits="19" ids="Upright,Cocktail"/>
+        <dip name="Infinite Lives (Cheat)" bits="21" ids="Off,On"/>
+        <dip name="Auto Fire" bits="23" ids="Off,On"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="mimonscra.zip|mimonkey.zip">
+        <part crc="cfff26f3" name="1.c2"/>
+        <part crc="1fca805f" name="2.e2"/>
+        <part crc="24ce1ce3" name="3.f2"/>
+        <part crc="c83fb639" name="4.h2"/>
+        <part repeat="0x8000">00</part>
+        <part crc="a9f12dfc" name="5.j2"/>
+        <part crc="e492a40c" name="6.l2"/>
+        <part crc="5339928d" name="7.m2"/>
+        <part crc="0b9915b8" name="8.p2"/>
+        <part crc="f73a8412" name="top.g5"/>
+        <part crc="3828c9db" name="bottom.g5"/>
+        <part crc="9e0e9289" name="top.f5"/>
+        <part crc="92085b0c" name="bottom.f5"/>
+        <part crc="4e3caeab" name="mb7051.e6"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="5995f24b" name="2732.c5"/>
+        <part crc="35ed0f96" name="2732.d5"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            06 90 01 00 40 09 02 00 00 00 10 03 00 00 00 00
+            09 06 00 05 04 03 12 11 00 00 0E 0D 0C 0B 14 13
+            0A 00 00 00 01 00 02 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <remark>Mighty Monkey (Kaina Games, Bootleg On Scramble Hardware) (Kaina Games Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

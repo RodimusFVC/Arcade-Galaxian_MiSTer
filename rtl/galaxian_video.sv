@@ -20,9 +20,11 @@ module galaxian_video
     input               stars_on,
     input               bullet_mode,    // 0 Galaxian (4 px, white shells + yellow missile), 1 Scramble (2 px, yellow)
     input               rgb_gbr,        // wiring harness RGB -> GBR (Eagle)
+    input               gfx_packed,     // Mr. Kougar: both planes of 4 pixels in one byte, the ROM loaded into each store
     input         [3:0] ext_mode,       // code extension: 0 none, 1 Moon Cresta, 2 Moon Quasar, 3 Pisces,
                                         // 4 upper sprites (Kong), 5 Batman Part 2, 6 Moon Shuttle sprites, 7 Jump Bug,
-                                        // 8 sprites from the upper half of the planes (separate sprite ROM, Zig Zag)
+                                        // 8 sprites from the upper half of the planes (separate sprite ROM, Zig Zag),
+                                        // 9 Mighty Monkey (banks 0 / 2 above the tile and sprite codes)
     input         [3:0] vflags2,        // [0] second sprite generator (objram 60-7F), [1] shells at objram C0,
                                         // [2] no shells, [3] sprite RAM page per 64 lines (Time Fighter)
     input         [7:0] vflags3,        // Frogger: [0] scroll and sprite Y nibbles swapped, [1] colour rotated right,
@@ -31,11 +33,16 @@ module galaxian_video
                                         // Scramble: [4] blue (56) background on bg_en, [5] fixed blinking stars;
                                         // [6] The End shells (Galaxian shells, blue / green swapped),
                                         // [7] Turtles background colour from bg_rgb
-    input         [5:0] vflags4,        // Stern (MAME galaxold_v): [0] Rescue blue gradient background, [1] Minefield
+    input         [7:0] vflags4,        // Stern (MAME galaxold_v): [0] Rescue blue gradient background, [1] Minefield
                                         // brown right half, [2] stars on the left half only, [3] Strategy X column
                                         // background (PROM x colour latches), [4] Rescue gfx address scramble,
-                                        // [5] Minefield gfx address scramble (both undone on reads)
-    input               bgp_we,         // Strategy X background PROM load ("user1")
+                                        // [5] Minefield gfx address scramble (both undone on reads), [6] Mariner
+                                        // (column blue from user1, char bank / star columns from user2), [7] New
+                                        // Sinbad 7: three bitplanes, pens {colour[1:0], pixel[2:0]}, no left sprite clip
+    input         [3:0] vflags5,        // galaxian.cpp: [0] Lost Tomb gfx address scramble, [1] Anteater gfx address
+                                        // scramble (both undone on reads), [2] Anteater background (blue left of 56,
+                                        // right of 200 flipped, on bg_en), [3] Calipso sprites (8-bit code, no flips)
+    input               bgp_we,         // background PROMs load: user1 at 00-3F, user2 at 40-5F
     input               bg_en,          // background enable latch (Scramble 6803 / A803)
     input         [2:0] bg_rgb,         // Turtles background latches R, G, B (390 / 470 / 390 ohm)
     input         [3:0] gfxbank,        // bank 0 (D1-D0), bank 1, bank 2
@@ -55,6 +62,7 @@ module galaxian_video
     input         [7:0] ioctl_dout,
     input               gfx0_we,        // gfx region first half
     input               gfx1_we,        // gfx region second half
+    input               gfx2_we,        // third plane (4K)
     input               pal_we,
 
     output              n3a,            // star LFSR N3A: the sound noise source (7474 at 2D)
@@ -117,6 +125,18 @@ function [12:0] gfx_remap(input [12:0] i);
             j[8]  = i[1] ^ i[7];
             j[10] = i[0] ^ i[8];
         end
+        else if (vflags5[0]) begin                  // MAME decode_losttomb_gfx
+            j = i & 13'h1A7F;
+            j[7]  = (i[1] & i[8]) | (~i[1] & i[10]);
+            j[8]  = i[7] ^ (i[1] & (i[7] ^ i[10]));
+            j[10] = (i[1] & i[7]) | (~i[1] & i[8]);
+        end
+        else if (vflags5[1]) begin                  // MAME decode_anteater_gfx
+            j = i & 13'h19BF;
+            j[6]  = i[4] ^ i[9] ^ (i[2] & i[10]);
+            j[9]  = i[2] ^ i[10];
+            j[10] = ~(i[0] ^ i[6]);
+        end
         else if (vflags4[5]) begin
             j = i & 13'h1D5F;
             j[5] = i[3] ^ i[7];
@@ -127,29 +147,54 @@ function [12:0] gfx_remap(input [12:0] i);
     end
 endfunction
 
-wire [12:0] ga = gfx0_we | gfx1_we ? ioctl_addr[12:0] : gfx_remap(gs_addr);
+// Mr. Kougar (MAME mrkougar_charlayout / _spritelayout): a row is two bytes 8 apart, the byte at +8 holds pixels 0-3
+// (plane 0 in D7-D4, plane 1 in D3-D0) and the other pixels 4-7; store 0 fetches the +8 byte, store 1 the other
+function [12:0] pk_addr(input [12:0] a, input hi);
+    pk_addr = gfx_packed ? {1'b0, a[10:3], hi, a[2:0]} : a;
+endfunction
+
+wire [12:0] gs_rd = gfx_remap(gs_addr);
 wire [12:0] gt_rd = gfx_remap(gt_addr);
+wire [12:0] ga0 = gfx0_we | gfx1_we ? ioctl_addr[12:0] : pk_addr(gs_rd, 1'b1);
+wire [12:0] ga1 = gfx0_we | gfx1_we ? ioctl_addr[12:0] : pk_addr(gs_rd, 1'b0);
+wire  [7:0] g0s_raw, g0t_raw;
 
 dpram_dc #(.widthad_a(13)) gfx0
 (
-    .clock_a(clk), .address_a(ga), .data_a(ioctl_dout), .wren_a(gfx0_we), .q_a(g0s_q),
-    .clock_b(clk), .address_b(gt_rd), .q_b(g0t_q)
+    .clock_a(clk), .address_a(ga0), .data_a(ioctl_dout), .wren_a(gfx0_we), .q_a(g0s_raw),
+    .clock_b(clk), .address_b(pk_addr(gt_rd, 1'b1)), .q_b(g0t_raw)
 );
 
 dpram_dc #(.widthad_a(13)) gfx1
 (
-    .clock_a(clk), .address_a(ga), .data_a(ioctl_dout), .wren_a(gfx1_we), .q_a(g1s_raw),
-    .clock_b(clk), .address_b(gt_rd), .q_b(g1t_raw)
+    .clock_a(clk), .address_a(ga1), .data_a(ioctl_dout), .wren_a(gfx1_we), .q_a(g1s_raw),
+    .clock_b(clk), .address_b(pk_addr(gt_rd, 1'b0)), .q_b(g1t_raw)
 );
 
-assign g1s_q = vflags3[3] ? {g1s_raw[7:2], g1s_raw[0], g1s_raw[1]} : g1s_raw;
-assign g1t_q = vflags3[3] ? {g1t_raw[7:2], g1t_raw[0], g1t_raw[1]} : g1t_raw;
+// third plane (New Sinbad 7)
+wire bpp3 = vflags4[7];
+wire [7:0] g2s_q, g2t_q;
+dpram_dc #(.widthad_a(12)) gfx2
+(
+    .clock_a(clk), .address_a(gfx2_we ? ioctl_addr[11:0] : gs_rd[11:0]), .data_a(ioctl_dout), .wren_a(gfx2_we), .q_a(g2s_q),
+    .clock_b(clk), .address_b(gt_rd[11:0]), .q_b(g2t_q)
+);
+
+wire [7:0] g1s_sw = vflags3[3] ? {g1s_raw[7:2], g1s_raw[0], g1s_raw[1]} : g1s_raw;
+wire [7:0] g1t_sw = vflags3[3] ? {g1t_raw[7:2], g1t_raw[0], g1t_raw[1]} : g1t_raw;
+assign g0s_q = gfx_packed ? {g0s_raw[7:4], g1s_raw[7:4]} : g0s_raw;
+assign g1s_q = gfx_packed ? {g0s_raw[3:0], g1s_raw[3:0]} : g1s_sw;
+assign g0t_q = gfx_packed ? {g0t_raw[7:4], g1t_raw[7:4]} : g0t_raw;
+assign g1t_q = gfx_packed ? {g0t_raw[3:0], g1t_raw[3:0]} : g1t_sw;
 
 reg [7:0] pal[32];
 always @(posedge clk) if (pal_we) pal[ioctl_addr[4:0]] <= ioctl_dout;
 
-reg [1:0] bgp[32];                      // Strategy X background PROM: bit 1 enables R/G, bit 0 B (active low)
-always @(posedge clk) if (bgp_we) bgp[ioctl_addr[4:0]] <= ioctl_dout[1:0];
+// Strategy X background PROM (bit 1 enables R/G, bit 0 B, active low); Mariner: user1 00-1F / 20-3F (flipped) column
+// blue, user2 40-5F bit 0 char bank, bit 2 star column enable
+reg [3:0] bgp[128];
+always @(posedge clk) if (bgp_we) bgp[ioctl_addr[6:0]] <= ioctl_dout[3:0];
+wire mar = vflags4[6];
 
 // sprite line buffer: {pen[1:0], colour[2:0]}
 // 8 bits wide: dpram_dc's byteena is width_a/8 bits, so narrower widths fail to elaborate in Quartus
@@ -189,6 +234,7 @@ function [9:0] tile_code(input [7:0] code, input [7:0] attr);
     case (ext_mode)
         4'd1:    tile_code = gfxbank[3] && code[7:6] == 2'b10 ? {2'b01, gfxbank[2], gfxbank[0], code[5:0]} : {2'b00, code};
         4'd2:    tile_code = {1'b0, attr[5], code};
+        4'd9:    tile_code = {gfxbank[3], gfxbank[0], code};
         4'd3:    tile_code = {gfxbank[1:0], code};
         4'd5:    tile_code = {1'b0, code[7] & gfxbank[0], code};
         4'd7:    tile_code = gfxbank[3] && code[7:6] == 2'b10 ?
@@ -198,7 +244,7 @@ function [9:0] tile_code(input [7:0] code, input [7:0] attr);
     endcase
 endfunction
 
-reg  [7:0] cur_p0 = 8'd0, cur_p1 = 8'd0, nxt_p0 = 8'd0, nxt_p1 = 8'd0;
+reg  [7:0] cur_p0 = 8'd0, cur_p1 = 8'd0, nxt_p0 = 8'd0, nxt_p1 = 8'd0, cur_p2 = 8'd0, nxt_p2 = 8'd0;
 reg  [2:0] cur_col = 3'd0, nxt_col = 3'd0;
 reg  [2:0] t_line;
 wire [7:0] xn    = {x[7:3] + 5'd1, 3'b000} ^ {8{flip_x}};
@@ -217,20 +263,22 @@ always @(posedge clk) begin
             3'd2: ot_addr <= {2'b00, xn[7:3], 1'b1};
             3'd3: begin vr_addr <= {t_sum[7:3], xn[7:3]}; t_line <= t_sum[2:0]; end
             3'd4: nxt_col <= col_fix(ot_q[2:0]);
-            3'd5: gt_addr <= {tile_code(vr_q, ot_q), t_line};
-            3'd7: begin nxt_p0 <= g0t_q; nxt_p1 <= g1t_q; end
+            3'd5: gt_addr <= {tile_code(vr_q, ot_q) | {1'b0, mar & bgp[{2'b10, xn[7:3]}][0], 8'd0}, t_line};
+            3'd7: begin nxt_p0 <= g0t_q; nxt_p1 <= g1t_q; nxt_p2 <= g2t_q; end
             default: ;
         endcase
     end
     if (ph == 3'd0 && x[2:0] == 3'd7) begin
         cur_p0  <= nxt_p0;
         cur_p1  <= nxt_p1;
+        cur_p2  <= nxt_p2;
         cur_col <= nxt_col;
     end
 end
 
 wire [2:0] t_bit = ~(x[2:0] ^ {3{flip_x}});
 wire [1:0] t_pen = {cur_p0[t_bit], cur_p1[t_bit]};
+wire [2:0] t_pen3 = {cur_p0[t_bit], cur_p1[t_bit], cur_p2[t_bit]};
 
 //---------------------------------------------------------- Sprites -----------------------------------------------------------//
 
@@ -247,12 +295,12 @@ reg        s_fx, s_fy, s_hit;
 reg  [2:0] s_color;
 reg  [7:0] s_attr;
 reg  [7:0] s_x;
-reg  [7:0] sp0h0, sp0h1, sp1h0, sp1h1;
+reg  [7:0] sp0h0, sp0h1, sp1h0, sp1h1, sp2h0, sp2h1;
 
 reg        r_hit = 1'b0, r_fx;
 reg  [2:0] r_color;
 reg  [7:0] r_x;
-reg  [7:0] rp0h0, rp0h1, rp1h0, rp1h1;
+reg  [7:0] rp0h0, rp0h1, rp1h0, rp1h1, rp2h0, rp2h1;
 
 reg        shell_v = 1'b0, missile_v = 1'b0;
 reg  [7:0] shell_x, missile_x, b_y;
@@ -272,11 +320,13 @@ function [7:0] spr_ext(input [5:0] code, input [7:0] attr);
                            {2'b00, code} + 8'd32 + {3'd0, gfxbank[0], 4'd0} + {2'd0, gfxbank[2], 5'd0} +
                            {1'b0, ~gfxbank4, 6'd0} : {2'b00, code};
         4'd8:    spr_ext = {2'b10, code};
+        4'd9:    spr_ext = {gfxbank[3], gfxbank[0], code};
         default: spr_ext = {2'b00, code};
     endcase
 endfunction
 
-wire [7:0] spr_code = spr_ext(s_code, s_attr);
+reg  [7:0] s_code8;
+wire [7:0] spr_code = vflags5[3] ? s_code8 : spr_ext(s_code, s_attr);
 
 // sprite RAM page (Time Fighter: MAME sprites_base = 40 | ((vpos + 16) << 2 & 300)) and the shell base
 wire [7:0] y16   = y + 8'd16;
@@ -305,7 +355,11 @@ always @(posedge clk) begin
                 3'd1: os_addr <= {spage, 3'b010, sn, 2'd0};
                 3'd2: os_addr <= {spage, 3'b010, sn, 2'd1};
                 3'd3: begin os_addr <= {spage, 3'b010, sn, 2'd2}; s_sum <= s_vf + (vflags3[0] ? {os_q[3:0], os_q[7:4]} : os_q); end
-                3'd4: begin os_addr <= {spage, 3'b010, sn, 2'd3}; s_code <= os_q[5:0]; s_fx <= os_q[6]; s_fy <= os_q[7]; end
+                3'd4: begin
+                    os_addr <= {spage, 3'b010, sn, 2'd3};
+                    s_code <= os_q[5:0]; s_code8 <= os_q;
+                    s_fx <= os_q[6] & ~vflags5[3]; s_fy <= os_q[7] & ~vflags5[3];
+                end
                 3'd5: begin s_color <= col_fix(os_q[2:0]); s_attr <= os_q; end
                 3'd6: begin s_x <= os_q; s_hit <= s_sum[7:4] == 4'hF; end
                 default: ;
@@ -313,8 +367,8 @@ always @(posedge clk) begin
             4'd1: case (ph)
                 3'd1: gs_addr <= {spr_code, s_row[3], 1'b0, s_row[2:0]};
                 3'd2: gs_addr <= {spr_code, s_row[3], 1'b1, s_row[2:0]};
-                3'd3: begin sp0h0 <= g0s_q; sp1h0 <= g1s_q; end
-                3'd4: begin sp0h1 <= g0s_q; sp1h1 <= g1s_q; end
+                3'd3: begin sp0h0 <= g0s_q; sp1h0 <= g1s_q; sp2h0 <= g2s_q; end
+                3'd4: begin sp0h1 <= g0s_q; sp1h1 <= g1s_q; sp2h1 <= g2s_q; end
                 default: ;
             endcase
             // shell/missile n: Y match on V + objram[61 + 4n], X from objram[63 + 4n]; the last matching shell wins
@@ -350,7 +404,7 @@ always @(posedge clk) begin
     if (ph == 3'd1 && blank_h && x == 8'h80) begin shell_v <= 1'b0; missile_v <= 1'b0; end
     if (ph == 3'd0 && blank_h && x[7] && x[3:0] == 4'h7) begin
         r_hit <= s_hit; r_fx <= s_fx; r_color <= s_color; r_x <= s_x;
-        rp0h0 <= sp0h0; rp0h1 <= sp0h1; rp1h0 <= sp1h0; rp1h1 <= sp1h1;
+        rp0h0 <= sp0h0; rp0h1 <= sp0h1; rp1h0 <= sp1h0; rp1h1 <= sp1h1; rp2h0 <= sp2h0; rp2h1 <= sp2h1;
         r2_hit <= s2_hit; r2_fx <= s2_fx; r2_color <= s2_color; r2_x <= s2_x;
         r2p0h0 <= s2p0h0; r2p0h1 <= s2p0h1; r2p1h0 <= s2p1h0; r2p1h1 <= s2p1h1;
     end
@@ -362,6 +416,7 @@ wire [3:0] ri    = x[3:0] ^ 4'd8;
 wire [3:0] rc    = ri ^ {4{r_fx}};
 wire [2:0] rbit  = ~rc[2:0];
 wire [1:0] r_pen = rc[3] ? {rp0h1[rbit], rp1h1[rbit]} : {rp0h0[rbit], rp1h0[rbit]};
+wire [2:0] r_pen3 = rc[3] ? {rp0h1[rbit], rp1h1[rbit], rp2h1[rbit]} : {rp0h0[rbit], rp1h0[rbit], rp2h0[rbit]};
 wire [7:0] wa    = r_x + {4'd0, ri};
 wire [3:0] rc2   = ri ^ {4{r2_fx}};
 wire [2:0] rbit2 = ~rc2[2:0];
@@ -399,7 +454,10 @@ always @(posedge clk) begin
         end
         3'd4: begin lb_addr <= wa; lb_we <= 1'b0; lb2_addr <= wa2; lb2_we <= 1'b0; end
         3'd6: begin
-            lb_data  <= lb_merge(lb_q, r_pen, r_color);     lb_we  <= rend & r_hit & |wa[7:4];
+            // 3 bits per pixel: {pen[2:0], colour[1:0]}, the first opaque pixel stays (sprite 0 on top)
+            lb_data  <= bpp3 ? (lb_q[4:2] == 3'd0 && r_pen3 != 3'd0 ? {r_pen3, r_color[1:0]} : lb_q) :
+                               lb_merge(lb_q, r_pen, r_color);
+            lb_we    <= rend & r_hit & (|wa[7:4] | bpp3);
             lb2_data <= lb_merge(lb2_q, r2_pen, r2_color);  lb2_we <= rend & r2_hit & |wa2[7:4];
         end
         default: begin lb_we <= 1'b0; lb2_we <= 1'b0; end
@@ -447,6 +505,10 @@ end
 wire [4:0] mix = spr2[4:3] != 2'b00 ? spr2 : lb_merge(spr, t_pen, cur_col);
 wire [1:0] pen = mix[4:3];
 wire [7:0] pv  = pal[{mix[2:0], pen}];
+wire [4:0] m3  = spr[4:2] != 3'd0 ? spr : {t_pen3, cur_col[1:0]};
+wire [7:0] pv3 = pal[{m3[1:0], m3[4:2]}];
+wire       pen_on = bpp3 ? m3[4:2] != 3'd0 : pen != 2'd0;
+wire [7:0] pvx = bpp3 ? pv3 : pv;
 
 wire [7:0] bx = crt_flip ? 8'd255 - x : x;
 wire [8:0] shell_d   = {1'b0, bx} + {1'b0, shell_x}   - 9'd251;
@@ -457,7 +519,7 @@ wire       missile_on = missile_v & (bullet_mode ? (missile_d == 9'h1FE || missi
 wire       st_en  = (y[0] ^ flip_y) ^ (x[3] ^ flip_x);
 wire [6:0] st     = star_b[6] ? star_b : star_a;
 wire       st_blk = !vflags3[5] || (blink == 2'd0 ? st[5] : blink == 2'd1 ? st[3] : blink == 2'd2 ? y[1] : 1'b1);
-wire       st_on  = stars_on & st_en & st[6] & st_blk & ~(stars_232 & bx >= 8'd232) & ~(vflags4[2] & x[7]);
+wire       st_on  = stars_on & st_en & st[6] & st_blk & ~(stars_232 & bx >= 8'd232) & ~(vflags4[2] & x[7]) & (~mar | m_st);
 
 // Frogger river: blue left of H = 128 (right of it when flipped), per MAME frogger_draw_background
 wire bg_blue = vflags3[2] & (flip_x ? x >= 8'd128 : x < 8'd128);
@@ -468,20 +530,28 @@ wire [7:0] mi    = x - 8'd128;                                                  
 wire       brown = vflags4[1] && x >= 8'd128 && x < 8'd248;
 wire [8:0] br_r  = {1'b0, mi} + {2'b00, mi[7:1]};
 wire [7:0] bg_grad = gi;
-wire [1:0] sp    = bgp[flip_x ? ~x[7:3] : x[7:3]];
+wire [1:0] sp    = bgp[{2'b00, flip_x ? ~x[7:3] : x[7:3]}][1:0];
+// Mariner (MAME mariner_draw_background / mariner_palette): column c shows user1[c + 1] (flipped [20 + 30 - c]),
+// the last column 0; four bits of blue through 4.7K / 2.2K / 1K / 470
+wire [4:0] mc    = x[7:3];
+wire [3:0] mbg   = mc == 5'd31 ? 4'd0 : flip_x ? bgp[{2'b01, 5'd30 - mc}] : bgp[{2'b00, mc + 5'd1}];
+wire [7:0] mblue = (mbg[0] ? 8'h0E : 8'h00) + (mbg[1] ? 8'h1F : 8'h00) + (mbg[2] ? 8'h43 : 8'h00) + (mbg[3] ? 8'h8F : 8'h00);
+wire       m_st  = bgp[{2'b10, x[7:3] + 5'd1}][2];
 wire [23:0] strat = {~sp[1] & bg_rgb[2] ? 8'h7C : 8'h00, ~sp[1] & bg_rgb[1] ? 8'h3C : 8'h00, ~sp[0] & bg_rgb[0] ? 8'h47 : 8'h00};
 
 reg [23:0] rgb;
 always @(*) begin
     if (missile_on)                  rgb = vflags3[6] ? 24'hFF00FF : 24'hFFFF00;   // The End: yellow -> blue / green swap
     else if (shell_on)               rgb = bullet_mode ? 24'hFFFF00 : 24'hFFFFFF;
-    else if (pen != 2'd0)            rgb = {RG_LUT[pv[2:0]*8 +: 8], RG_LUT[pv[5:3]*8 +: 8], B_LUT[pv[7:6]*8 +: 8]};
+    else if (pen_on)                 rgb = {RG_LUT[pvx[2:0]*8 +: 8], RG_LUT[pvx[5:3]*8 +: 8], B_LUT[pvx[7:6]*8 +: 8]};
     else if (st_on)                  rgb = {ST_LUT[{st[4], st[5]}*8 +: 8], ST_LUT[{st[2], st[3]}*8 +: 8], ST_LUT[{st[0], st[1]}*8 +: 8]};
     else if (bg_blue)                rgb = 24'h000047;
     else if (vflags3[4] && bg_en)    rgb = 24'h000056;
+    else if (vflags5[2] && bg_en && (flip_x ? x >= 8'd200 : x < 8'd56)) rgb = 24'h000056;
     else if (vflags4[0] && bg_en)    rgb = brown ? {br_r[7:0], mi - {2'b00, mi[7:2]}, {1'b0, mi[7:1]}} :
                                                    {8'h00, bg_grad, bg_grad[6:0], 1'b0};
     else if (vflags4[3])             rgb = strat;
+    else if (mar)                    rgb = {16'h0000, mblue};
     else if (vflags3[7])             rgb = {bg_rgb[2] ? 8'h55 : 8'h00, bg_rgb[1] ? 8'h47 : 8'h00, bg_rgb[0] ? 8'h55 : 8'h00};
     else                             rgb = 24'd0;
 end

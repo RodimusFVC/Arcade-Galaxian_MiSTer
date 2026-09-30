@@ -1,0 +1,80 @@
+<misterromdescription>
+    <name>Space Battle (Bootleg Set 2)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>UniWar S</series>
+    <year>1980</year>
+    <manufacturer>bootleg</manufacturer>
+    <category>Shooter</category>
+
+    <setname>spacbat2</setname>
+    <parent>uniwars</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,01,FF">
+        <dip name="Cabinet" bits="5" ids="Upright,Cocktail"/>
+        <dip name="Service Mode" bits="6" ids="Off,On"/>
+        <dip name="Coinage" bits="14,15" ids="A 2C/1C  B 1C/3C,A 1C/1C  B 1C/6C,A 1C/2C  B 1C/6C,Free Play" values="1,0,2,3"/>
+        <dip name="Bonus Life" bits="16,17" ids="4000,5000,7000,None" values="1,2,3,0"/>
+        <dip name="Lives" bits="18" ids="3,5"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="spacbat2.zip|uniwars.zip">
+        <part crc="d975af10" name="sb1"/>
+        <part crc="b2ed14c3" name="sb2"/>
+        <part crc="c25ce4c1" name="sb.3"/>
+        <part crc="8229835c" name="sb4"/>
+        <part crc="f51ef930" name="sb5"/>
+        <part crc="d915a389" name="sb6"/>
+        <part crc="c9245346" name="sb7"/>
+        <part crc="e59ff1ae" name="sb8"/>
+        <part repeat="0xC000">00</part>
+        <part crc="8313c959" name="sb12"/>
+        <part crc="c26132af" name="sb14"/>
+        <part repeat="0x1000">00</part>
+        <part crc="c9d4537e" name="sb11"/>
+        <part crc="dcc2b33b" name="k01_2.bin"/>
+        <part repeat="0x1000">00</part>
+        <part crc="6a0c7d87" name="l06_prom.bin"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 20 00 03 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 05 00 00 16 13 14 0B 0C 0D 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            06 7A 24 69 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 40 A8 00 03 00 00
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="3"></nvram>
+
+    <remark>Space Battle (Bootleg Set 2)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

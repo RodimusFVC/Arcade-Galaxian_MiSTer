@@ -1,0 +1,82 @@
+<misterromdescription>
+    <name>New Sinbad 7</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>New Sinbad 7</series>
+    <year>1983</year>
+    <manufacturer>ATW USA</manufacturer>
+    <category>Shooter</category>
+
+    <setname>newsin7</setname>
+    <parent>newsin7</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FF,F3,FF">
+        <dip name="Coinage" bits="8,9" ids=" A 1C/1C  B 2C/1C, A 1C/3C  B 3C/1C, A 1C/2C  B 1C/1C, A 1C/4C  B 4C/1C" values="3,1,2,0"/>
+        <dip name="Cabinet" bits="17" ids="Upright,Cocktail" values="1,0"/>
+        <dip name="Unknown" bits="18" ids="Off,On"/>
+        <dip name="Lives" bits="19" ids="3,5"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="newsin7.zip">
+        <part crc="e6c23fe0" name="newsin.1"/>
+        <part crc="3d477b5f" name="newsin.2"/>
+        <part crc="7dfa9af0" name="newsin.3"/>
+        <part crc="d1b0ba19" name="newsin.4"/>
+        <part repeat="0x6000">00</part>
+        <part crc="06275d59" name="newsin.5"/>
+        <part repeat="0x5000">00</part>
+        <part crc="6bc5d64f" name="newsin.7"/>
+        <part repeat="0x1000">00</part>
+        <part crc="6b87adff" name="newsin.9"/>
+        <part repeat="0x1000">00</part>
+        <part crc="5cf2cd8d" name="newsin.6"/>
+        <part repeat="0x1FE0">00</part>
+        <part crc="0c5b895a" name="newsin.8"/>
+        <part repeat="0x1000">00</part>
+        <part crc="d88489a2" name="newsin.13"/>
+        <part crc="b154a7af" name="newsin.12"/>
+        <part crc="7ade709b" name="newsin.11"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            0F 90 01 00 00 04 02 00 00 00 20 03 80 00 14 01
+            09 00 00 05 04 03 12 11 00 00 00 0D 0C 0B 14 13
+            0A 00 00 00 01 00 02 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 31 7F 2D 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 43 D3 00 48 00 10
+            00 00 41 3D 00 03 00 00
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="75"></nvram>
+
+    <remark>New Sinbad 7 (Set 1) (ATW USA)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

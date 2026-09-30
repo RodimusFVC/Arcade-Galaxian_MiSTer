@@ -1,0 +1,82 @@
+<misterromdescription>
+    <name>Devil Fish</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Devil Fish</series>
+    <year>1982</year>
+    <manufacturer>Artic</manufacturer>
+    <category>Shooter</category>
+
+    <setname>devilfsh</setname>
+    <parent>devilfsh</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FC,FD,FF">
+        <dip name="Bonus Life" bits="8" ids="10000,15000"/>
+        <dip name="Cabinet" bits="9" ids="Upright,Cocktail"/>
+        <dip name="Lives" bits="17" ids="4,5"/>
+        <dip name="Coin A" bits="18" ids="2C/1C,1C/1C"/>
+        <dip name="Coin B" bits="19" ids="1C/3C,1C/5C" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="devilfsh.zip">
+        <part crc="ec047d71" name="u26.1"/>
+        <part crc="0138ade9" name="u56.2"/>
+        <part crc="5dd0b3fc" name="u69.3"/>
+        <part crc="ded0b745" name="u98.4"/>
+        <part crc="5fd40176" name="u114.5"/>
+        <part crc="03538336" name="u133.6"/>
+        <part crc="64676081" name="u143.7"/>
+        <part crc="bc3d6770" name="u163.8"/>
+        <part repeat="0xC000">00</part>
+        <part crc="5406508e" name="u72.12"/>
+        <part repeat="0x1000">00</part>
+        <part crc="8c4018b6" name="u101.13"/>
+        <part repeat="0x1000">00</part>
+        <part crc="4e3caeab" name="c01s.6e"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="09987e2e" name="u39.9"/>
+        <part crc="1e2b1471" name="u51.10"/>
+        <part crc="45279aaa" name="u78.11"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            0F 90 01 00 00 04 02 00 00 00 20 03 00 00 04 01
+            09 00 00 05 04 03 12 11 00 00 00 0D 0C 0B 14 13
+            0A 00 00 00 01 00 02 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 18 BF 97 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 40 A8 00 03 00 00
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="3"></nvram>
+
+    <remark>Devil Fish (Mars Hardware) (Artic)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

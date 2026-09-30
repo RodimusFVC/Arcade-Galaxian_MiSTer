@@ -1,0 +1,65 @@
+<misterromdescription>
+    <name>Devil Fish (Nuova Videotron Bootleg)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Devil Fish</series>
+    <year>1983</year>
+    <manufacturer>bootleg (Nuova Videotron)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>devilfshv</setname>
+    <parent>devilfsh</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>4-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,C0,08,FF">
+        <dip name="Coin A" bits="14" ids="2C/1C,1C/1C"/>
+        <dip name="Coin B" bits="15" ids="1C/3C,1C/5C" values="1,0"/>
+        <dip name="Bonus Life" bits="16" ids="10000,15000"/>
+        <dip name="Lives" bits="18" ids="4,5"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="devilfshv.zip|devilfsh.zip">
+        <part crc="25b10f1e" name="ic4"/>
+        <part crc="88f460f6" name="ic3"/>
+        <part repeat="0xC000">00</part>
+        <part crc="e512d32c" name="ic11" offset="0x800" length="0x800"/>
+        <part repeat="0x800">00</part>
+        <part crc="e512d32c" name="ic11" offset="0x0" length="0x800"/>
+        <part repeat="0x800">00</part>
+        <part crc="6f657184" name="1c12" offset="0x800" length="0x800"/>
+        <part repeat="0x800">00</part>
+        <part crc="6f657184" name="1c12" offset="0x0" length="0x800"/>
+        <part repeat="0x800">00</part>
+        <part crc="6a0c7d87" name="mmi6331.6l"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 91 00 02 00 08 00 00 00 00 00 00 00 00 20 00
+            11 12 03 04 05 02 09 01 13 14 0B 0C 0D 0A 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <remark>Devil Fish (Nuova Videotron Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

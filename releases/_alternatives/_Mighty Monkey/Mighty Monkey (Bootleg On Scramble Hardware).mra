@@ -1,0 +1,101 @@
+<misterromdescription>
+    <name>Mighty Monkey (Bootleg On Scramble Hardware)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Mighty Monkey</series>
+    <year>1982</year>
+    <manufacturer>bootleg</manufacturer>
+    <category>Shooter</category>
+
+    <setname>mimonscr</setname>
+    <parent>mimonkey</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FC,51,00">
+        <dip name="Lives" bits="8,9" ids="3,4,5,6"/>
+        <dip name="Coinage" bits="17,18" ids="3C/1C,2C/1C,1C/1C,1C/2C" values="3,1,0,2"/>
+        <dip name="Cabinet" bits="19" ids="Upright,Cocktail"/>
+        <dip name="Infinite Lives (Cheat)" bits="21" ids="Off,On"/>
+        <dip name="Auto Fire" bits="23" ids="Off,On"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="mimonscr.zip|mimonkey.zip">
+        <part crc="0399a0c4" name="mm1"/>
+        <part crc="2c5e971e" name="mm2"/>
+        <part crc="24ce1ce3" name="mm3"/>
+        <part crc="c83fb639" name="mm4"/>
+        <part repeat="0x8000">00</part>
+        <part crc="a9f12dfc" name="mm5"/>
+        <part crc="e492a40c" name="mm6"/>
+        <part crc="5339928d" name="mm7"/>
+        <part crc="eee7a12e" name="mm8"/>
+        <part crc="4af47337" name="mmgfx1"/>
+        <part crc="def47da8" name="mmgfx2"/>
+        <part crc="4e3caeab" name="c01s.6e"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="2d14c527" name="mmsound1"/>
+        <part crc="35ed0f96" name="mmsnd2a"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            06 90 01 00 40 09 02 00 00 00 10 03 00 00 00 00
+            09 06 00 05 04 03 12 11 00 00 0E 0D 0C 0B 14 13
+            0A 00 00 00 01 00 02 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            03 24 52 9E 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 44 A1 00 02 D0 07
+            00 00 49 81 00 01 00 00
+            00 00 49 A1 00 01 00 00
+            00 00 49 C1 00 01 00 00
+            00 00 49 E1 00 01 00 00
+            00 00 4A 01 00 01 02 02
+            00 00 4A 21 00 01 10 10
+            00 00 4A 41 00 01 10 10
+            00 00 49 20 00 01 10 10
+            00 00 49 40 00 01 10 10
+            00 00 49 60 00 01 15 15
+            00 00 49 80 00 01 22 22
+            00 00 49 A0 00 01 1F 1F
+            00 00 49 C0 00 01 13 13
+            00 00 49 E0 00 01 23 23
+            00 00 4A 00 00 01 10 10
+            00 00 4A 20 00 01 18 18
+            00 00 4A 40 00 01 17 17
+            00 00 4A 60 00 01 19 19
+            00 00 4A 80 00 01 18 18
+            00 00 4A A0 00 01 10 10
+            00 00 4A C0 00 01 10 10
+            00 00 4A E0 00 01 10 10
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="24"></nvram>
+
+    <remark>Mighty Monkey (Bootleg On Scramble Hardware)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

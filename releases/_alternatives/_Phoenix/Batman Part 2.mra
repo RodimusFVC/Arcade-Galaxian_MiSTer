@@ -1,0 +1,100 @@
+<misterromdescription>
+    <name>Batman Part 2</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Batman Part 2</series>
+    <year>1981</year>
+    <manufacturer>bootleg</manufacturer>
+    <category>Shooter</category>
+
+    <setname>batman2</setname>
+    <parent>phoenix</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (ccw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,C0,00,FF">
+        <dip name="Coin A" bits="14" ids="1C/1C,1C/2C" values="1,0"/>
+        <dip name="Coin B" bits="15" ids="1C/3C,1C/5C" values="1,0"/>
+        <dip name="Bonus Life" bits="16" ids="30000,50000"/>
+        <dip name="Lives" bits="18" ids="3,5"/>
+        <dip name="Cabinet" bits="19" ids="Upright,Cocktail"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="batman2.zip|phoenix.zip">
+        <part crc="150fbca5" name="01.bin"/>
+        <part crc="b1624fd0" name="02.bin"/>
+        <part crc="93774188" name="03.bin"/>
+        <part crc="8a94ec6c" name="04.bin"/>
+        <part crc="a3669461" name="05.bin"/>
+        <part crc="fa1efbfe" name="06.bin"/>
+        <part crc="9b77debd" name="07.bin"/>
+        <part crc="6466177e" name="08.bin"/>
+        <part repeat="0xC000">00</part>
+        <part crc="1a657b1f" name="09.bin"/>
+        <part crc="7a2b48e5" name="11.bin"/>
+        <part repeat="0x1000">00</part>
+        <part crc="9b570016" name="10.bin"/>
+        <part crc="73956244" name="12.bin"/>
+        <part repeat="0x1000">00</part>
+        <part crc="6a0c7d87" name="l06_prom.bin"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 10 00 20 00 05 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 05 00 0E 06 13 14 0B 0C 0D 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 31 7F 2D 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 42 89 00 03 00 00
+            00 00 51 E1 00 01 20 20
+            00 00 51 C1 00 01 20 20
+            00 00 51 A1 00 01 20 20
+            00 00 51 81 00 01 20 20
+            00 00 51 61 00 01 20 20
+            00 00 51 41 00 01 20 20
+            00 00 42 81 00 03 00 00
+            00 00 53 01 00 01 20 20
+            00 00 52 E1 00 01 20 20
+            00 00 52 C1 00 01 20 20
+            00 00 52 A1 00 01 20 20
+            00 00 52 81 00 01 20 20
+            00 00 52 61 00 01 20 20
+            00 00 42 85 00 03 00 00
+            00 00 50 C1 00 01 20 20
+            00 00 50 A1 00 01 20 20
+            00 00 50 81 00 01 20 20
+            00 00 50 61 00 01 20 20
+            00 00 50 41 00 01 20 20
+            00 00 50 21 00 01 20 20
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="27"></nvram>
+
+    <remark>Batman Part 2 (Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

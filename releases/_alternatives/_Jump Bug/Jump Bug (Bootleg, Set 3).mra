@@ -1,0 +1,102 @@
+<misterromdescription>
+    <name>Jump Bug (Bootleg, Set 3)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Jump Bug</series>
+    <year>1982</year>
+    <manufacturer>bootleg (Cirsa)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>jumpbugbc</setname>
+    <parent>jumpbug</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,01,FF">
+        <dip name="Cabinet" bits="5" ids="Upright,Cocktail"/>
+        <dip name="Difficulty" bits="14" ids="Easy,Hard"/>
+        <dip name="Lives" bits="16,17" ids="3,4,5,Infinite (Cheat)" values="1,2,3,0"/>
+        <dip name="Coinage" bits="18,19" ids="A 2C/1C  B 2C/1C,A 2C/1C  B 1C/3C,A 1C/1C  B 1C/1C,A 1C/1C  B 1C/6C" values="1,2,0,3"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="jumpbugbc.zip|jumpbug.zip">
+        <part crc="74b16a8a" name="j3_2732_e0572.a3" offset="0x0" length="0x200"/>
+        <part crc="b45a5ba1" name="j1_2732_e0572.a5" offset="0x200" length="0x200"/>
+        <part crc="74b16a8a" name="j3_2732_e0572.a3" offset="0x400" length="0x200"/>
+        <part crc="b45a5ba1" name="j1_2732_e0572.a5" offset="0x600" length="0x200"/>
+        <part crc="b45a5ba1" name="j1_2732_e0572.a5" offset="0x800" length="0x800"/>
+        <part crc="24308e02" name="j4_2732_e0572.a2" offset="0x0" length="0x200"/>
+        <part crc="cf9085a4" name="j2_2732_e0572.a4" offset="0x200" length="0x200"/>
+        <part crc="24308e02" name="j4_2732_e0572.a2" offset="0x400" length="0x200"/>
+        <part crc="cf9085a4" name="j2_2732_e0572.a4" offset="0x600" length="0x200"/>
+        <part crc="cf9085a4" name="j2_2732_e0572.a4" offset="0x800" length="0x800"/>
+        <part crc="b45a5ba1" name="j1_2732_e0572.a5" offset="0x0" length="0x200"/>
+        <part crc="74b16a8a" name="j3_2732_e0572.a3" offset="0x200" length="0x200"/>
+        <part crc="b45a5ba1" name="j1_2732_e0572.a5" offset="0x400" length="0x200"/>
+        <part crc="74b16a8a" name="j3_2732_e0572.a3" offset="0x600" length="0x200"/>
+        <part crc="74b16a8a" name="j3_2732_e0572.a3" offset="0x800" length="0x800"/>
+        <part crc="cf9085a4" name="j2_2732_e0572.a4" offset="0x0" length="0x200"/>
+        <part crc="24308e02" name="j4_2732_e0572.a2" offset="0x200" length="0x200"/>
+        <part crc="cf9085a4" name="j2_2732_e0572.a4" offset="0x400" length="0x200"/>
+        <part crc="24308e02" name="j4_2732_e0572.a2" offset="0x600" length="0x200"/>
+        <part crc="24308e02" name="j4_2732_e0572.a2" offset="0x800" length="0x800"/>
+        <part repeat="0x4000">00</part>
+        <part crc="bb9049fd" name="j6_2732_e0572.b1" offset="0x0" length="0x200"/>
+        <part crc="9c6c77bb" name="j5_2732_e0572.a1" offset="0x200" length="0x200"/>
+        <part crc="bb9049fd" name="j6_2732_e0572.b1" offset="0x400" length="0x200"/>
+        <part crc="9c6c77bb" name="j5_2732_e0572.a1" offset="0x600" length="0x200"/>
+        <part crc="bb9049fd" name="j6_2732_e0572.b1" offset="0x800" length="0x200"/>
+        <part crc="9c6c77bb" name="j5_2732_e0572.a1" offset="0xA00" length="0x200"/>
+        <part crc="bb9049fd" name="j6_2732_e0572.b1" offset="0xC00" length="0x200"/>
+        <part crc="9c6c77bb" name="j5_2732_e0572.a1" offset="0xE00" length="0x200"/>
+        <part crc="9c6c77bb" name="j5_2732_e0572.a1" offset="0x0" length="0x200"/>
+        <part crc="bb9049fd" name="j6_2732_e0572.b1" offset="0x200" length="0x200"/>
+        <part crc="9c6c77bb" name="j5_2732_e0572.a1" offset="0x400" length="0x200"/>
+        <part crc="bb9049fd" name="j6_2732_e0572.b1" offset="0x600" length="0x200"/>
+        <part crc="9c6c77bb" name="j5_2732_e0572.a1" offset="0x800" length="0x200"/>
+        <part crc="bb9049fd" name="j6_2732_e0572.b1" offset="0xA00" length="0x200"/>
+        <part crc="9c6c77bb" name="j5_2732_e0572.a1" offset="0xC00" length="0x200"/>
+        <part crc="bb9049fd" name="j6_2732_e0572.b1" offset="0xE00" length="0x200"/>
+        <part crc="81fdc344" name="j7_2716_e0572.b2"/>
+        <part crc="a75ea283" name="j8_2716_e0572.b3"/>
+        <part repeat="0x5000">00</part>
+        <part crc="9a091b0a" name="c1_2716_sub.bin"/>
+        <part crc="e12e6f3d" name="c4_2532_sub.bin" offset="0x800" length="0x800"/>
+        <part crc="e12e6f3d" name="c4_2532_sub.bin" offset="0x0" length="0x800"/>
+        <part repeat="0x800">00</part>
+        <part crc="7749b111" name="c2_2716_sub.bin"/>
+        <part crc="5d7df54f" name="c3_2532_sub.bin" offset="0x800" length="0x800"/>
+        <part crc="5d7df54f" name="c3_2532_sub.bin" offset="0x0" length="0x800"/>
+        <part repeat="0x800">00</part>
+        <part crc="6a0c7d87" name="74s288.bin"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            04 90 01 00 00 07 23 00 00 00 00 00 00 00 00 00
+            11 09 03 04 05 00 02 01 13 14 0B 0C 0D 12 00 0A
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            20 00 00
+        </part>
+    </rom>
+
+    <remark>Jump Bug (Bootleg, Set 3) (Cirsa Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

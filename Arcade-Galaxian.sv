@@ -87,7 +87,9 @@ assign BUTTONS = 0;
 //   byte 2      video flags (see rtl/galaxian_board.sv)
 //   byte 3      board flags, byte 4 program ROM top >> 8, byte 5 tile/sprite code extension, byte 6 board flags 2,
 //               byte 7 board flags 3, byte 8 video flags 2, byte 9 board flags 4, byte 10 video flags 3,
-//               byte 11 board flags 5, byte 12 video flags 4, byte 13 board flags 6, byte 14 board flags 7
+//               byte 11 board flags 5, byte 12 video flags 4, byte 13 board flags 6, byte 14 board flags 7,
+//               byte 15 board flags 8
+//   bytes 48-50 board flags 9, video flags 5, board flags 10 (after the input map)
 //               (rtl/galaxian_board.sv)
 //   bytes 16-47 input map, one byte per port bit (IN0, IN1, IN2, IN3; bit 0 first): control id, 0 = none
 // DIP switch bytes 0-3 hold the idle level of every bit of IN0-IN3; a pressed control inverts its bit
@@ -106,11 +108,15 @@ reg [7:0] brd_flags5 = 8'd0;
 reg [7:0] vid_flags4 = 8'd0;
 reg [7:0] brd_flags6 = 8'd0;
 reg [7:0] brd_flags7 = 8'd0;
+reg [7:0] brd_flags8 = 8'd0;
+reg [7:0] brd_flags9 = 8'd0;
+reg [7:0] vid_flags5 = 8'd0;
+reg [7:0] brd_flags10 = 8'd0;
 reg [5:0] in_map[32];
 
 always @(posedge CLK_49M) begin
     if (ioctl_wr && ioctl_index == 8'd1) begin
-        if (ioctl_addr == 25'd0) game_var   <= ioctl_dout;
+        if (ioctl_addr == 25'd0) begin game_var <= ioctl_dout; brd_flags9 <= 8'd0; vid_flags5 <= 8'd0; brd_flags10 <= 8'd0; end   // bytes 48+ may be absent
         if (ioctl_addr == 25'd1) game_flags <= ioctl_dout;
         if (ioctl_addr == 25'd2) vid_flags  <= ioctl_dout;
         if (ioctl_addr == 25'd3) brd_flags  <= ioctl_dout;
@@ -125,6 +131,10 @@ always @(posedge CLK_49M) begin
         if (ioctl_addr == 25'd12) vid_flags4 <= ioctl_dout;
         if (ioctl_addr == 25'd13) brd_flags6 <= ioctl_dout;
         if (ioctl_addr == 25'd14) brd_flags7 <= ioctl_dout;
+        if (ioctl_addr == 25'd15) brd_flags8 <= ioctl_dout;
+        if (ioctl_addr == 25'd48) brd_flags9 <= ioctl_dout;
+        if (ioctl_addr == 25'd49) vid_flags5 <= ioctl_dout;
+        if (ioctl_addr == 25'd50) brd_flags10 <= ioctl_dout;
         if (ioctl_addr[24:5] == 20'd0 && ioctl_addr[4]) in_map[{1'b0, ioctl_addr[3:0]}] <= ioctl_dout[5:0];
         if (ioctl_addr[24:5] == 20'd1 && ioctl_addr[4] == 1'b0) in_map[{1'b1, ioctl_addr[3:0]}] <= ioctl_dout[5:0];
     end
@@ -405,6 +415,10 @@ galaxian_board board
 	.vflags4(vid_flags4),
 	.bflags6(brd_flags6),
 	.bflags7(brd_flags7),
+	.bflags8(brd_flags8),
+	.bflags9(brd_flags9),
+	.vflags5(vid_flags5),
+	.bflags10(brd_flags10),
 	.rom_top(rom_top),
 	.ext_mode(ext_mode),
 

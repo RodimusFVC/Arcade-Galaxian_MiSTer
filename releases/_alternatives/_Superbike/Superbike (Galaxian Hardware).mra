@@ -1,0 +1,67 @@
+<misterromdescription>
+    <name>Superbike (Galaxian Hardware)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Superbike</series>
+    <year>1983</year>
+    <manufacturer>Century Electronics</manufacturer>
+    <category>Shooter</category>
+
+    <setname>superbikg</setname>
+    <parent>superbik</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="P1 Start/Red,P2 Start/Green,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,00,FF">
+        <dip name="Coinage" bits="14" ids="A 2C/1C  B 1C/3C,A 1C/1C  B 1C/5C" values="1,0"/>
+        <dip name="Lives" bits="15" ids="3,5" values="1,0"/>
+        <dip name="Cabinet" bits="16" ids="Upright,Cocktail"/>
+        <dip name="Unknown" bits="17" ids="Off,On"/>
+        <dip name="Unknown" bits="18" ids="Off,On"/>
+        <dip name="Unknown" bits="19" ids="Off,On"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="superbikg.zip|superbik.zip">
+        <part crc="2903f8c8" name="moto1-2516.bin"/>
+        <part crc="057c1473" name="moto2-2516.bin"/>
+        <part crc="6c8f82fa" name="moto3-2516.bin"/>
+        <part crc="ba38fe2c" name="moto4-2516.bin"/>
+        <part crc="ac1180a3" name="moto5-2532.bin"/>
+        <part crc="f5b7627a" name="moto6-2532.bin"/>
+        <part repeat="0xC000">00</part>
+        <part crc="b1d76b59" name="m0hj-2716.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="ea5f9f88" name="m0kl-2716.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="c5f12bc3" name="mmi6331.6l"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 04 00 00 00 00 00 00 00 00 00 00 C0 00
+            11 12 03 04 00 0E 00 00 05 06 0B 0C 00 0D 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <remark>Superbike (Galaxian Hardware) (Century Electronics)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

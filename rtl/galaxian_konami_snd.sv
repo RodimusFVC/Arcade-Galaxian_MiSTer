@@ -19,6 +19,10 @@ module galaxian_konami_snd
     input               timer_9000,     // the timer also reads at 9000 (Turpin S)
     input               no_filter,      // no RC filters fitted (Hustler)
     input               hb_map,         // Hustler bootleg: ROM 0000-2FFF, RAM 8000-8FFF, AY A6 address / A7 data
+    input               rom12k,         // ROM 0000-2FFF (scramble.cpp scramble_sound_map), else 0000-1FFF
+    input               hs_map,         // Hot Shocker: latch AY at A6 data / A7 address; the IRQ is set by irq_set and
+                                        // cleared by reading the latch (AY port A), not by the acknowledge
+    input               irq_set,
     input               pause,
 
     input               latch_we,       // PPI 1 port A: command
@@ -75,11 +79,12 @@ T80sed cpu
 // command latch; control bit 3 falling edge sets the IRQ, held until acknowledged
 reg [7:0] latch = 8'd0;
 reg       ctl3_d = 1'b0;
+wire      latch_rd;
 always @(posedge clk) begin
     if (latch_we) latch <= latch_d;
     ctl3_d <= control[3];
-    if (reset | (~iorq_n & ~m1_n)) int_n <= 1'b1;
-    else if (ctl3_d & ~control[3]) int_n <= 1'b0;
+    if (reset | (hs_map ? latch_rd : ~iorq_n & ~m1_n)) int_n <= 1'b1;
+    else if (hs_map ? irq_set : ctl3_d & ~control[3]) int_n <= 1'b0;
 end
 
 wire mem = ~mreq_n & rfsh_n;
@@ -88,7 +93,8 @@ wire io  = ~iorq_n & m1_n;
 
 // Frogger: ROM 0000-1FFF, RAM 4000-43FF (mirror to 5FFF), filters 6000-7FFF (A15 ignored)
 // Scramble: ROM 0000-1FFF, RAM 8000-83FF (mirror to EFFF), filters 9000-9FFF (+ B/D/F000)
-wire rom_cs = mem && (hb_map ? addr[15:14] == 2'b00 : two_ay ? addr[15:13] == 3'b000 : addr[14:13] == 2'b00);
+wire rom_cs = mem && (hb_map ? addr[15:14] == 2'b00 : two_ay ? addr[15:13] == 3'b000 || (rom12k && addr[15:12] == 4'h2) :
+                      addr[14:13] == 2'b00);
 wire ram_cs = mem && (hb_map ? addr[15:12] == 4'h8 : two_ay ? addr[15] && !addr[12] : addr[14:13] == 2'b10);
 wire flt_cs = mem && ~wr_n && !hb_map && (two_ay ? addr[15] && addr[12] : addr[14:13] == 2'b11);
 
@@ -113,10 +119,15 @@ dpram_dc #(.widthad_a(12)) ram
 // AY #1 (3D): A6 data, A7 address (Frogger: A6 data, else A7 address); AY #2 (3C, Scramble): A4 address, else A5 data
 wire io_w = io & ~wr_n;
 wire io_r = io & ~rd_n;
-wire ay_k    = two_ay | hb_map;       // A6 address / A7 data decode
+wire ay_k    = (two_ay | hb_map) & ~hs_map;       // A6 address / A7 data decode
 wire a1_addr_w = io_w & (ay_k ? addr[6] : ~addr[6] & addr[7]);
 wire a1_data_w = io_w & (ay_k ? ~addr[6] & addr[7] : addr[6]);
 wire a1_rd     = io_r & (ay_k ? addr[7] : addr[6]);
+
+// latch read = AY #1 data read with register 14 (port A) selected
+reg  [7:0] a1_reg = 8'd0;
+always @(posedge clk) if (a1_addr_w) a1_reg <= dout;
+assign latch_rd = a1_rd & (a1_reg == 8'h0E);
 wire a2_addr_w = two_ay & io_w & addr[4];
 wire a2_data_w = two_ay & io_w & ~addr[4] & addr[5];
 wire a2_rd     = two_ay & io_r & addr[5];

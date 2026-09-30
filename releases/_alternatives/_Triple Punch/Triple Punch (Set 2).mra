@@ -1,0 +1,75 @@
+<misterromdescription>
+    <name>Triple Punch (Set 2)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Triple Punch</series>
+    <year>1982</year>
+    <manufacturer>K.K. International</manufacturer>
+    <category>Shooter</category>
+
+    <setname>triplepa</setname>
+    <parent>triplep</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>4-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FC,51,FF">
+        <dip name="Lives" bits="8,9" ids="3,4,5,256 (Cheat)"/>
+        <dip name="Coinage" bits="17,18" ids="A 1/2 B 1/1 C 1/2,A 1/3 B 3/1 C 1/3,A 1/1 B 2/1 C 1/1,A 1/4 B 4/1 C 1/4" values="1,2,0,3"/>
+        <dip name="Cabinet" bits="19" ids="Upright,Cocktail"/>
+        <dip name="Service Mode" bits="21" ids="Off,On"/>
+        <dip name="Rack Test (Cheat)" bits="23" ids="Off,On"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="triplepa.zip|triplep.zip">
+        <part crc="15a6d46a" name="td4.2h"/>
+        <part crc="bc26d2c0" name="tc3.2k"/>
+        <part crc="02025c10" name="te2.2l"/>
+        <part crc="e9abc42b" name="td1.2m"/>
+        <part repeat="0xC000">00</part>
+        <part crc="d51cbd6f" name="ta6.5f"/>
+        <part repeat="0x1800">00</part>
+        <part crc="f21c0059" name="ta7.5h"/>
+        <part repeat="0x1800">00</part>
+        <part crc="624f75df" name="ta.6e"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            11 91 01 00 00 00 02 00 00 00 20 00 00 00 00 C0
+            09 00 16 05 04 03 12 11 00 00 00 0D 0C 0B 14 13
+            0A 00 00 00 01 00 02 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            04 E1 CB 34 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 42 00 00 1E 00 01
+            00 00 40 A8 00 03 00 01
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="33"></nvram>
+
+    <remark>Triple Punch (Set 2) (K.K. International)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

@@ -1,0 +1,87 @@
+<misterromdescription>
+    <name>Komemokos (Hack Of 'Pac-Man (Cirsa, Spanish Bootleg)')</name>
+    <region>Spain</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Komemokos (Hack Of 'Pac-Man (Cirsa, Spanish Bootleg)')</series>
+    <year>199?</year>
+    <manufacturer>hack</manufacturer>
+    <category>Shooter</category>
+
+    <setname>komemokos</setname>
+    <parent>puckman</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (ccw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>4-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>0</num_buttons>
+    <buttons names="Not Used,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,C0,00,FF">
+        <dip name="Coin A" bits="14" ids="2C/1C,1C/1C"/>
+        <dip name="Coin B" bits="15" ids="1C/3C,1C/5C" values="1,0"/>
+        <dip name="Difficulty" bits="17" ids="Easy,Hard"/>
+        <dip name="Lives" bits="18" ids="3,5"/>
+        <dip name="Cabinet" bits="19" ids="Upright,Cocktail"/>
+        <dip name="Bonus Life" bits="16" ids="15000,20000"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="komemokos.zip|puckman.zip">
+        <part crc="9f4bb149" name="a-cc-tms2532.bin"/>
+        <part crc="b3d4b7d9" name="b-cc-tms2532.bin"/>
+        <part crc="be402132" name="c-cc-tms2532.bin"/>
+        <part crc="ce153274" name="am2716.bin"/>
+        <part crc="664cd028" name="f-cc-tms2532.bin" offset="0x800" length="0x800"/>
+        <part repeat="0xC000">00</part>
+        <part crc="f567b3a1" name="i-cc-tms2532.bin" offset="0x800" length="0x800"/>
+        <part repeat="0x800">00</part>
+        <part crc="f567b3a1" name="i-cc-tms2532.bin" offset="0x0" length="0x800"/>
+        <part repeat="0x800">00</part>
+        <part crc="0bd4b686" name="h-cc-tms2532.bin" offset="0x800" length="0x800"/>
+        <part repeat="0x800">00</part>
+        <part crc="0bd4b686" name="h-cc-tms2532.bin" offset="0x0" length="0x800"/>
+        <part repeat="0x800">00</part>
+        <part crc="6a0c7d87" name="nmi6331.bin"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 11 00 00 00 08 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 00 02 09 01 13 14 0B 0C 00 0A 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 31 7F 2D 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 42 88 00 03 00 00
+            00 00 51 80 00 01 40 40
+            00 00 51 A0 00 01 40 40
+            00 00 51 C0 00 01 40 40
+            00 00 51 E0 00 01 40 40
+            00 00 52 00 00 01 40 40
+            00 00 52 20 00 01 40 40
+            00 00 40 87 00 01 01 01
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="10"></nvram>
+
+    <remark>Komemokos (Hack Of 'Pac-Man (Cirsa, Spanish Bootleg)')</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

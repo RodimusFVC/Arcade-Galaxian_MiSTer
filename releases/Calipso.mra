@@ -1,0 +1,75 @@
+<misterromdescription>
+    <name>Calipso</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Calipso</series>
+    <year>1982</year>
+    <manufacturer>Tago Electronics</manufacturer>
+    <category>Shooter</category>
+
+    <setname>calipso</setname>
+    <parent>calipso</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FD,FB,FF">
+        <dip name="Lives" bits="8" ids="3,5" values="1,0"/>
+        <dip name="Demo Sounds" bits="9" ids="Off,On" values="1,0"/>
+        <dip name="Coinage" bits="17,18" ids="A 1/1  B 1/1,A 1/2  B 2/1,A 1/3  B 3/1,A 1/4  B 4/1" values="1,0,2,3"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="calipso.zip">
+        <part crc="0fcb703c" name="calipso.2c"/>
+        <part crc="c6622f14" name="calipso.2e"/>
+        <part crc="7bacbaba" name="calipso.2f"/>
+        <part crc="a3a8111b" name="calipso.2h"/>
+        <part crc="fcbd7b9e" name="calipso.2j"/>
+        <part crc="f7630cab" name="calipso.2l"/>
+        <part repeat="0xA000">00</part>
+        <part crc="fd4252e9" name="calipso.5f"/>
+        <part crc="1663a73a" name="calipso.5h"/>
+        <part crc="01165832" name="calipso.clr"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="9cbc65ab" name="calipso.5c"/>
+        <part crc="a225ee3b" name="calipso.5d"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            07 90 01 00 80 00 02 00 00 00 30 03 00 00 00 00
+            0D 00 01 02 04 03 12 11 00 00 09 0A 0C 0B 00 00
+            05 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 08 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            02 45 96 53 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 81 CB 00 3C 01 45
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="60"></nvram>
+
+    <remark>Calipso (Tago Electronics)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

@@ -1,0 +1,65 @@
+<misterromdescription>
+    <name>Victory</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Victory</series>
+    <year>1982</year>
+    <manufacturer>Comsoft</manufacturer>
+    <category>Shooter</category>
+
+    <setname>victoryc</setname>
+    <parent>victoryc</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (ccw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,C0,07,FF">
+        <dip name="Coinage" bits="14" ids="A: 2C/1C B: 1C/3C,A: 1C/1C B: 1C/6C"/>
+        <dip name="Unknown" bits="15" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="16" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="17" ids="Off,On" values="1,0"/>
+        <dip name="Lives" bits="18" ids="2,3" values="1,0"/>
+        <dip name="Cabinet" bits="19" ids="Upright,Cocktail"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="victoryc.zip">
+        <part crc="8a590687" name="1.1"/>
+        <part crc="575ac583" name="2.2"/>
+        <part crc="cbe67cfb" name="3.3"/>
+        <part crc="025b6626" name="4.4"/>
+        <part repeat="0xE000">00</part>
+        <part crc="15e98c93" name="df.1k"/>
+        <part repeat="0x1800">00</part>
+        <part crc="cd35a7e2" name="a4.1h"/>
+        <part repeat="0x1800">00</part>
+        <part crc="25329e5a" name="prom.6l"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 10 00 04 00 00 00 00 00 00 00 00 00 00 00 00
+            11 0A 03 04 05 02 09 01 13 14 0B 0C 0D 12 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 03
+        </part>
+    </rom>
+
+    <remark>Victory (Comsoft)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

@@ -1,0 +1,81 @@
+<misterromdescription>
+    <name>Hot Shocker (Early Revision?)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Hot Shocker</series>
+    <year>1982</year>
+    <manufacturer>E.G. Felaco</manufacturer>
+    <category>Shooter</category>
+
+    <setname>hotshockb</setname>
+    <parent>hotshock</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="02,00,00,05">
+        <dip name="Coin B" bits="16,19" ids="2C/1C,2C/2C,1C/1C,2C/3C,2C/4C,1C/2C,2C/5C,2C/6C,1C/3C,2C/7C,2C/8C,1C/4C,1C/5C,1C/6C,1C/7C,1C/8C" values="8,9,0,10,11,1,12,13,2,14,15,3,4,5,6,7"/>
+        <dip name="Coin A" bits="20,23" ids="2C/1C,2C/2C,1C/1C,2C/3C,2C/4C,1C/2C,2C/5C,2C/6C,1C/3C,2C/7C,2C/8C,1C/4C,1C/5C,1C/6C,1C/7C,1C/8C" values="8,9,0,10,11,1,12,13,2,14,15,3,4,5,6,7"/>
+        <dip name="Lives" bits="24,25" ids="2,3,4,5"/>
+        <dip name="Language" bits="26" ids="English,Italian" values="1,0"/>
+        <dip name="Bonus Life" bits="27,28" ids="75000,150000,200000,None"/>
+        <dip name="Unknown" bits="29" ids="Off,On"/>
+        <dip name="Unknown" bits="30" ids="Off,On"/>
+        <dip name="Cabinet" bits="31" ids="Upright,Cocktail"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="hotshockb.zip|hotshock.zip">
+        <part crc="401078f7" name="hotshock.l10"/>
+        <part crc="af76c237" name="hotshock.l9"/>
+        <part crc="30486031" name="hotshock.l8"/>
+        <part crc="5bde9312" name="hotshock.l7"/>
+        <part repeat="0xC000">00</part>
+        <part crc="60bdaea9" name="hotshock.h4"/>
+        <part repeat="0x1000">00</part>
+        <part crc="4ef17453" name="hotshock.h5"/>
+        <part repeat="0x1000">00</part>
+        <part crc="4e3caeab" name="c01s.6e"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="0092f0e2" name="hotshock.b3"/>
+        <part crc="c2135a44" name="hotshock.b4"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            10 90 00 00 00 03 02 00 00 00 00 03 00 00 04 10
+            01 00 02 05 04 03 00 00 00 00 11 12 16 00 14 13
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            00 3D DE F8 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 40 A8 00 03 00 05
+            00 00 42 00 00 1E 0A 02
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="33"></nvram>
+
+    <remark>Hot Shocker (Early Revision?) (E.G. Felaco)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>
