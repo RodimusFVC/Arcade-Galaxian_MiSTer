@@ -29,7 +29,8 @@ module galaxian_video
                                         // MAME's 32-entry palette), 11 Moon Shuttle (colour byte bits 5-4 above
                                         // the tile and sprite codes), 12 BMX Stunts (sprite colour bit 4 adds 40),
                                         // 13 Space Battle (banks 2 / 3 enable codes 80-BF / C0-FF, banks 0 / 1 /
-                                        // 4 replace their upper bits)
+                                        // 4 replace their upper bits), 15 Rack + Roll (tile code A10-A8 = the
+                                        // column's bank latch)
     input         [3:0] vflags2,        // [0] second sprite generator (objram 60-7F), [1] shells at objram C0,
                                         // [2] no shells, [3] sprite RAM page per 64 lines (Time Fighter)
     input         [7:0] vflags3,        // Frogger: [0] scroll and sprite Y nibbles swapped, [1] colour rotated right,
@@ -44,11 +45,12 @@ module galaxian_video
                                         // [5] Minefield gfx address scramble (both undone on reads), [6] Mariner
                                         // (column blue from user1, char bank / star columns from user2), [7] New
                                         // Sinbad 7: three bitplanes, pens {colour[1:0], pixel[2:0]}, no left sprite clip
-    input         [5:0] vflags5,        // galaxian.cpp: [0] Lost Tomb gfx address scramble, [1] Anteater gfx address
+    input         [6:0] vflags5,        // galaxian.cpp: [0] Lost Tomb gfx address scramble, [1] Anteater gfx address
                                         // scramble (both undone on reads), [2] Anteater background (blue left of 56,
                                         // right of 200 flipped, on bg_en), [3] Calipso sprites (8-bit code, no flips),
                                         // [4] Moon Shuttle bullets (purple where H6 = 1, else a colour per 4 pixels),
-                                        // [5] tile / sprite colours wired RGB -> RBG (Space Battle)
+                                        // [5] tile / sprite colours wired RGB -> RBG (Space Battle), [6] colour byte
+                                        // bit 6 = colour bit 3, 64-entry palette (Driving Force, MAME drivfrcg)
     input               bgp_we,         // background PROMs load: user1 at 00-3F, user2 at 40-5F
     input               bg_en,          // background enable latch (Scramble 6803 / A803)
     input         [2:0] bg_rgb,         // Turtles background latches R, G, B (390 / 470 / 390 ohm)
@@ -70,6 +72,12 @@ module galaxian_video
     input               gfx0_we,        // gfx region first half
     input               gfx1_we,        // gfx region second half
     input               gfx2_we,        // third plane (4K)
+    input               gfxh_we,        // upper 8K of planes 0 / 1 (ioctl A13 selects the plane)
+    input               tb_we,          // column tile banks (Rack + Roll I/O 20-3F)
+    input         [4:0] tb_addr,
+    input         [2:0] tb_d,
+    input               bd_patch,       // Bulls Eye Darts (MAME init_bullsdrtg): plane 0 bytes 0000-0007, 1000-10D7,
+                                        // 1180-11CF read as 0
     input               pal_we,
 
     output              n3a,            // star LFSR N3A: the sound noise source (7474 at 2D)
@@ -118,7 +126,7 @@ dpram_dc #(.widthad_a(10)) objram_s
 );
 
 // gfx planes: port A = ROM load / sprite fetch, port B = tile fetch
-reg  [12:0] gs_addr, gt_addr;
+reg  [13:0] gs_addr, gt_addr;
 wire  [7:0] g0s_q, g1s_q, g0t_q, g1t_q;
 wire  [7:0] g1s_raw, g1t_raw;
 // Rescue / Minefield (MAME init_rescue / init_minefld): the ROM holds tile byte j at position i; read i -> fetch j
@@ -160,23 +168,29 @@ function [12:0] pk_addr(input [12:0] a, input hi);
     pk_addr = gfx_packed ? {1'b0, a[10:3], hi, a[2:0]} : a;
 endfunction
 
-wire [12:0] gs_rd = gfx_remap(gs_addr);
-wire [12:0] gt_rd = gfx_remap(gt_addr);
-wire [12:0] ga0 = gfx0_we | gfx1_we ? ioctl_addr[12:0] : pk_addr(gs_rd, 1'b1);
-wire [12:0] ga1 = gfx0_we | gfx1_we ? ioctl_addr[12:0] : pk_addr(gs_rd, 1'b0);
+wire [13:0] gs_rd = {gs_addr[13], gfx_remap(gs_addr[12:0])};
+wire [13:0] gt_rd = {gt_addr[13], gfx_remap(gt_addr[12:0])};
+wire        ld0 = gfx0_we | (gfxh_we & ~ioctl_addr[13]);
+wire        ld1 = gfx1_we | (gfxh_we & ioctl_addr[13]);
+wire [13:0] ga0 = ld0 | ld1 ? {gfxh_we, ioctl_addr[12:0]} : {gs_rd[13], pk_addr(gs_rd[12:0], 1'b1)};
+wire [13:0] ga1 = ld0 | ld1 ? {gfxh_we, ioctl_addr[12:0]} : {gs_rd[13], pk_addr(gs_rd[12:0], 1'b0)};
 wire  [7:0] g0s_raw, g0t_raw;
 
-dpram_dc #(.widthad_a(13)) gfx0
+dpram_dc #(.widthad_a(14)) gfx0
 (
-    .clock_a(clk), .address_a(ga0), .data_a(ioctl_dout), .wren_a(gfx0_we), .q_a(g0s_raw),
-    .clock_b(clk), .address_b(pk_addr(gt_rd, 1'b1)), .q_b(g0t_raw)
+    .clock_a(clk), .address_a(ga0), .data_a(ioctl_dout), .wren_a(ld0), .q_a(g0s_raw),
+    .clock_b(clk), .address_b({gt_rd[13], pk_addr(gt_rd[12:0], 1'b1)}), .q_b(g0t_raw)
 );
 
-dpram_dc #(.widthad_a(13)) gfx1
+dpram_dc #(.widthad_a(14)) gfx1
 (
-    .clock_a(clk), .address_a(ga1), .data_a(ioctl_dout), .wren_a(gfx1_we), .q_a(g1s_raw),
-    .clock_b(clk), .address_b(pk_addr(gt_rd, 1'b0)), .q_b(g1t_raw)
+    .clock_a(clk), .address_a(ga1), .data_a(ioctl_dout), .wren_a(ld1), .q_a(g1s_raw),
+    .clock_b(clk), .address_b({gt_rd[13], pk_addr(gt_rd[12:0], 1'b0)}), .q_b(g1t_raw)
 );
+
+// column tile banks (Rack + Roll)
+reg [2:0] tbank[32];
+always @(posedge clk) if (tb_we) tbank[tb_addr] <= tb_d;
 
 // third plane (New Sinbad 7)
 wire bpp3 = vflags4[7];
@@ -189,13 +203,19 @@ dpram_dc #(.widthad_a(12)) gfx2
 
 wire [7:0] g1s_sw = vflags3[3] ? {g1s_raw[7:2], g1s_raw[0], g1s_raw[1]} : g1s_raw;
 wire [7:0] g1t_sw = vflags3[3] ? {g1t_raw[7:2], g1t_raw[0], g1t_raw[1]} : g1t_raw;
-assign g0s_q = gfx_packed ? {g0s_raw[7:4], g1s_raw[7:4]} : g0s_raw;
+reg  [13:0] gs_rd_d, gt_rd_d;
+always @(posedge clk) begin gs_rd_d <= gs_rd; gt_rd_d <= gt_rd; end
+function bd_zero(input [13:0] a);
+    bd_zero = a < 14'h0008 || (a >= 14'h1000 && a < 14'h10D8) || (a >= 14'h1180 && a < 14'h11D0);
+endfunction
+assign g0s_q = gfx_packed ? {g0s_raw[7:4], g1s_raw[7:4]} : bd_patch && bd_zero(gs_rd_d) ? 8'd0 : g0s_raw;
 assign g1s_q = gfx_packed ? {g0s_raw[3:0], g1s_raw[3:0]} : g1s_sw;
-assign g0t_q = gfx_packed ? {g0t_raw[7:4], g1t_raw[7:4]} : g0t_raw;
+assign g0t_q = gfx_packed ? {g0t_raw[7:4], g1t_raw[7:4]} : bd_patch && bd_zero(gt_rd_d) ? 8'd0 : g0t_raw;
 assign g1t_q = gfx_packed ? {g0t_raw[3:0], g1t_raw[3:0]} : g1t_sw;
 
-reg [7:0] pal[32];
-always @(posedge clk) if (pal_we) pal[ioctl_addr[4:0]] <= ioctl_dout;
+reg [7:0] pal[64];
+always @(posedge clk) if (pal_we) pal[ioctl_addr[5:0]] <= ioctl_dout;
+wire c4 = vflags5[6];
 
 // Strategy X background PROM (bit 1 enables R/G, bit 0 B, active low); Mariner: user1 00-1F / 20-3F (flipped) column
 // blue, user2 40-5F bit 0 char bank, bit 2 star column enable
@@ -207,6 +227,7 @@ wire mar = vflags4[6];
 // 8 bits wide: dpram_dc's byteena is width_a/8 bits, so narrower widths fail to elaborate in Quartus
 reg  [7:0] lb_addr;
 reg  [4:0] lb_data;
+reg        lb_c3 = 1'b0;                       // colour bit 3 (c4)
 reg        lb_we = 1'b0;
 wire [4:0] lb_q;
 wire [7:0] lb_q8;
@@ -214,7 +235,7 @@ assign     lb_q = lb_q8[4:0];
 
 dpram_dc #(.widthad_a(8)) linebuf
 (
-    .clock_a(clk), .address_a(lb_addr), .data_a({3'b000, lb_data}), .wren_a(lb_we), .q_a(lb_q8),
+    .clock_a(clk), .address_a(lb_addr), .data_a({2'b00, lb_c3, lb_data}), .wren_a(lb_we), .q_a(lb_q8),
     .clock_b(clk)
 );
 
@@ -237,7 +258,7 @@ dpram_dc #(.widthad_a(8)) linebuf2
 // (odd byte) of the column, then the tile code, then both planes of the tile row.
 
 // tile code extensions (MAME *_extend_tile_info); attr = the column's colour byte
-function [9:0] tile_code(input [7:0] code, input [7:0] attr);
+function [10:0] tile_code(input [7:0] code, input [7:0] attr, input [2:0] bank);
     case (ext_mode)
         4'd1:    tile_code = gfxbank[3] && code[7:6] == 2'b10 ? {2'b01, gfxbank[2], gfxbank[0], code[5:0]} : {2'b00, code};
         4'd2:    tile_code = {1'b0, attr[5], code};
@@ -251,12 +272,14 @@ function [9:0] tile_code(input [7:0] code, input [7:0] attr);
         4'd7:    tile_code = gfxbank[3] && code[7:6] == 2'b10 ?
                              {2'b00, code} + 10'd128 + {3'd0, gfxbank[0], 6'd0} + {2'd0, gfxbank[2], 7'd0} +
                              {1'b0, ~gfxbank4, 8'd0} : {2'b00, code};
+        4'd15:   tile_code = {bank, code};
         default: tile_code = {2'b00, code};
     endcase
 endfunction
 
 reg  [7:0] cur_p0 = 8'd0, cur_p1 = 8'd0, nxt_p0 = 8'd0, nxt_p1 = 8'd0, cur_p2 = 8'd0, nxt_p2 = 8'd0;
 reg  [2:0] cur_col = 3'd0, nxt_col = 3'd0;
+reg        cur_c3 = 1'b0, nxt_c3 = 1'b0;
 reg  [2:0] t_line;
 wire [7:0] xn    = {x[7:3] + 5'd1, 3'b000} ^ {8{flip_x}};
 wire [7:0] vf    = y ^ {8{flip_y}};
@@ -273,8 +296,8 @@ always @(posedge clk) begin
             3'd1: ot_addr <= {2'b00, xn[7:3], 1'b0};
             3'd2: ot_addr <= {2'b00, xn[7:3], 1'b1};
             3'd3: begin vr_addr <= {t_sum[7:3], xn[7:3]}; t_line <= t_sum[2:0]; end
-            3'd4: nxt_col <= col_fix(ot_q[2:0]);
-            3'd5: gt_addr <= {tile_code(vr_q, ot_q) | {1'b0, mar & bgp[{2'b10, xn[7:3]}][0], 8'd0}, t_line};
+            3'd4: begin nxt_col <= col_fix(ot_q[2:0]); nxt_c3 <= c4 & ot_q[6]; end
+            3'd5: gt_addr <= {tile_code(vr_q, ot_q, tbank[xn[7:3]]) | {2'b00, mar & bgp[{2'b10, xn[7:3]}][0], 8'd0}, t_line};
             3'd7: begin nxt_p0 <= g0t_q; nxt_p1 <= g1t_q; nxt_p2 <= g2t_q; end
             default: ;
         endcase
@@ -284,6 +307,7 @@ always @(posedge clk) begin
         cur_p1  <= nxt_p1;
         cur_p2  <= nxt_p2;
         cur_col <= nxt_col;
+        cur_c3  <= nxt_c3;
     end
 end
 
@@ -304,6 +328,7 @@ reg  [7:0] s_sum;
 reg  [5:0] s_code;
 reg        s_fx, s_fy, s_hit;
 reg  [2:0] s_color;
+reg        s_c3, r_c3, spr_c3;
 reg  [7:0] s_attr;
 reg  [7:0] s_x;
 reg  [7:0] sp0h0, sp0h1, sp1h0, sp1h1, sp2h0, sp2h1;
@@ -376,7 +401,7 @@ always @(posedge clk) begin
                     s_code <= os_q[5:0]; s_code8 <= os_q;
                     s_fx <= os_q[6] & ~vflags5[3]; s_fy <= os_q[7] & ~vflags5[3];
                 end
-                3'd5: begin s_color <= col_fix(os_q[2:0]); s_attr <= os_q; end
+                3'd5: begin s_color <= col_fix(os_q[2:0]); s_c3 <= c4 & os_q[6]; s_attr <= os_q; end
                 3'd6: begin s_x <= os_q; s_hit <= s_sum[7:4] == 4'hF; end
                 default: ;
             endcase
@@ -419,7 +444,7 @@ always @(posedge clk) begin
     end
     if (ph == 3'd1 && blank_h && x == 8'h80) begin shell_v <= 1'b0; missile_v <= 1'b0; end
     if (ph == 3'd0 && blank_h && x[7] && x[3:0] == 4'h7) begin
-        r_hit <= s_hit; r_fx <= s_fx; r_color <= s_color; r_x <= s_x;
+        r_hit <= s_hit; r_fx <= s_fx; r_color <= s_color; r_c3 <= s_c3; r_x <= s_x;
         rp0h0 <= sp0h0; rp0h1 <= sp0h1; rp1h0 <= sp1h0; rp1h1 <= sp1h1; rp2h0 <= sp2h0; rp2h1 <= sp2h1;
         r2_hit <= s2_hit; r2_fx <= s2_fx; r2_color <= s2_color; r2_x <= s2_x;
         r2p0h0 <= s2p0h0; r2p0h1 <= s2p0h1; r2p1h0 <= s2p1h0; r2p1h1 <= s2p1h1;
@@ -465,7 +490,7 @@ always @(posedge clk) begin
     case (ph)
         3'd1: begin lb_addr <= ra; lb2_addr <= ra; end
         3'd3: begin
-            spr  <= lb_q;  lb_data  <= 5'd0; lb_we  <= active;
+            spr  <= lb_q;  spr_c3 <= lb_q8[5]; lb_data  <= 5'd0; lb_c3 <= 1'b0; lb_we  <= active;
             spr2 <= lb2_q; lb2_data <= 5'd0; lb2_we <= active;
         end
         3'd4: begin lb_addr <= wa; lb_we <= 1'b0; lb2_addr <= wa2; lb2_we <= 1'b0; end
@@ -473,6 +498,7 @@ always @(posedge clk) begin
             // 3 bits per pixel: {pen[2:0], colour[1:0]}, the first opaque pixel stays (sprite 0 on top)
             lb_data  <= bpp3 ? (lb_q[4:2] == 3'd0 && r_pen3 != 3'd0 ? {r_pen3, r_color[1:0]} : lb_q) :
                                lb_merge(lb_q, r_pen, r_color);
+            lb_c3    <= lb_q[4:3] != 2'b00 ? lb_q8[5] : |r_pen & r_c3;
             lb_we    <= rend & r_hit & (|wa[7:4] | bpp3);
             lb2_data <= lb_merge(lb2_q, r2_pen, r2_color);  lb2_we <= rend & r2_hit & |wa2[7:4];
         end
@@ -520,7 +546,8 @@ end
 // the second generator is drawn over the first and the tiles (MAME renders it last)
 wire [4:0] mix = spr2[4:3] != 2'b00 ? spr2 : lb_merge(spr, t_pen, cur_col);
 wire [1:0] pen = mix[4:3];
-wire [7:0] pv  = pal[{mix[2:0], pen}];
+wire       mc3 = spr[4:3] != 2'b00 ? spr_c3 : cur_c3;
+wire [7:0] pv  = pal[{c4 & mc3, mix[2:0], pen}];
 wire [4:0] m3  = spr[4:2] != 3'd0 ? spr : {t_pen3, cur_col[1:0]};
 wire [7:0] pv3 = pal[{m3[1:0], m3[4:2]}];
 wire       pen_on = bpp3 ? m3[4:2] != 3'd0 : pen != 2'd0;

@@ -64,7 +64,7 @@ REGIONS = {
     "maincpu": (0x00000, 0x10000),
     "gfx1_p0": (0x10000, 0x02000),
     "gfx1_p1": (0x12000, 0x02000),
-    "proms":   (0x14000, 0x00020),
+    "proms":   (0x14000, 0x00040),         # 64 bytes on Driving Force
     "audiocpu": (0x18000, 0x04000),
     "user1":   (0x14100, 0x00040),         # background PROM (Strategy X; Mariner uses the first 0x40 of 0x100)
     "user2":   (0x14140, 0x00020),
@@ -73,6 +73,8 @@ REGIONS = {
     "gfx2_p1": (0x13000, 0x01000),
     "cclimber_audio:samples": (0x1C000, 0x02000),                 # Moon Shuttle sample ROM
     "digitalker": (0x20000, 0x03000),                             # Scorpion speech ROM (Digitalker)
+    "gfx1_p0h": (0x24000, 0x02000),                               # upper 8K of 16K planes (Rack + Roll)
+    "gfx1_p1h": (0x26000, 0x02000),
     "i8039": (0x1E000, 0x00800),                                  # Space Battle speech CPU
     "sbhoei_sound_rom": (0x1F000, 0x01000),                       # Space Battle speech data
 }
@@ -311,6 +313,11 @@ SUPPORTED = {
                                                     B8_ADDRSWAP | KOUGAR),
     ("scramble.cpp", "cavelon", "init_cavelon"):   (M_SCRAMBLE, V_SCRAMBLE_SHELLS, 0, 0, X_MSHUTTLE, B2_NODISC, 0, 0, 0,
                                                     *SCRS, 0, 0, B7_ROM12K, B8_CAVELON),
+    # S2650 on a Scramble board (board flags 12: 0x02 map, 0x04 3.072 MHz / 0x08 0.768 MHz, 0x10 port 00 protection)
+    ("scramble.cpp", "hunchbks", "init_scramble_ppi"): (M_SCRAMBLE, V_SCRAMBLE_SHELLS, 0, 0, 0, B2_NODISC, 0, 0, 0, *SCRS,
+                                                        0, 0, B7_S2650, 0, 0, 0, 0, 0, 0x02 | 0x04 | 0x10),
+    ("scramble.cpp", "hncholms", "init_scramble_ppi"): (M_SCRAMBLE, V_SCRAMBLE_SHELLS, 0, 0, 0, B2_NODISC, 0, 0, 0, *SCRS,
+                                                        0, 0, B7_S2650, 0, 0, 0, 0, 0, 0x02 | 0x08 | 0x10),
     ("scramble.cpp", "hotshock", "init_hotshock"): (M_HOTSHOCK, 0, 0, 0, X_PISCES, B2_NODISC, 0, 0, 0, 0,
                                                     B5_KONAMI | B5_TWO_AY, 0, 0, B7_ROM12K, B8_HSPATCH),
     # Triple Punch: no sound board, one AY on the main CPU's I/O
@@ -334,6 +341,10 @@ SUPPORTED = {
     ("galaxold.cpp", "videotron", "empty_init"):  (M_MC, 0, B_RAM2K, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, B7_FLIPSWAP),
     ("galaxold.cpp", "devilfshv", "empty_init"):  (M_GAL, 0, B_RAM2K, 0, X_SPRITE_ROM, 0, 0, 0, 0, 0, 0, 0, 0, B7_FLIPSWAP),
     ("galaxold.cpp", "hunchbkg", "empty_init"):   (M_GAL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, B7_S2650),
+    # Driving Force: S2650 3.072 MHz (board flags 12 0x04), drivfrcg_program (0x20), port 00 protection (0x40), tile and
+    # sprite codes from colour bits 5-4 (code extension 11), colour bit 3 from bit 6 + 64-entry palette (video flags 5 0x40)
+    ("galaxold.cpp", "drivfrcg", "empty_init"):   (M_GAL, 0, B_NOSTARS, 0, 11, B2_NOWDOG, 0, 0, 0, 0, 0, 0, 0, B7_S2650,
+                                                   0, 0, 0x40, 0, 0, 0x20 | 0x40 | 0x04),
     ("galaxold.cpp", "superbikg", "init_superbikg"): (M_GAL, 0, B_NOSTARS, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                                       B7_S2650 | B7_SBK_LATCH),
 }
@@ -345,7 +356,7 @@ GFX_MIRROR = {"cavelon"}
 F_4WAY, F_IMPULSE, F_TWIN, F_VERT, F_ROT90 = 0x01, 0x04, 0x08, 0x10, 0x80
 
 # port order on the board: DIP bytes 0-3 and input map bytes 16-47
-PORTS = [("IN0",), ("IN1",), ("IN2", "DSW0", "DSW1"), ("IN3", "FAKE", "DSW"), ("IN4", "COINAGE")]   # first name present wins; IN4 = DIPs only
+PORTS = [("IN0",), ("IN1",), ("IN2", "DSW0", "DSW1"), ("IN3", "FAKE", "DSW", "DSW1"), ("IN4", "COINAGE")]   # each tag used once   # first name present wins; IN4 = DIPs only
 LINE_BASE = 40      # control ids 40-47 = DIP byte 3 bits: a port bit that reads a line of the FAKE port
 LINE4_BASE = 48     # control ids 48-55 = DIP byte 4 bits (fake IN4, read through other ports: Strategy X coinage)
 
@@ -605,9 +616,24 @@ def split_planes(segs, packed=False, bpp3=False):
     return out
 
 
+def split_high(segs):
+    """16K bitplanes: the upper 8K of each plane goes to its own load window."""
+    out = []
+    for s in segs:
+        if s["region"] in ("gfx1_p0", "gfx1_p1") and s["dst"] + s["len"] > 0x2000:
+            lo, hi = s["dst"], s["dst"] + s["len"]
+            if lo < 0x2000:
+                out.append(dict(s, len=0x2000 - lo))
+            start = max(lo, 0x2000)
+            out.append(dict(s, region=s["region"] + "h", src=s["src"] + start - lo, dst=start - 0x2000, len=hi - start))
+        else:
+            out.append(s)
+    return out
+
+
 def place(segs, setname, packed=False, bpp3=False):
     out = []
-    for s in split_planes(segs, packed, bpp3):
+    for s in split_high(split_planes(segs, packed, bpp3)):
         if s["region"] in IGNORED_REGIONS:
             continue
         if s["region"] not in REGIONS:
@@ -650,8 +676,10 @@ def input_config(g, ports):
     spill, spill_idle = [], 0                          # non-contiguous DIPs moved to DIP byte 4 (read back as lines)
     global twoway
     twoway = True
+    used = set()
     for p, names in enumerate(PORTS):
-        tag = next((n for n in names if n in ports), names[0])
+        tag = next((n for n in names if n in ports and n not in used), names[0])
+        used.add(tag)
         fields = ports.get(tag)
         if fields is None:
             if p < 4:                                  # IN4 only exists as a fifth DIP byte when the game has it
@@ -795,6 +823,19 @@ def hiscore_xml(g):
 """
 
 
+# Parked 2026-09-30: Rack + Roll / Hex Pool / Bulls Eye Darts - the column-bank loop (self-modifying code in RAM at 7C42)
+# writes only port 3F in sim (MAME: 3F..20); not released until fixed
+SUPPORTED_PARKED = {
+    # Rack + Roll board (board flags 13: 0x01 map / INT / banks, 0x02 SN at I/O 1D, 0x04 SN on the data port, 0x08 / 0x10
+    # data port protection, 0x20 Bulls Eye Darts gfx patch); S2650 3.072 MHz, code extension 15 (column tile banks)
+    ("galaxold.cpp", "racknrol", "empty_init"):   (M_GAL, 0, B_NOSTARS, 0, 15, B2_NOWDOG | B2_NODISC, 0, V2_NOSHELLS, 0, 0,
+                                                   0, 0, 0, B7_S2650, 0, 0, 0, 0, 0, 0x04, 0x01 | 0x02),
+    ("galaxold.cpp", "hexpoola", "empty_init"):   (M_GAL, 0, B_NOSTARS, 0, 15, B2_NOWDOG | B2_NODISC, 0, V2_NOSHELLS, 0, 0,
+                                                   0, 0, 0, B7_S2650, 0, 0, 0, 0, 0, 0x04, 0x01 | 0x04 | 0x08),
+    ("galaxold.cpp", "bullsdrtg", "init_bullsdrtg"): (M_GAL, 0, B_NOSTARS, 0, 15, B2_NOWDOG | B2_NODISC, 0, V2_NOSHELLS, 0,
+                                                      0, 0, 0, 0, B7_S2650, 0, 0, 0, 0, 0, 0x04, 0x01 | 0x04 | 0x10 | 0x20),
+}
+
 def board_cfg(g):
     """SUPPORTED entry for a set: (driver, config, init) keys for the other drivers, (config, init) for galaxian.cpp
     (config names such as mooncrst / scobra / galaxian mean different boards in galaxold / scobra / scramble.cpp)."""
@@ -806,7 +847,7 @@ def mra(g, games, segs, build_inputs):
     variant, vflags, bflags, rom_top, ext, *rest = board_cfg(g)
     bflags2 = rest[0] if rest else 0
     bflags3, vflags2, bflags4, vflags3, bflags5, vflags4, bflags6, bflags7, bflags8, bflags9, vflags5, bflags10, \
-        bflags11, bflags12 = (list(rest[1:]) + [0] * 14)[:14]
+        bflags11, bflags12, bflags13 = (list(rest[1:]) + [0] * 15)[:15]
     ports = build_inputs(g["inputs"])
     idle, dips, imap, fourway, buttons, tb_rev, impulse = input_config(g, ports)
     twin = any(f.get("type", "").startswith("JOYSTICKRIGHT") for fl in ports.values() for f in fl)
@@ -841,7 +882,8 @@ def mra(g, games, segs, build_inputs):
     dip_lines = "\n".join(f'        <dip name="{n}" bits="{b}" ids="{i}"' + (f' values="{v}"' if v else "") + "/>"
                           for n, b, i, v in dips)
     cfg = [variant, flags, vflags, bflags, rom_top, ext, bflags2, bflags3, vflags2, bflags4, vflags3, bflags5,
-           vflags4, bflags6, bflags7, bflags8] + imap + [bflags9, vflags5, bflags10] + ([bflags11, bflags12] if bflags12 else [bflags11] if bflags11 else [])
+           vflags4, bflags6, bflags7, bflags8] + imap + [bflags9, vflags5, bflags10] + ([bflags11, bflags12, bflags13] if bflags13 else [bflags11, bflags12] if bflags12 else
+                                                          [bflags11] if bflags11 else [])
     cfg_rows = "\n".join("            " + " ".join(f"{b:02X}" for b in cfg[i:i + 16]) for i in range(0, len(cfg), 16))
     return f"""<misterromdescription>
     <name>{display_name(g)}</name>

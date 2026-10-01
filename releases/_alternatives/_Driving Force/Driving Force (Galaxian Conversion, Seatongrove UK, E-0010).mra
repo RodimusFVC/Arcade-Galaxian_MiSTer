@@ -1,0 +1,87 @@
+<misterromdescription>
+    <name>Driving Force (Galaxian Conversion, Seatongrove UK, E-0010)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Driving Force</series>
+    <year>1985</year>
+    <manufacturer>Shinkai Inc. (Seatongrove UK, Ltd. license)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>drivfrcsg</setname>
+    <parent>drivfrcp</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,00,00">
+        <dip name="Coinage" bits="14" ids="A 2C/1C  B 1C/3C,A 1C/1C  B 1C/5C" values="1,0"/>
+        <dip name="Unknown" bits="16" ids="Off,On"/>
+        <dip name="Unknown" bits="17" ids="Off,On"/>
+        <dip name="Unknown" bits="18" ids="Off,On"/>
+        <dip name="Unknown" bits="19" ids="Off,On"/>
+        <dip name="Unknown" bits="20" ids="Off,On"/>
+        <dip name="Unknown" bits="21" ids="Off,On"/>
+        <dip name="Unknown" bits="22" ids="Off,On"/>
+        <dip name="Unknown" bits="23" ids="Off,On"/>
+        <dip name="Unknown" bits="24" ids="Off,On"/>
+        <dip name="Unknown" bits="25" ids="Off,On"/>
+        <dip name="Unknown" bits="26" ids="Off,On"/>
+        <dip name="Unknown" bits="27" ids="Off,On"/>
+        <dip name="Unknown" bits="28" ids="Off,On"/>
+        <dip name="Unknown" bits="29" ids="Off,On"/>
+        <dip name="Unknown" bits="30" ids="Off,On"/>
+        <dip name="Unknown" bits="31" ids="Off,On"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="drivfrcsg.zip|drivfrcp.zip">
+        <part crc="85242241" name="6n-2-2764a.bin" offset="0x800" length="0x400"/>
+        <part crc="85242241" name="6n-2-2764a.bin" offset="0xC00" length="0x400"/>
+        <part crc="85242241" name="6n-2-2764a.bin" offset="0x1000" length="0x400"/>
+        <part crc="85242241" name="6n-2-2764a.bin" offset="0x1400" length="0x400"/>
+        <part crc="85242241" name="6n-2-2764a.bin" offset="0x1800" length="0x400"/>
+        <part crc="85242241" name="6n-2-2764a.bin" offset="0x1C00" length="0x400"/>
+        <part crc="85242241" name="6n-2-2764a.bin" offset="0x0" length="0x400"/>
+        <part crc="85242241" name="6n-2-2764a.bin" offset="0x400" length="0x400"/>
+        <part crc="42d99594" name="6m-1-2764a.bin" offset="0x800" length="0x400"/>
+        <part crc="42d99594" name="6m-1-2764a.bin" offset="0xC00" length="0x400"/>
+        <part crc="42d99594" name="6m-1-2764a.bin" offset="0x1000" length="0x400"/>
+        <part crc="42d99594" name="6m-1-2764a.bin" offset="0x1400" length="0x400"/>
+        <part crc="42d99594" name="6m-1-2764a.bin" offset="0x1800" length="0x400"/>
+        <part crc="42d99594" name="6m-1-2764a.bin" offset="0x1C00" length="0x400"/>
+        <part crc="42d99594" name="6m-1-2764a.bin" offset="0x0" length="0x400"/>
+        <part crc="42d99594" name="6m-1-2764a.bin" offset="0x400" length="0x400"/>
+        <part repeat="0xC000">00</part>
+        <part crc="156e20bd" name="1j-2764a.bin"/>
+        <part crc="88d0f70b" name="1l-2764a.bin"/>
+        <part crc="3110ddae" name="82s123-1.bin"/>
+        <part crc="0f0782af" name="82s123-2.bin"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 04 00 0B 01 00 00 00 00 00 00 00 40 00
+            11 12 03 04 00 00 00 00 05 06 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 40 00 00 64
+        </part>
+    </rom>
+
+    <remark>Driving Force (Galaxian Conversion, Seatongrove UK, E-0010) (Shinkai Inc. (Seatongrove UK, Ltd. License))</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

@@ -75,7 +75,17 @@ module galaxian_board
                                         // 0000-0FFF from ROM 4000 (Lady Bug ladybugg2_opcodes_map), [6] Frogger
                                         // on Moon Cresta hardware (froggermc_map: sound latch A800, IRQ B001),
                                         // [7] AY at 512 kHz (Ozon I)
-    input         [7:0] bflags12,       // [0] Space Battle (Hoei) speech board, sbhoei_map I/O, RGB -> RBG
+    input         [7:0] bflags12,       // [0] Space Battle (Hoei) speech board, sbhoei_map I/O, RGB -> RBG,
+                                        // [1] S2650 on a Scramble board (scramble.cpp hunchbks_map; INT and SENSE
+                                        // from VBLANK), [3:2] S2650 clock 0 = 1.536, 1 = 3.072, 2 = 0.768 MHz,
+                                        // [4] extended port 00 reads 1 at PC 002B / 0A27 (MAME hncholms_prot_r),
+                                        // [5] Driving Force (drivfrcg_program: 1600 write = pitch, 1700 = DSW1,
+                                        // 1704-1707 = LFO; INT and SENSE from VBLANK), [6] port 00 reads 1 at PC
+                                        // 002E / 0297 (drivfrcg_port0_r)
+    input         [7:0] bflags13,       // [0] Rack + Roll (racknrol_map: objects 1400-14FF, INT from VBLANK, SENSE =
+                                        // !VBLANK, I/O 20-3F = column tile banks), [1] SN76489 on extended I/O 1D,
+                                        // [2] SN76496 on the data port, [3] data port reads 1 at PC 0031 (hexpoola),
+                                        // [4] at PC 009B / 6B58 (bullsdrtg), [5] Bulls Eye Darts gfx patch
     input         [7:0] bflags11,       // [0] ROM 2000-27FF banked by the 6000 latch D0 (Guttang Gottong: bank 1 = 4000),
                                         // [1] ROM 8000-87FF = ROM 4000-47FF (guttangts3_map), [2] Moon War dials
                                         // on IN0 bits 4-0 (74LS161 count + direction, PPI 0 PC4 = 0 selects player 2),
@@ -123,7 +133,7 @@ wire ce6 = (ph == 3'd0);
 
 //------------------------------------------------------- ROM load map --------------------------------------------------------//
 
-wire prog_cs, gfx0_cs, gfx1_cs, gfx2_cs, pal_cs, snd_cs, bgp_cs, samp_cs, sbp_cs, sbd_cs, dk_cs;
+wire prog_cs, gfx0_cs, gfx1_cs, gfx2_cs, pal_cs, snd_cs, bgp_cs, samp_cs, sbp_cs, sbd_cs, dk_cs, gfxh_cs;
 
 selector rom_selector
 (
@@ -138,7 +148,8 @@ selector rom_selector
     .samp_cs(samp_cs),
     .sbp_cs(sbp_cs),
     .sbd_cs(sbd_cs),
-    .dk_cs(dk_cs)
+    .dk_cs(dk_cs),
+    .gfxh_cs(gfxh_cs)
 );
 
 //------------------------------------------------------- Video timing --------------------------------------------------------//
@@ -415,7 +426,13 @@ T80sed z80
 // 4000, 1800 video -> 5000, 1480 objects -> 5800 (A7 inverted), 1500 / 1580 / 1600 (1700) / 1680 I/O -> 6000 / 6800 /
 // 7000 / 7800. The NMI flip-flop drives SENSE.
 wire        s26_req, s26_wr, s26_mio, s26_ene, s26_dc, s26_intack;
-reg         s26_int = 1'b0;                 // the NMI flip-flop's Q also drives INT (MAME hunchbkg: line 0, cleared by INTACK)
+reg         s26_int = 1'b0;
+reg  [14:0] s26_lastcode = 15'd0;               // last opcode fetch (PC-keyed protection reads, as the Pacman core)
+wire [14:0] s26_pc = s26_lastcode + 15'd1;
+wire        s26_sc = bflags12[1];               // S2650 on a Scramble board
+wire        s26_df = bflags12[5];               // Driving Force map
+wire        s26_rk = bflags13[0];               // Rack + Roll map
+wire        s26_vb = s26_sc | s26_df | s26_rk;  // INT latched at VBLANK, SENSE = VBLANK (inverted on Rack + Roll)                 // the NMI flip-flop's Q also drives INT (MAME hunchbkg: line 0, cleared by INTACK)
 wire [14:0] s26_ad;
 wire  [7:0] s26_dw, s26_dr;
 wire  [1:0] s26_ph;
@@ -425,11 +442,16 @@ reg         s26_act = 1'b0, s26_io = 1'b0, s26_ene_r = 1'b0, s26_dc_r = 1'b0, s2
 reg  [14:0] s26_a = 15'd0;
 reg   [7:0] s26_d = 8'd0;
 reg   [7:0] sbk_latch = 8'd0;
+reg         rk_tb_we = 1'b0, rk_sn_we = 1'b0;
 
-wire s26_ack = s26 & ce6 & ~pause & hcnt[1:0] == 2'b00 & s26_div == 2'd0;
+reg  [4:0] s26_pcnt = 5'd0;                    // pixel clocks per access: 12 (1.536 MHz), 6 (3.072), 24 (0.768)
+wire [4:0] s26_per  = bflags12[3:2] == 2'd1 ? 5'd5 : bflags12[3:2] == 2'd2 ? 5'd23 : 5'd11;
+wire s26_ack = s26 & ce6 & ~pause & (bflags12[3:2] == 2'd0 ? hcnt[1:0] == 2'b00 & s26_div == 2'd0 : s26_pcnt == 5'd0);
 
 always @(posedge clk) begin
     if (ce6 && hcnt[1:0] == 2'b00) s26_div <= (s26_div == 2'd2) ? 2'd0 : s26_div + 2'd1;
+    if (ce6) s26_pcnt <= s26_pcnt >= s26_per ? 5'd0 : s26_pcnt + 5'd1;
+    if (s26_new && s26_req_t && s26_mio_t && s26_ph == 2'b00) s26_lastcode <= s26_ad;
     s26_new  <= s26_ack;
     s26_new2 <= s26_new;
     if (s26_ack) {s26_req_t, s26_mio_t, s26_ene_t, s26_dc_t} <= {s26_req, s26_mio, s26_ene, s26_dc};
@@ -448,6 +470,10 @@ always @(posedge clk) begin
         s26_w     <= s26_wr;
         s26_d     <= s26_dw;
     end
+    // Rack + Roll: extended I/O 20-3F = column tile banks; SN76489 at 1D (or on the data port)
+    rk_tb_we <= s26_new2 && s26_act && s26_io && s26_w && s26_ene_r && s26_a[7:5] == 3'b001 && s26_rk;
+    rk_sn_we <= s26_new2 && s26_act && s26_io && s26_w &&
+                ((bflags13[1] && s26_ene_r && s26_a[7:0] == 8'h1D) || (bflags13[2] && !s26_ene_r && s26_dc_r));
     // Superbike: WRTD (data port) latches D << 4, read back on extended port 00
     if (reset) sbk_latch <= 8'd0;
     else if (s26_new2 && s26_act && s26_io && s26_w && !s26_ene_r && s26_dc_r && bflags7[7]) sbk_latch <= {s26_d[3:0], 4'd0};
@@ -470,11 +496,25 @@ s2650_cpu s2650
     .irq(s26_int),
     .intack(s26_intack),
     .ivec(8'h03),
-    .sense(~cpu_nmi_n),
+    .sense(s26_vb ? vblank ^ s26_rk : ~cpu_nmi_n),
     .flag()
 );
 
+// Scramble board (hunchbks_map, 3000 / 5000 / 7000 = 1000): 1C00 RAM -> 4000, 1800 video -> 4800, 1400 objects -> 5000,
+// 1500 PPI 0 -> 8100, 1210 PPI 1 -> 8200, 1600 latches -> 6800, 1680 / 1780 watchdog -> 7000
+wire [15:0] s26_saddr = s26_a[11:10] == 2'b11           ? {6'b010000, s26_a[9:0]} :
+                        s26_a[11:10] == 2'b10           ? {6'b010010, s26_a[9:0]} :
+                        s26_a[11:8] == 4'h4             ? {8'h50, s26_a[7:0]} :
+                        s26_a[11:8] == 4'h5             ? {14'h2040, s26_a[1:0]} :
+                        s26_a[11:4] == 8'h21            ? {14'h2080, s26_a[1:0]} :
+                        s26_a[11:7] == 5'b01100         ? {13'h0D00, s26_a[2:0]} :
+                        s26_a[11:7] == 5'b01101 || s26_a[11:7] == 5'b01111 ? 16'h7000 : 16'hFFFF;
 wire [15:0] s26_zaddr = ~s26_a[12]               ? {2'b00, s26_a[14:13], s26_a[11:0]} :
+                        s26_sc                   ? s26_saddr :
+                        s26_rk && s26_a[11:8] == 4'h4 ? {8'h58, s26_a[7:0]} :                       // objects 1400-14FF
+                        s26_df && s26_a[10:7] == 4'b1100 ? (s26_w ? 16'h7800 : 16'h7000) :      // DSW0 / pitch
+                        s26_df && s26_a[10:7] == 4'b1110 ? (s26_a[2] ? {14'h1801, s26_a[1:0]} : 16'hFFFF) :   // LFO
+                        s26_df && s26_a[10:7] == 4'b1101 ? 16'hFFFF :
                         s26_a[11:10] == 2'b11     ? {6'b010000, s26_a[9:0]} :
                         s26_a[11:10] == 2'b10     ? {6'b010100, s26_a[9:0]} :
                         s26_a[10:7] == 4'b1001    ? {8'h58, ~s26_a[7], s26_a[6:0]} :
@@ -528,7 +568,13 @@ T65 t65
 
 wire [15:0] m65_zaddr = m65_a[15:14] == 2'b00 ? {2'b01, m65_a[13:0]} :
                         m65_a[15:14] == 2'b11 ? {2'b00, m65_a[13:1], ~m65_a[0]} : m65_a[15:0];
-assign s26_dr = s26_io ? (s26_ene_r && s26_a[7:0] == 8'h00 ? sbk_latch : 8'h00) : cpu_din;
+assign s26_dr = s26_io && !s26_ene_r && s26_dc_r ? {7'd0, s26_dp1} :
+                s26_io ? (s26_ene_r && s26_a[7:0] == 8'h00 ? (bflags12[4] ? {7'd0, s26_pc == 15'h002B || s26_pc == 15'h0A27} :
+                                                               bflags12[6] ? {7'd0, s26_pc == 15'h002E || s26_pc == 15'h0297} :
+                                                                             sbk_latch) : 8'h00) :
+                s26_df && s26_a[12] && s26_a[10:7] == 4'b1110 && !s26_a[2] ? in3 : cpu_din;
+// data port (REDD / WRTD) reads, keyed on the PC (MAME hexpoola / bullsdrtg_data_port_r)
+wire s26_dp1 = (bflags13[3] && s26_pc == 15'h0031) || (bflags13[4] && (s26_pc == 15'h009B || s26_pc == 15'h6B58));
 
 assign cpu_m1_n   = s26 | m65 | z80_m1_n;
 assign cpu_mreq_n = s26 ? ~s26_mem : ~m65 & z80_mreq_n;
@@ -768,8 +814,8 @@ always @(posedge clk) begin
     if (reset | ~bflags7[4] | (~cpu_iorq_n & ~cpu_m1_n)) cpu_int_n <= 1'b1;
     else if (ce6 & rising_vblank)                       cpu_int_n <= 1'b0;
 
-    if (reset | ~s26 | s26_intack | ~nmi_en) s26_int <= 1'b0;
-    else if (ce6 & rising_vblank)            s26_int <= 1'b1;
+    if (reset | ~s26 | s26_intack | (~nmi_en & ~s26_vb)) s26_int <= 1'b0;
+    else if (ce6 & rising_vblank)                        s26_int <= 1'b1;
 
     if (reset | wdr | pause)      watchdog <= 4'd0;
     else if (ce6 & rising_vblank) watchdog <= watchdog_reset ? 4'd0 : watchdog + 4'd1;
@@ -1357,7 +1403,7 @@ galaxian_video video
     .vflags2(vflags2[3:0]),
     .vflags3(vflags3[7:0]),
     .vflags4(vflags4),
-    .vflags5(vflags5[5:0]),
+    .vflags5(vflags5[6:0]),
     .bg_en(mmk ? ctl_9n[4] : ctl_9n[3]),
     .bg_rgb(bg_rgb),
     .gfxbank(mmk ? {ctl_9n[2], 2'b00, ctl_9n[0]} : ext_mode[3:0] == 4'd10 ? {3'b000, ctl_9n[2]} : gfxbank),
@@ -1376,6 +1422,11 @@ galaxian_video video
     .gfx0_we(ioctl_wr0 & gfx0_cs),
     .gfx1_we(ioctl_wr0 & gfx1_cs),
     .gfx2_we(ioctl_wr0 & gfx2_cs),
+    .gfxh_we(ioctl_wr0 & gfxh_cs),
+    .tb_we(rk_tb_we),
+    .tb_addr(s26_a[4:0]),
+    .tb_d(s26_d[2:0]),
+    .bd_patch(bflags13[5]),
     .pal_we(ioctl_wr0 & pal_cs),
     .bgp_we(ioctl_wr0 & bgp_cs),
 
@@ -1671,12 +1722,12 @@ always @(posedge clk) sn_div <= sn_div + 4'd1;
 wire signed [10:0] sn_out;
 jt89 sn
 (
-    .rst(reset | ~m65),
+    .rst(reset | ~(m65 | bflags13[1] | bflags13[2])),
     .clk(clk),
     .clk_en(sn_div == 4'd0 && !pause),
-    .wr_n(~(wr && m65 && cpu_addr == 16'h8000)),
+    .wr_n(~((wr && m65 && cpu_addr == 16'h8000) || rk_sn_we)),
     .cs_n(1'b0),
-    .din({cpu_dout[0], cpu_dout[1], cpu_dout[2], cpu_dout[3], cpu_dout[4], cpu_dout[5], cpu_dout[6], cpu_dout[7]}),
+    .din(m65 ? {cpu_dout[0], cpu_dout[1], cpu_dout[2], cpu_dout[3], cpu_dout[4], cpu_dout[5], cpu_dout[6], cpu_dout[7]} : s26_d),
     .sound(sn_out),
     .ready()
 );
