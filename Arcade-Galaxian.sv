@@ -47,6 +47,8 @@ wire [24:0] ioctl_addr;
 wire  [7:0] ioctl_dout;
 wire [15:0] joystick_0, joystick_1;
 wire [15:0] joy_la0, joy_la1, joy_ra0, joy_ra1;   // analog sticks {Y, X}, signed, -Y = up
+wire  [8:0] spinner_0;
+wire [24:0] ps2_mouse;
 wire [21:0] gamma_bus;
 wire        direct_video;
 wire        video_rotated;
@@ -89,7 +91,7 @@ assign BUTTONS = 0;
 //               byte 7 board flags 3, byte 8 video flags 2, byte 9 board flags 4, byte 10 video flags 3,
 //               byte 11 board flags 5, byte 12 video flags 4, byte 13 board flags 6, byte 14 board flags 7,
 //               byte 15 board flags 8
-//   bytes 48-50 board flags 9, video flags 5, board flags 10 (after the input map)
+//   bytes 48-52 board flags 9, video flags 5, board flags 10, 11, 12 (after the input map; 51-52 optional)
 //               (rtl/galaxian_board.sv)
 //   bytes 16-47 input map, one byte per port bit (IN0, IN1, IN2, IN3; bit 0 first): control id, 0 = none
 // DIP switch bytes 0-3 hold the idle level of every bit of IN0-IN3; a pressed control inverts its bit
@@ -112,11 +114,13 @@ reg [7:0] brd_flags8 = 8'd0;
 reg [7:0] brd_flags9 = 8'd0;
 reg [7:0] vid_flags5 = 8'd0;
 reg [7:0] brd_flags10 = 8'd0;
+reg [7:0] brd_flags11 = 8'd0;
+reg [7:0] brd_flags12 = 8'd0;
 reg [5:0] in_map[32];
 
 always @(posedge CLK_49M) begin
     if (ioctl_wr && ioctl_index == 8'd1) begin
-        if (ioctl_addr == 25'd0) begin game_var <= ioctl_dout; brd_flags9 <= 8'd0; vid_flags5 <= 8'd0; brd_flags10 <= 8'd0; end   // bytes 48+ may be absent
+        if (ioctl_addr == 25'd0) begin game_var <= ioctl_dout; brd_flags9 <= 8'd0; vid_flags5 <= 8'd0; brd_flags10 <= 8'd0; brd_flags11 <= 8'd0; brd_flags12 <= 8'd0; end   // bytes 48+ may be absent
         if (ioctl_addr == 25'd1) game_flags <= ioctl_dout;
         if (ioctl_addr == 25'd2) vid_flags  <= ioctl_dout;
         if (ioctl_addr == 25'd3) brd_flags  <= ioctl_dout;
@@ -135,6 +139,8 @@ always @(posedge CLK_49M) begin
         if (ioctl_addr == 25'd48) brd_flags9 <= ioctl_dout;
         if (ioctl_addr == 25'd49) vid_flags5 <= ioctl_dout;
         if (ioctl_addr == 25'd50) brd_flags10 <= ioctl_dout;
+        if (ioctl_addr == 25'd51) brd_flags11 <= ioctl_dout;
+        if (ioctl_addr == 25'd52) brd_flags12 <= ioctl_dout;
         if (ioctl_addr[24:5] == 20'd0 && ioctl_addr[4]) in_map[{1'b0, ioctl_addr[3:0]}] <= ioctl_dout[5:0];
         if (ioctl_addr[24:5] == 20'd1 && ioctl_addr[4] == 1'b0) in_map[{1'b1, ioctl_addr[3:0]}] <= ioctl_dout[5:0];
     end
@@ -204,6 +210,8 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 	.joystick_l_analog_1(joy_la1),
 	.joystick_r_analog_0(joy_ra0),
 	.joystick_r_analog_1(joy_ra1),
+	.spinner_0(spinner_0),
+	.ps2_mouse(ps2_mouse),
 	.ps2_key(ps2_key)
 );
 
@@ -297,6 +305,20 @@ joy4way joy4way_1(.clk(CLK_49M), .en(game_flags[0]), .in(dir1_raw), .out(dir1));
 joy4way joy4way_2(.clk(CLK_49M), .en(game_flags[0]), .in(dir2_raw), .out(dir2));
 
 wire m_pause = joystick_0[11] | kb_pause;
+
+// Moon War dials: spinner / mouse / D-pad left-right (player 1), D-pad (player 2)
+wire [1:0] dial_step, dial_dir;
+galaxian_dial galaxian_dial
+(
+	.clk(CLK_49M),
+	.reset(reset),
+	.spinner(spinner_0),
+	.mouse(ps2_mouse),
+	.pad1({dir1_raw[1], dir1_raw[0]}),
+	.pad2({dir2_raw[1], dir2_raw[0]}),
+	.step(dial_step),
+	.dir(dial_dir)
+);
 
 // MAME PORT_IMPULSE(2): a coin press is latched, then held for exactly two frames from the next vblank
 wire       coin1_raw = joystick_0[8] | kb_coin1;
@@ -419,10 +441,14 @@ galaxian_board board
 	.bflags9(brd_flags9),
 	.vflags5(vid_flags5),
 	.bflags10(brd_flags10),
+	.bflags11(brd_flags11),
+	.bflags12(brd_flags12),
 	.rom_top(rom_top),
 	.ext_mode(ext_mode),
 
 	.in0(in_port[0]),
+	.dial_step(dial_step),
+	.dial_dir(dial_dir),
 	.in1(in_port[1]),
 	.in2(in_port[2]),
 	.in3(in_port[3]),

@@ -1,0 +1,69 @@
+<misterromdescription>
+    <name>Bagman (Bootleg On Moon Cresta Hardware, Set 1)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Bagman</series>
+    <year>1982</year>
+    <manufacturer>bootleg</manufacturer>
+    <category>Shooter</category>
+
+    <setname>bagmanmc</setname>
+    <parent>bagman</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,80,FE,FF">
+        <dip name="Cabinet" bits="15" ids="Upright,Cocktail" values="1,0"/>
+        <dip name="Lives" bits="16,17" ids="2,3,4,5" values="3,2,1,0"/>
+        <dip name="Coinage" bits="18" ids="A 2C/1C  B 1C/1C,A 1C/1C  B 1C/2C"/>
+        <dip name="Difficulty" bits="19,20" ids="Easy,Medium,Hard,Hardest" values="3,2,1,0"/>
+        <dip name="Language" bits="21" ids="English,French" values="1,0"/>
+        <dip name="Unknown" bits="23" ids="Off,On" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="bagmanmc.zip|bagman.zip">
+        <part crc="b74c75ee" name="b1.bin"/>
+        <part crc="a7d99916" name="b2.bin"/>
+        <part crc="c78f5360" name="b3.bin"/>
+        <part crc="eebd3bd1" name="b4.bin"/>
+        <part crc="0fe24b8c" name="b5.bin"/>
+        <part crc="f50390e7" name="b6.bin"/>
+        <part repeat="0xA000">00</part>
+        <part crc="2ae6b5ab" name="g1-l.bin"/>
+        <part crc="a2790089" name="g2-u.bin" offset="0x800" length="0x800"/>
+        <part crc="a2790089" name="g2-u.bin" offset="0x0" length="0x1000"/>
+        <part crc="98b37397" name="g2-l.bin"/>
+        <part crc="b63cfae4" name="g1-u.bin" offset="0x800" length="0x800"/>
+        <part crc="b63cfae4" name="g1-u.bin" offset="0x0" length="0x1000"/>
+        <part crc="6a0c7d87" name="bagmanmc.clr"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            03 90 00 40 60 0A 00 00 00 00 00 00 00 00 00 00
+            11 12 13 03 04 01 02 05 14 0B 0C 09 0A 0D 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            10 00 00
+        </part>
+    </rom>
+
+    <remark>Bagman (Bootleg On Moon Cresta Hardware, Set 1)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

@@ -24,7 +24,8 @@ module galaxian_ppi
     output reg    [7:0] pa_out = 8'd0,
     output reg    [7:0] pb_out = 8'd0,
     output reg    [7:0] pc_out = 8'd0,
-    output              pc_we           // port C written (port write or bit set/reset)
+    output              pc_we,          // port C written (port write or bit set/reset)
+    output        [7:0] pc_pins         // port C as seen outside: input halves float high
 );
 
 reg [3:0] dir = 4'b1111;                // {A in, C upper in, B in, C lower in}: all inputs after reset
@@ -52,6 +53,7 @@ always @(posedge clk) begin
     end
 end
 
+assign pc_pins = {dir[2] ? 4'hF : pc_out[7:4], dir[0] ? 4'hF : pc_out[3:0]};
 assign pc_we = we && (addr == 2'd2 || (addr == 2'd3 && !din[7]));
 
 always @(*) begin

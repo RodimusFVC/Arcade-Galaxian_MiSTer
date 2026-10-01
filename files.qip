@@ -7,6 +7,24 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_sound.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_sndcpu.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_konami_snd.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_ppi.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_dial.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_cclimb_snd.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_kbsnd.sv
+set_global_assignment -name QIP_FILE rtl/cpu/i8039/i8039.qip
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/sp0250/sp0250_coef_rom.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/sp0250/sp0250.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_sbspeech.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_sbsound.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_digitalker.sv
+set_global_assignment -name VHDL_FILE rtl/cpu/T65/T65_Pack.vhd
+set_global_assignment -name VHDL_FILE rtl/cpu/T65/T65_ALU.vhd
+set_global_assignment -name VHDL_FILE rtl/cpu/T65/T65_MCode.vhd
+set_global_assignment -name VHDL_FILE rtl/cpu/T65/T65.vhd
+set_global_assignment -name VERILOG_FILE rtl/sound/jt89/hdl/jt89.v
+set_global_assignment -name VERILOG_FILE rtl/sound/jt89/hdl/jt89_mixer.v
+set_global_assignment -name VERILOG_FILE rtl/sound/jt89/hdl/jt89_noise.v
+set_global_assignment -name VERILOG_FILE rtl/sound/jt89/hdl/jt89_tone.v
+set_global_assignment -name VERILOG_FILE rtl/sound/jt89/hdl/jt89_vol.v
 
 set_global_assignment -name QIP_FILE rtl/cpu/T80/T80.qip
 set_global_assignment -name VHDL_FILE rtl/cpu/s2650/base/base_pack.vhd

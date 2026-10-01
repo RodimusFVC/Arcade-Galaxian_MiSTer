@@ -1,0 +1,66 @@
+<misterromdescription>
+    <name>BMX Stunts</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>BMX Stunts</series>
+    <year>1985</year>
+    <manufacturer>Jetsoft</manufacturer>
+    <category>Shooter</category>
+
+    <setname>bmxstunts</setname>
+    <parent>bmxstunts</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,00,FF">
+        <dip name="Cabinet" bits="15" ids="Upright,Cocktail"/>
+        <dip name="Difficulty" bits="18" ids="Easy,Hard"/>
+        <dip name="Coinage" bits="19" ids="A 2/1  B 1/3,A 1/1  B 1/6" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="bmxstunts.zip">
+        <part crc="cf3061f1" name="b-mx.1"/>
+        <part crc="f145e09d" name="b-mx.2"/>
+        <part crc="ea415c49" name="b-mx.3"/>
+        <part crc="62bdd971" name="b-mx.4"/>
+        <part crc="9fa3d4e3" name="b-mx.5"/>
+        <part crc="ba9b1a69" name="b-mx.6"/>
+        <part crc="fa34441a" name="b-mx.7"/>
+        <part crc="8bc26d4d" name="b-mx.8"/>
+        <part repeat="0xC000">00</part>
+        <part crc="b6d28b39" name="bmxh.1h"/>
+        <part repeat="0x1000">00</part>
+        <part crc="d221f0aa" name="bmxl.1l"/>
+        <part repeat="0x1000">00</part>
+        <part crc="ce3e9306" name="bmx6331.6l"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            00 90 00 04 00 0C 02 00 00 00 00 00 00 00 00 00
+            11 12 03 04 01 0E 0A 02 05 06 0B 0C 09 0D 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 80
+        </part>
+    </rom>
+
+    <remark>BMX Stunts (Jetsoft)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

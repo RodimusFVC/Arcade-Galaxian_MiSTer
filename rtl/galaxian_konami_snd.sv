@@ -22,7 +22,10 @@ module galaxian_konami_snd
     input               rom12k,         // ROM 0000-2FFF (scramble.cpp scramble_sound_map), else 0000-1FFF
     input               hs_map,         // Hot Shocker: latch AY at A6 data / A7 address; the IRQ is set by irq_set and
                                         // cleared by reading the latch (AY port A), not by the acknowledge
-    input               irq_set,
+    input               irq_set,        // also sets the IRQ without hs_map (Frogger on Moon Cresta hardware: B001)
+    input               scorpion,       // Scorpion: third AY at A2 address / A3 data, its ports A / B = Digitalker
+                                        // data / {WR, CMS, CS}; 3000 reads the Digitalker INTR
+    input               dk_rom_we,      // Digitalker speech ROM (rom_addr)
     input               pause,
 
     input               latch_we,       // PPI 1 port A: command
@@ -34,6 +37,7 @@ module galaxian_konami_snd
     input               rom_we,
     input               rom_swap01,     // Frogger: the first 2K has D0 / D1 swapped (undone on reads: the config
                                         // arrives after the ROM download)
+    input               swap4k,         // the swap covers the first 4K (Frogger on Moon Cresta hardware)
 
     output signed [15:0] out
 );
@@ -84,7 +88,7 @@ always @(posedge clk) begin
     if (latch_we) latch <= latch_d;
     ctl3_d <= control[3];
     if (reset | (hs_map ? latch_rd : ~iorq_n & ~m1_n)) int_n <= 1'b1;
-    else if (hs_map ? irq_set : ctl3_d & ~control[3]) int_n <= 1'b0;
+    else if (irq_set | (~hs_map & ctl3_d & ~control[3])) int_n <= 1'b0;
 end
 
 wire mem = ~mreq_n & rfsh_n;
@@ -99,7 +103,7 @@ wire ram_cs = mem && (hb_map ? addr[15:12] == 4'h8 : two_ay ? addr[15] && !addr[
 wire flt_cs = mem && ~wr_n && !hb_map && (two_ay ? addr[15] && addr[12] : addr[14:13] == 2'b11);
 
 wire [7:0] rom_q, ram_q;
-wire [7:0] rom_d = rom_swap01 && addr[13:11] == 3'b000 ? {rom_q[7:2], rom_q[0], rom_q[1]} : rom_q;
+wire [7:0] rom_d = rom_swap01 && addr[13:12] == 2'b00 && (swap4k || !addr[11]) ? {rom_q[7:2], rom_q[0], rom_q[1]} : rom_q;
 
 dpram_dc #(.widthad_a(14)) rom
 (
@@ -131,6 +135,9 @@ assign latch_rd = a1_rd & (a1_reg == 8'h0E);
 wire a2_addr_w = two_ay & io_w & addr[4];
 wire a2_data_w = two_ay & io_w & ~addr[4] & addr[5];
 wire a2_rd     = two_ay & io_r & addr[5];
+wire a3_addr_w = scorpion & io_w & addr[2];
+wire a3_data_w = scorpion & io_w & ~addr[2] & addr[3];
+wire a3_rd     = scorpion & io_r & addr[3];
 
 // timer (MAME konami_sound_timer_r): the chain runs at 8x the CPU clock, period 40960
 reg [15:0] tcnt = 16'd0;
@@ -159,11 +166,22 @@ jt49_bus #(.COMP(3'b100)) ay2
     .IOA_in(8'hFF), .IOA_out(), .IOB_in(8'hFF), .IOB_out()
 );
 
+wire [7:0] a3_dout, a3A, a3B, a3C;
+
+jt49_bus #(.COMP(3'b100)) ay3
+(
+    .rst_n(~reset & scorpion), .clk(clk), .clk_en(cen),
+    .bdir(a3_addr_w | a3_data_w), .bc1(a3_addr_w | a3_rd), .din(dout),
+    .sel(1'b1), .dout(a3_dout), .sound(), .A(a3A), .B(a3B), .C(a3C), .sample(),
+    .IOA_in(8'hFF), .IOA_out(), .IOB_in(8'hFF), .IOB_out()
+);
+
 always @(*) begin
     din = 8'hFF;
-    if      (rom_cs) din = rom_d;
+    if      (scorpion && mem && addr[15:12] == 4'h3) din = {7'd0, dk_intr};
+    else if (rom_cs) din = rom_d;
     else if (ram_cs) din = ram_q;
-    else if (io_r)   din = (a1_rd ? a1_dout : 8'hFF) & (a2_rd ? a2_dout : 8'hFF);
+    else if (io_r)   din = (a1_rd ? a1_dout : 8'hFF) & (a2_rd ? a2_dout : 8'hFF) & (a3_rd ? a3_dout : 8'hFF);
     else if (timer_9000 && mem && addr == 16'h9000) din = timer;
 end
 
@@ -208,9 +226,47 @@ generate
 endgenerate
 
 // mute (control bit 4) and the inverting output amplifier
+// Digitalker pins follow AY #3's port registers as written (MAME calls them from the port write callbacks)
+reg  [3:0] a3_reg = 4'd0;
+reg  [7:0] dk_data = 8'hFF;
+reg  [2:0] dk_ctl = 3'b111;
+always @(posedge clk) begin
+    if (reset) begin a3_reg <= 4'd0; dk_data <= 8'hFF; dk_ctl <= 3'b111; end
+    else begin
+        if (a3_addr_w) a3_reg <= dout[3:0];
+        else if (a3_data_w && a3_reg == 4'd14) dk_data <= dout;
+        else if (a3_data_w && a3_reg == 4'd15) dk_ctl <= dout[2:0];
+    end
+end
+
+wire               dk_intr;
+wire signed [15:0] dk_out;
+galaxian_digitalker digitalker
+(
+    .clk(clk),
+    .reset(reset | ~scorpion),
+    .pause(pause),
+    .data(dk_data),
+    .cs(dk_ctl[0]),
+    .cms(dk_ctl[1]),
+    .wr(dk_ctl[2]),
+    .intr(dk_intr),
+    .rom_addr(rom_addr),
+    .rom_data(rom_data),
+    .rom_we(dk_rom_we),
+    .out(dk_out)
+);
+
+// Scorpion's third AY: unfiltered, at MAME's 0.25 against the board AYs' 0.33
+wire [9:0]  a3_sum = {2'b00, a3A} + {2'b00, a3B} + {2'b00, a3C};
+wire signed [15:0] a3_dcr;
+jt49_dcrm2 #(16) a3_dcrm(.clk(clk), .cen(cen_dc), .rst(reset), .din({1'b0, a3_sum, 5'd0}), .dout(a3_dcr));
+wire signed [18:0] a3_out = scorpion ? (19'(a3_dcr) >>> 2) * 19'sd3 : 19'sd0;
+
 wire signed [18:0] sum = 19'(ch_out[0]) + 19'(ch_out[1]) + 19'(ch_out[2]) +
-                         (two_ay ? 19'(ch_out[3]) + 19'(ch_out[4]) + 19'(ch_out[5]) : 19'sd0);
-wire signed [18:0] amp = control[4] ? 19'sd0 : -sum;
+                         (two_ay ? 19'(ch_out[3]) + 19'(ch_out[4]) + 19'(ch_out[5]) : 19'sd0) + a3_out;
+// the Digitalker (MAME 0.16) joins after the board's amplifier
+wire signed [18:0] amp = (control[4] ? 19'sd0 : -sum) + (scorpion ? 19'(dk_out >>> 3) : 19'sd0);
 assign out = amp > 19'sd32767 ? 16'sd32767 : amp < -19'sd32767 ? -16'sd32767 : amp[15:0];
 
 endmodule

@@ -71,12 +71,17 @@ REGIONS = {
     "gfx1_p2": (0x16000, 0x01000),         # third bitplane (V4_BPP3)         # Mariner char bank / star column PROM
     "gfx2_p0": (0x11000, 0x01000),         # separate sprite ROM: upper half of each plane (code extension 8)
     "gfx2_p1": (0x13000, 0x01000),
+    "cclimber_audio:samples": (0x1C000, 0x02000),                 # Moon Shuttle sample ROM
+    "digitalker": (0x20000, 0x03000),                             # Scorpion speech ROM (Digitalker)
+    "i8039": (0x1E000, 0x00800),                                  # Space Battle speech CPU
+    "sbhoei_sound_rom": (0x1F000, 0x01000),                       # Space Battle speech data
 }
 
 TRUNCATE = {"user1"}                    # PROMs whose tail the hardware never addresses
-IGNORED_REGIONS = {"plds", "unknown", "unk", "unused_proms",   # dumps MAME does not use
+IGNORED_REGIONS = {"plds", "pld", "unknown", "unk", "unused_proms",   # dumps MAME does not use
                    "tempgfx",                                  # ROM_COPY source only
-                   "other_proms"}                              # decoding PROMs (Superbike)
+                   "other_proms",                              # decoding PROMs (Superbike)
+                   "proms2", "extra_prom", "epoxy_block_prom"} # unknown PROMs (ckongcv / ckongis, guttangts3, bmxstunts)
 
 # (machine config, init) pairs the board implements -> (memory map, video flags, board flags, ROM top >> 8, code
 # extension); see rtl/galaxian_board.sv
@@ -161,6 +166,8 @@ SUPPORTED = {
     ("ckongg", "init_ckongs"):      (22, V_SCRAMBLE_SHELLS, B_NOSTARS, 0x60, X_MSHUTTLE),   # M_CKONGG; C804 stars link cut
     ("bigkonggx", "init_bigkonggx"): (22, V_SCRAMBLE_SHELLS, B_NOSTARS, 0x40, X_MSHUTTLE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
                                       B9_REV256 | 0x80),                                     # + ROM D400-E3FF
+    ("ckongg", "init_ckonggx"):     (22, V_SCRAMBLE_SHELLS, B_NOSTARS, 0x60, X_MSHUTTLE, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                     0, 0x10),                                               # 256-byte block remap
     ("ckongs", "init_ckongs"):      (23, V_SCRAMBLE_SHELLS, 0, 0x60, X_MSHUTTLE, B2_NODISC, 0, 0, 0, V3_SCR_STARS, SCR[1]),
     # board flags 10 (17th field): 0x01 Victory decode, 0x02 RAM 8000-87FF, 0x04 Crazy Mazey decode
     ("victoryc", "init_victoryc"):  (M_GAL, 0, B_NOSTARS, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01 | 0x02),
@@ -183,6 +190,37 @@ SUPPORTED = {
     ("scobra", "init_losttomb"):      (*SCOB, *SCR, 0, 0, 0, 0, 0, V5_LOSTTOMB),
     ("scobra", "init_calipso"):       (*SCOB, *SCR, 0, 0, 0, 0, 0, V5_CALIPSO),
     ("anteater", "init_anteater"):    (*SCOB, V3_SCR_STARS, SCR[1], 0, 0, 0, 0, 0, V5_ANTEATER | V5_ANT_BG),
+    ("anteateruk", "init_anteateruk"): (25, V_SCRAMBLE_SHELLS, 0, 0xC0, 0, B2_NODISC, 0, 0, 0, V3_SCR_STARS, SCR[1],
+                                        0, 0, 0, 0, 0, V5_ANT_BG),                           # M_ANTEATERUK
+    ("anteaterg", "init_anteateruk"):  (26, V_SCRAMBLE_SHELLS, 0, 0xC0, 0, B2_NODISC, 0, 0, 0, V3_SCR_STARS, SCR[1],
+                                        0, 0, 0, 0, 0, V5_ANT_BG),                           # M_ANTEATERG
+    ("anteatergg", "init_galaxian"):   (M_GAL, 0, B_RAM2K, 0, 0),
+    # board flags 10: 0x20 Lady Bug opcodes 0000-0FFF from 4000, 0x40 Frogger (MC) sound latch / IRQ, 0x80 AY 512 kHz
+    ("ladybugg2", "init_ladybugg2"):   (M_GAL, 0, B_BANK2, 0, X_BATMAN2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, B9_REV256, 0, 0x20),
+    ("froggermc", "init_froggermc"):   (M_MC, 0, B_NMI0 | B_RAM2K | B_NOSTARS, 0, 0, B2_NODISC, 0, V2_NOSHELLS, 0,
+                                        V3_FROG_COL, B5_KONAMI | B5_SND_SWAP01, 0, 0, 0, 0, 0, 0, 0x40),
+    ("spactrai", "init_nolock"):       (27, 0, 0, 0x50, 0),                                  # M_SPACTRAI
+    # board flags 11 (19th field): 0x01 ROM 2000-27FF banked by the 6000 latch
+    ("guttangt", "init_guttangt"):     (M_GAL, 0, B_RAM2K | B_NOSTARS, 0, X_UPPER, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x01),
+    ("guttangts3", "init_guttangts3"): (M_GAL, 0, B_RAM2K | B_NOSTARS, 0, X_UPPER, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, B9_REV256, 0, 0, 0x02),
+    ("bagmanmc", "init_bagmanmc"):     (M_CKONG, 0, B_MCSND, 0x60, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, B9_INT),   # bank B002
+    # Moon Shuttle: code extension 11, INT, AY 512 kHz, board flags 11 0x08 (+ 0x10 Japan opcode table)
+    ("mshuttle", "init_mshuttle"):     (M_MC, 0, 0, 0x80, 11, B2_NODISC, 0, 0, 0, 0, 0, 0, 0, 0, 0, B9_INT, 0x10, 0x80, 0x08),
+    ("mshuttle", "init_mshuttlj"):     (M_MC, 0, 0, 0x80, 11, B2_NODISC, 0, 0, 0, 0, 0, 0, 0, 0, 0, B9_INT, 0x10, 0x80, 0x18),
+    # King & Balloon: speech CPU board, stars cut (B004 unmapped), NMI enable at B001
+    ("kingball", "init_galaxian"):     (M_MC, 0, B_MCSND | B_NOSTARS, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x20),
+    # Scorpion: the End map + ROM 5800-67FF, parity protection, third AY (Digitalker not fitted yet)
+    ("scorpion", "init_scorpion"):     (M_SCRAMBLE, V_SCRAMBLE_SHELLS, 0, 0, X_BATMAN2, B2_NODISC, 0, 0, 0, SCR[0], SCR[1],
+                                        0, 0, 0, 0, 0, 0, 0, 0x40),
+    # BMX Stunts: 6502 board (board flags 11 0x80), SN76489A, sprite extension 12, INT from VBLANK, no stars
+    ("bmxstunts", "init_bmxstunts"):   (M_GAL, 0, B_NOSTARS, 0, 12, B2_NODISC, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0x80),
+    # Space Battle (Hoei): speech board + sbhoei_map I/O (board flags 12 0x01), code extension 13, RGB -> RBG (0x20);
+    # no watchdog (MAME's is 20 frames against the board's 8)
+    ("sbhoei", "init_sbhoei"):         (M_MC, 0, B_NMI0 | B_RAM2K | B_MCSND, 0x80, 13, B2_NOWDOG, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        0x20, 0, 0, 0x01),
+    ("moonwar", "init_scobra"):        (*SCOB, *SCR, 0, 0, 0, 0, 0, 0, 0, 0x04),            # dials on IN0 (board)
+    ("ozon1", "init_galaxian"):        (M_SCRAMBLE, 0, 0, 0x30, 0, B2_NOWDOG | B2_NODISC, 0, 0, 0, 0, 0, 0, 0, 0,
+                                        B8_AYIO01, 0, 0, 0x80),                              # AY on I/O 00 / 01
     # AY-3-8910 boards
     ("jumpbug", "init_jumpbug"):    (M_JUMPBUG, V_SCRAMBLE_SHELLS, 0, 0, X_JUMPBUG, B2_NOWDOG | B2_NODISC | B2_STARS232),
     ("bongo", "init_kong"):         (M_MC, 0, 0, 0x60, X_UPPER, B2_NODISC | B2_AYIO),         # NMI enable at B001
@@ -307,7 +345,7 @@ GFX_MIRROR = {"cavelon"}
 F_4WAY, F_IMPULSE, F_TWIN, F_VERT, F_ROT90 = 0x01, 0x04, 0x08, 0x10, 0x80
 
 # port order on the board: DIP bytes 0-3 and input map bytes 16-47
-PORTS = [("IN0",), ("IN1",), ("IN2", "DSW0"), ("IN3", "FAKE", "DSW"), ("IN4", "COINAGE")]   # first name present wins; IN4 = DIPs only
+PORTS = [("IN0",), ("IN1",), ("IN2", "DSW0", "DSW1"), ("IN3", "FAKE", "DSW"), ("IN4", "COINAGE")]   # first name present wins; IN4 = DIPs only
 LINE_BASE = 40      # control ids 40-47 = DIP byte 3 bits: a port bit that reads a line of the FAKE port
 LINE4_BASE = 48     # control ids 48-55 = DIP byte 4 bits (fake IN4, read through other ports: Strategy X coinage)
 
@@ -336,7 +374,8 @@ REGION_WORDS = [("US", "US"), ("Japan", "Japan"), ("Spanish", "Spain"), ("Italia
 # ---------------------------------------------------------------- parsing
 
 GAME_RE = re.compile(r'^GAME\(\s*([\w?]+),\s*(\w+),\s*(\w+),\s*(\w+),\s*(\w+),\s*\w+,\s*(\w+),\s*(ROT\d+),\s*"([^"]*)",\s*"([^"]*)",\s*([^)]*)\)', re.M)
-LOAD_RE = re.compile(r'ROM_LOAD\(\s*"([^"]+)"\s*,\s*(0x[0-9a-fA-F]+),\s*(0x[0-9a-fA-F]+),\s*(?:BAD_DUMP\s+)?CRC\(([0-9a-fA-F]+)\)')
+# ROM_LOAD16_WORD_SWAP (BMX Stunts): loaded as dumped, the board swaps the byte pair on reads (A0 inverted)
+LOAD_RE = re.compile(r'ROM_LOAD(?:16_WORD_SWAP)?\(\s*"([^"]+)"\s*,\s*(0x[0-9a-fA-F]+),\s*(0x[0-9a-fA-F]+),\s*(?:BAD_DUMP\s+)?CRC\(([0-9a-fA-F]+)\)')
 CONT_RE = re.compile(r'ROM_CONTINUE\(\s*(0x[0-9a-fA-F]+),\s*(0x[0-9a-fA-F]+)\s*\)')
 NIB_RE = re.compile(r'ROM_LOAD_NIB_(LOW|HIGH)\s*\(\s*"([^"]+)",\s*(0x[0-9a-fA-F]+),\s*(0x[0-9a-fA-F]+),\s*CRC\(([0-9a-fA-F]+)\)')
 RELOAD_RE = re.compile(r'ROM_RELOAD\(\s*(0x[0-9a-fA-F]+),\s*(0x[0-9a-fA-F]+)\s*\)')
@@ -512,6 +551,12 @@ def parse_inputs(src):
                 if sc:
                     fld["line4"] = int(sc.group(1), 16).bit_length() - 1
                     continue
+                if args[0] == "FUNC(kingball_state::muxbit_r)":
+                    fld["line"] = 1                     # the Speech DIP; the board swaps in service by the B003 latch
+                    continue
+                if args[0] == "FUNC(kingball_state::noise_r)":
+                    fld["board"] = True                 # the board's noise bit
+                    continue
                 if re.fullmatch(r'FUNC\(\w+::theend_protection_alt_r<\d>\)', args[0]):
                     fld["board"] = True                 # driven by the board's protection PAL model
                     continue
@@ -602,6 +647,7 @@ def whole_file(seg, segs):
 def input_config(g, ports):
     """-> (idle bytes, dip list, input map, 4-way, P1 button names, trackball reverse flags, coin impulse)."""
     idle, dips, imap, fourway, buttons, tb_rev, impulse = [], [], [0] * 32, False, {}, 0, False
+    spill, spill_idle = [], 0                          # non-contiguous DIPs moved to DIP byte 4 (read back as lines)
     global twoway
     twoway = True
     for p, names in enumerate(PORTS):
@@ -621,7 +667,15 @@ def input_config(g, ports):
                 if f["mask"] != ((1 << (hi + 1)) - (1 << lo)) and p >= 4:
                     continue                           # fake port read by a custom handler: not selectable (ckongg)
                 if f["mask"] != ((1 << (hi + 1)) - (1 << lo)):
-                    raise SystemExit(f'{g["name"]}: non-contiguous DIP {f["name"]} mask {f["mask"]:#x}')
+                    # MRA DIP bits are a range: pack the bits into DIP byte 4 and route each back as a line
+                    bl = [b for b in range(8) if f["mask"] >> b & 1]
+                    pos = sum(len(x[1]) for x in spill)
+                    for i, b in enumerate(bl):
+                        imap[p * 8 + b] = LINE4_BASE + pos + i
+                        spill_idle |= (f["default"] >> b & 1) << (pos + i)
+                    level &= ~f["mask"]
+                    spill.append((f, bl))
+                    continue
                 vals = [v >> lo for v, _ in f["settings"]]
                 ids = ",".join(n.replace(",", ";") for _, n in f["settings"])
                 bits = f"{p * 8 + lo}" if lo == hi else f"{p * 8 + lo},{p * 8 + hi}"
@@ -667,6 +721,18 @@ def input_config(g, ports):
         if p >= 4 and len(dips) == ndips:
             continue                                   # fake port with nothing selectable: no fifth DIP byte
         idle.append(level & 0xFF)
+    if spill:
+        if len(idle) > 4:
+            raise SystemExit(f'{g["name"]}: non-contiguous DIP and a fifth DIP byte')
+        pos = 0
+        for f, bl in spill:
+            vals = [sum((v >> b & 1) << i for i, b in enumerate(bl)) for v, _ in f["settings"]]
+            ids = ",".join(n.replace(",", ";") for _, n in f["settings"])
+            bits = f"{32 + pos}" if len(bl) == 1 else f"{32 + pos},{32 + pos + len(bl) - 1}"
+            seq = vals == list(range(len(vals))) and len(vals) == 1 << len(bl)
+            dips.append((f["name"], bits, ids, None if seq else ",".join(str(v) for v in vals)))
+            pos += len(bl)
+        idle.append(spill_idle)
     return idle, dips, imap, fourway, buttons, tb_rev, impulse
 
 
@@ -739,8 +805,8 @@ def board_cfg(g):
 def mra(g, games, segs, build_inputs):
     variant, vflags, bflags, rom_top, ext, *rest = board_cfg(g)
     bflags2 = rest[0] if rest else 0
-    bflags3, vflags2, bflags4, vflags3, bflags5, vflags4, bflags6, bflags7, bflags8, bflags9, vflags5, bflags10 = \
-        (list(rest[1:]) + [0] * 12)[:12]
+    bflags3, vflags2, bflags4, vflags3, bflags5, vflags4, bflags6, bflags7, bflags8, bflags9, vflags5, bflags10, \
+        bflags11, bflags12 = (list(rest[1:]) + [0] * 14)[:14]
     ports = build_inputs(g["inputs"])
     idle, dips, imap, fourway, buttons, tb_rev, impulse = input_config(g, ports)
     twin = any(f.get("type", "").startswith("JOYSTICKRIGHT") for fl in ports.values() for f in fl)
@@ -775,7 +841,7 @@ def mra(g, games, segs, build_inputs):
     dip_lines = "\n".join(f'        <dip name="{n}" bits="{b}" ids="{i}"' + (f' values="{v}"' if v else "") + "/>"
                           for n, b, i, v in dips)
     cfg = [variant, flags, vflags, bflags, rom_top, ext, bflags2, bflags3, vflags2, bflags4, vflags3, bflags5,
-           vflags4, bflags6, bflags7, bflags8] + imap + [bflags9, vflags5, bflags10]
+           vflags4, bflags6, bflags7, bflags8] + imap + [bflags9, vflags5, bflags10] + ([bflags11, bflags12] if bflags12 else [bflags11] if bflags11 else [])
     cfg_rows = "\n".join("            " + " ".join(f"{b:02X}" for b in cfg[i:i + 16]) for i in range(0, len(cfg), 16))
     return f"""<misterromdescription>
     <name>{display_name(g)}</name>

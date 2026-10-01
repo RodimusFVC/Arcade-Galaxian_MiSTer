@@ -24,7 +24,12 @@ module galaxian_video
     input         [3:0] ext_mode,       // code extension: 0 none, 1 Moon Cresta, 2 Moon Quasar, 3 Pisces,
                                         // 4 upper sprites (Kong), 5 Batman Part 2, 6 Moon Shuttle sprites, 7 Jump Bug,
                                         // 8 sprites from the upper half of the planes (separate sprite ROM, Zig Zag),
-                                        // 9 Mighty Monkey (banks 0 / 2 above the tile and sprite codes)
+                                        // 9 Mighty Monkey (banks 0 / 2 above the tile and sprite codes),
+                                        // 10 Bagman (bank 0 = tile A9 / sprite A7, sprites A6 set; colour bit 3 dropped:
+                                        // MAME's 32-entry palette), 11 Moon Shuttle (colour byte bits 5-4 above
+                                        // the tile and sprite codes), 12 BMX Stunts (sprite colour bit 4 adds 40),
+                                        // 13 Space Battle (banks 2 / 3 enable codes 80-BF / C0-FF, banks 0 / 1 /
+                                        // 4 replace their upper bits)
     input         [3:0] vflags2,        // [0] second sprite generator (objram 60-7F), [1] shells at objram C0,
                                         // [2] no shells, [3] sprite RAM page per 64 lines (Time Fighter)
     input         [7:0] vflags3,        // Frogger: [0] scroll and sprite Y nibbles swapped, [1] colour rotated right,
@@ -39,9 +44,11 @@ module galaxian_video
                                         // [5] Minefield gfx address scramble (both undone on reads), [6] Mariner
                                         // (column blue from user1, char bank / star columns from user2), [7] New
                                         // Sinbad 7: three bitplanes, pens {colour[1:0], pixel[2:0]}, no left sprite clip
-    input         [3:0] vflags5,        // galaxian.cpp: [0] Lost Tomb gfx address scramble, [1] Anteater gfx address
+    input         [5:0] vflags5,        // galaxian.cpp: [0] Lost Tomb gfx address scramble, [1] Anteater gfx address
                                         // scramble (both undone on reads), [2] Anteater background (blue left of 56,
-                                        // right of 200 flipped, on bg_en), [3] Calipso sprites (8-bit code, no flips)
+                                        // right of 200 flipped, on bg_en), [3] Calipso sprites (8-bit code, no flips),
+                                        // [4] Moon Shuttle bullets (purple where H6 = 1, else a colour per 4 pixels),
+                                        // [5] tile / sprite colours wired RGB -> RBG (Space Battle)
     input               bgp_we,         // background PROMs load: user1 at 00-3F, user2 at 40-5F
     input               bg_en,          // background enable latch (Scramble 6803 / A803)
     input         [2:0] bg_rgb,         // Turtles background latches R, G, B (390 / 470 / 390 ohm)
@@ -235,6 +242,10 @@ function [9:0] tile_code(input [7:0] code, input [7:0] attr);
         4'd1:    tile_code = gfxbank[3] && code[7:6] == 2'b10 ? {2'b01, gfxbank[2], gfxbank[0], code[5:0]} : {2'b00, code};
         4'd2:    tile_code = {1'b0, attr[5], code};
         4'd9:    tile_code = {gfxbank[3], gfxbank[0], code};
+        4'd10:   tile_code = {gfxbank[0], 1'b0, code};
+        4'd11:   tile_code = {attr[5:4], code};
+        4'd13:   tile_code = (gfxbank[2] && code[7:6] == 2'b10) || (gfxbank[3] && code[7:6] == 2'b11) ?
+                             {gfxbank4, ~gfxbank4, gfxbank[1], gfxbank[0], code[5:0]} : {2'b00, code};
         4'd3:    tile_code = {gfxbank[1:0], code};
         4'd5:    tile_code = {1'b0, code[7] & gfxbank[0], code};
         4'd7:    tile_code = gfxbank[3] && code[7:6] == 2'b10 ?
@@ -321,6 +332,11 @@ function [7:0] spr_ext(input [5:0] code, input [7:0] attr);
                            {1'b0, ~gfxbank4, 6'd0} : {2'b00, code};
         4'd8:    spr_ext = {2'b10, code};
         4'd9:    spr_ext = {gfxbank[3], gfxbank[0], code};
+        4'd10:   spr_ext = {gfxbank[0], 1'b1, code};
+        4'd11:   spr_ext = {attr[5:4], code};
+        4'd12:   spr_ext = {1'b0, attr[4], code};
+        4'd13:   spr_ext = (gfxbank[2] && code[5:4] == 2'b10) || (gfxbank[3] && code[5:4] == 2'b11) ?
+                           {gfxbank4, ~gfxbank4, gfxbank[1], gfxbank[0], code[3:0]} : {2'b00, code};
         default: spr_ext = {2'b00, code};
     endcase
 endfunction
@@ -511,6 +527,8 @@ wire       pen_on = bpp3 ? m3[4:2] != 3'd0 : pen != 2'd0;
 wire [7:0] pvx = bpp3 ? pv3 : pv;
 
 wire [7:0] bx = crt_flip ? 8'd255 - x : x;
+// MAME mshuttle_draw_bullet colours 0-7 (entry 0 in the low bits)
+localparam [191:0] MSH_BUL = {24'h000000, 24'h0000FF, 24'hFF0000, 24'hFF00FF, 24'h00FF00, 24'h00FFFF, 24'hFFFF00, 24'hFFFFFF};
 wire [8:0] shell_d   = {1'b0, bx} + {1'b0, shell_x}   - 9'd251;
 wire [8:0] missile_d = {1'b0, bx} + {1'b0, missile_x} - 9'd251;
 wire       shell_on   = shell_v   & (bullet_mode ? (shell_d == 9'h1FE || shell_d == 9'h1FF) : shell_d < 9'd4);
@@ -541,8 +559,10 @@ wire [23:0] strat = {~sp[1] & bg_rgb[2] ? 8'h7C : 8'h00, ~sp[1] & bg_rgb[1] ? 8'
 
 reg [23:0] rgb;
 always @(*) begin
-    if (missile_on)                  rgb = vflags3[6] ? 24'hFF00FF : 24'hFFFF00;   // The End: yellow -> blue / green swap
+    if ((missile_on | shell_on) && vflags5[4]) rgb = bx[6] ? 24'hFF00FF : MSH_BUL[bx[4:2]*24 +: 24];
+    else if (missile_on)             rgb = vflags3[6] ? 24'hFF00FF : 24'hFFFF00;   // The End: yellow -> blue / green swap
     else if (shell_on)               rgb = bullet_mode ? 24'hFFFF00 : 24'hFFFFFF;
+    else if (pen_on && vflags5[5])   rgb = {RG_LUT[pvx[2:0]*8 +: 8], B_LUT[pvx[7:6]*8 +: 8], RG_LUT[pvx[5:3]*8 +: 8]};
     else if (pen_on)                 rgb = {RG_LUT[pvx[2:0]*8 +: 8], RG_LUT[pvx[5:3]*8 +: 8], B_LUT[pvx[7:6]*8 +: 8]};
     else if (st_on)                  rgb = {ST_LUT[{st[4], st[5]}*8 +: 8], ST_LUT[{st[2], st[3]}*8 +: 8], ST_LUT[{st[0], st[1]}*8 +: 8]};
     else if (bg_blue)                rgb = 24'h000047;

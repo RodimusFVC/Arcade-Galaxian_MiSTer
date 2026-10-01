@@ -1,0 +1,64 @@
+<misterromdescription>
+    <name>Rocket Convoy</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>War Of The Bugs Or Monsterous Manouvers In A Mushroom Maze</series>
+    <year>1981</year>
+    <manufacturer>Radar</manufacturer>
+    <category>Shooter</category>
+
+    <setname>rocktcnvy</setname>
+    <parent>warofbug</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,00,0E,FF">
+        <dip name="Coinage" bits="14,15" ids="2C/1C,1C/1C,2C / 1C (duplicate,Free Play" values="1,0,2,3"/>
+        <dip name="Lives" bits="16,17" ids="1,2,3,4"/>
+        <dip name="Unknown" bits="18" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="19" ids="Off,On" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="rocktcnvy.zip|warofbug.zip">
+        <part crc="fbefae0a" name="center_1.bin"/>
+        <part crc="311a47cb" name="center_2.bin"/>
+        <part crc="822749cb" name="center_3.bin"/>
+        <part crc="f9dda0ed" name="center_4.bin"/>
+        <part crc="c986ff34" name="center_5.bin"/>
+        <part repeat="0xB000">00</part>
+        <part crc="a59a9f3f" name="center_c1.9a"/>
+        <part repeat="0x1800">00</part>
+        <part crc="9b75b40a" name="center_c2.7a"/>
+        <part repeat="0x1800">00</part>
+        <part crc="25c79518" name="mmi6331.7f"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            1B 90 00 00 50 00 00 00 00 00 00 00 00 00 00 00
+            11 00 03 04 05 00 00 01 13 14 02 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00
+        </part>
+    </rom>
+
+    <remark>Rocket Convoy (Radar)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

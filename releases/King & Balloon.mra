@@ -1,0 +1,71 @@
+<misterromdescription>
+    <name>King & Balloon</name>
+    <region>US</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>King & Balloon</series>
+    <year>1980</year>
+    <manufacturer>Namco</manufacturer>
+    <category>Shooter</category>
+
+    <setname>kingball</setname>
+    <parent>kingball</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>2-way horizontal</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="00,40,04,FE">
+        <dip name="Cabinet" bits="5" ids="Upright,Cocktail"/>
+        <dip name="Coinage" bits="14,15" ids="2C/1C,1C/1C,1C/2C,Free Play" values="3,1,2,0"/>
+        <dip name="Lives" bits="18" ids="2,3"/>
+        <dip name="Bonus Life" bits="16,17" ids="10000,12000,15000,None"/>
+        <dip name="Service Mode" bits="24" ids="Off,On"/>
+        <dip name="Speech" bits="25" ids="Off,On"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="kingball.zip">
+        <part crc="6cb49046" name="prg1.7f"/>
+        <part crc="c223b416" name="prg2.7j"/>
+        <part crc="453634c0" name="prg3.7l"/>
+        <part repeat="0xD800">00</part>
+        <part crc="9cd550e7" name="chg1.1h" offset="0x0" length="0x800"/>
+        <part crc="9cd550e7" name="chg1.1h" offset="0x0" length="0x800"/>
+        <part repeat="0x1000">00</part>
+        <part crc="a206757d" name="chg2.1k" offset="0x0" length="0x800"/>
+        <part crc="a206757d" name="chg2.1k" offset="0x0" length="0x800"/>
+        <part repeat="0x1000">00</part>
+        <part crc="15dd5b16" name="kb2-1"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="5be2c80a" name="kbe1.ic4"/>
+        <part crc="bb59e965" name="kbe2.ic5"/>
+        <part crc="fbc7d286" name="kbe3.ic6"/>
+        <part crc="bb59e965" name="kbe2.ic7"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            01 90 00 44 00 00 00 00 00 00 00 00 00 00 00 00
+            11 12 03 04 05 00 29 16 13 14 0B 0C 0D 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 20
+        </part>
+    </rom>
+
+    <remark>King & Balloon (US) (Namco)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

@@ -1,0 +1,77 @@
+<misterromdescription>
+    <name>The Anteater (UK)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Anteater</series>
+    <year>1982</year>
+    <manufacturer>Tago Electronics (Free Enterprise Games license)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>anteateruk</setname>
+    <parent>anteater</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>4-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,FD,FF,00">
+        <dip name="Unknown" bits="1" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="2" ids="Off,On" values="1,0"/>
+        <dip name="Cabinet" bits="8" ids="Upright,Cocktail" values="1,0"/>
+        <dip name="Demo Sounds" bits="9" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="10" ids="Off,On" values="1,0"/>
+        <dip name="Coinage" bits="17" ids="A 1/1  B 1/5,A 2/1  B 1/3" values="1,0"/>
+        <dip name="Lives" bits="18,19" ids="3,4,5,6" values="3,2,1,0"/>
+        <dip name="Unknown" bits="21" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="23" ids="Off,On" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="anteateruk.zip|anteater.zip">
+        <part crc="69debc90" name="ant1.bin" offset="0x0" length="0x400"/>
+        <part repeat="0x4200">00</part>
+        <part crc="69debc90" name="ant1.bin" offset="0x400" length="0xA00"/>
+        <part repeat="0x1400">00</part>
+        <part crc="69debc90" name="ant1.bin" offset="0xE00" length="0x1200"/>
+        <part crc="ab352805" name="ant2.bin" offset="0x0" length="0x500"/>
+        <part repeat="0x800">00</part>
+        <part crc="ab352805" name="ant2.bin" offset="0x500" length="0x1600"/>
+        <part repeat="0xA00">00</part>
+        <part crc="ab352805" name="ant2.bin" offset="0x1B00" length="0x500"/>
+        <part repeat="0x5800">00</part>
+        <part crc="1e2824b1" name="gfx_1.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="784319b3" name="gfx_2.bin"/>
+        <part repeat="0x1800">00</part>
+        <part crc="fce333c7" name="colr6f.cpu"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="87300b4f" name="ra4-5c"/>
+        <part crc="af4e5ffe" name="ra4-5d"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            19 91 01 00 C0 00 02 00 00 00 20 03 00 00 00 00
+            09 00 00 05 04 03 12 11 00 00 00 0D 0C 0B 14 13
+            0A 00 00 00 01 00 02 00 00 00 00 00 00 00 00 00
+            00 04 00
+        </part>
+    </rom>
+
+    <remark>The Anteater (UK) (Tago Electronics (Free Enterprise Games License))</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

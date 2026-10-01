@@ -1,0 +1,72 @@
+<misterromdescription>
+    <name>Moon Shuttle (US, Version A)</name>
+    <region>US</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Moon Shuttle</series>
+    <year>1981</year>
+    <manufacturer>Nichibutsu</manufacturer>
+    <category>Shooter</category>
+
+    <setname>mshuttlea</setname>
+    <parent>mshuttle</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>horizontal</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+
+    <switches default="03,80,00,FF">
+        <dip name="Service Mode" bits="14" ids="Off,On"/>
+        <dip name="Cabinet" bits="15" ids="Upright,Cocktail" values="1,0"/>
+        <dip name="Lives" bits="16,17" ids="3,4,5,6"/>
+        <dip name="Bonus Life" bits="18" ids="20000,30000"/>
+        <dip name="Coin A" bits="19,20" ids="4C/1C,3C/1C,2C/1C,1C/1C" values="3,2,1,0"/>
+        <dip name="Coin B" bits="21,22" ids="1C/1C,1C/2C,1C/3C,1C/4C"/>
+        <dip name="Unknown" bits="23" ids="Off,On"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="mshuttlea.zip|mshuttle.zip">
+        <part crc="14fa3e75" name="my-5a.4l"/>
+        <part crc="1cfae2c8" name="my04.4j"/>
+        <part crc="c8b8a368" name="my03.4f"/>
+        <part crc="51d348b0" name="my-2a.4e"/>
+        <part crc="c4ad042d" name="my-1a.4c"/>
+        <part repeat="0xB000">00</part>
+        <part crc="3601b380" name="my09"/>
+        <part crc="b659e932" name="my11"/>
+        <part repeat="0x800">00</part>
+        <part crc="992b06cd" name="my08"/>
+        <part crc="d860e6ce" name="my10"/>
+        <part repeat="0x800">00</part>
+        <part crc="ea0d1af0" name="mscprom1.bin"/>
+        <part repeat="0x7FE0">00</part>
+        <part crc="522a2920" name="my07.4p"/>
+        <part crc="466415f2" name="my06.4s"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            01 00 00 00 80 0B 02 00 00 00 00 00 00 00 00 00
+            11 12 01 02 05 04 00 00 13 14 09 0A 0D 0C 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            10 10 80 08
+        </part>
+    </rom>
+
+    <remark>Moon Shuttle (US, Version A) (Nichibutsu)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

@@ -70,11 +70,28 @@ module galaxian_board
     input         [7:0] vflags5,        // see galaxian_video.sv
     input         [7:0] bflags10,       // [0] Victory program decode (MAME decode_victoryc), [1] RAM 8000-87FF (Victory),
                                         // [2] Crazy Mazey program decode (MAME init_crazym), [3] Mighty Monkey
-                                        // program XOR (MAME init_mimonkey, table by A2-A0 and D7 / D2-D0)
+                                        // program XOR (MAME init_mimonkey, table by A2-A0 and D7 / D2-D0),
+                                        // [4] Crazy Kong 256-byte block remap (MAME init_ckonggx), [5] opcodes
+                                        // 0000-0FFF from ROM 4000 (Lady Bug ladybugg2_opcodes_map), [6] Frogger
+                                        // on Moon Cresta hardware (froggermc_map: sound latch A800, IRQ B001),
+                                        // [7] AY at 512 kHz (Ozon I)
+    input         [7:0] bflags12,       // [0] Space Battle (Hoei) speech board, sbhoei_map I/O, RGB -> RBG
+    input         [7:0] bflags11,       // [0] ROM 2000-27FF banked by the 6000 latch D0 (Guttang Gottong: bank 1 = 4000),
+                                        // [1] ROM 8000-87FF = ROM 4000-47FF (guttangts3_map), [2] Moon War dials
+                                        // on IN0 bits 4-0 (74LS161 count + direction, PPI 0 PC4 = 0 selects player 2),
+                                        // [3] Moon Shuttle (mshuttle_map latches A000-A007 / A800 / B000, opcode
+                                        // decryption, AY on I/O 08 / 09 / 0C, sample board), [4] its Japan table,
+                                        // [5] King & Balloon (speech CPU, B000 / B002 command bits, B003 selects the
+                                        // Speech DIP or service on IN0 bit 6, NOISE on IN1 bit 5), [6] Scorpion
+                                        // (ROM 5800-67FF, PPI 1 port C parity protection, third AY on the sound board),
+                                        // [7] BMX Stunts (6502, bmxstunts_map = the Galaxian map less 4000, ROM C000
+                                        // with A0 inverted, SN76489A at 8000)
     input         [7:0] rom_top,        // end of program ROM >> 8 (0 = 40)
     input         [7:0] ext_mode,       // tile/sprite code extension (see galaxian_video.sv)
 
     input         [7:0] in0,            // 6000 / A000
+    input         [1:0] dial_step,      // Moon War: one pulse per bar, players 2 / 1
+    input         [1:0] dial_dir,       // 1 = count up
     input         [7:0] in1,            // 6800 / A800
     input         [7:0] in2,            // 7000 / B000
     input         [7:0] in3,            // DSW (AY port A on Bongo)
@@ -106,7 +123,7 @@ wire ce6 = (ph == 3'd0);
 
 //------------------------------------------------------- ROM load map --------------------------------------------------------//
 
-wire prog_cs, gfx0_cs, gfx1_cs, gfx2_cs, pal_cs, snd_cs, bgp_cs;
+wire prog_cs, gfx0_cs, gfx1_cs, gfx2_cs, pal_cs, snd_cs, bgp_cs, samp_cs, sbp_cs, sbd_cs, dk_cs;
 
 selector rom_selector
 (
@@ -117,7 +134,11 @@ selector rom_selector
     .gfx0_cs(gfx0_cs),
     .gfx1_cs(gfx1_cs),
     .gfx2_cs(gfx2_cs),
-    .pal_cs(pal_cs)
+    .pal_cs(pal_cs),
+    .samp_cs(samp_cs),
+    .sbp_cs(sbp_cs),
+    .sbd_cs(sbd_cs),
+    .dk_cs(dk_cs)
 );
 
 //------------------------------------------------------- Video timing --------------------------------------------------------//
@@ -185,6 +206,11 @@ end
 // objects 8800, video 9000, watchdog 9800, the Moon Cresta I/O at A000-BFFF (DSW also at 7000).
 // Stern type 2 (scobra.cpp type2_map): ROM 0000-7FFF, RAM 8000, objects 8800, video 9000, watchdog 9800, PPI 0 A000,
 // PPI 1 A800 (port on A3-A2; Tazz-Mania 3 A1-A0), latches B000 on A3-A1 (Tazz-Mania 3 A3-A0).
+// The Anteater UK (anteateruk_map): ROM 0000-03FF / 4000-BFFF, RAM 0400-0BFF, video 0C00, latches 1000, objects 1200,
+// watchdog 1400, PPIs C000-FFFF (A8 PPI 0). Ameisenbaer (anteaterg_map): ROM 0000-03FF / 4000-7BFF / 8000-BFFF, RAM
+// 0400-0BFF, video 0C00 (and 7C00), objects 2000, PPI 1 2400, latches 2600, watchdog F400, PPI 0 F600.
+// Space Train (spactrai_map): ROM 0000-4FFF with RAM 0200-05FF and video 1200-15FF over it, objects FE00, the
+// Galaxian I/O at 6000-7FFF.
 wire [7:0] top = rom_top == 8'd0 ? 8'h40 : rom_top;
 
 // {rom, ram, vid, obj, io, ram index[11:0]}
@@ -196,7 +222,7 @@ function [16:0] decode(input [15:0] a);
         ri  = {1'b0, bflags[1] & a[10], a[9:0]};
         case (variant[4:0])
             5'd0: begin
-                rom = a[15:8] < top || (bflags9[2] && a[15:11] == 5'b11000);
+                rom = a[15:8] < top || (bflags9[2] && a[15:11] == 5'b11000) || (bflags11[1] && a[15:11] == 5'b10000);
                 ram = a[15:11] == 5'b01000 || (bflags10[1] && a[15:11] == 5'b10000) || (bflags6[7] && (a[15:10] == 6'b010010 || a[15:7] == 9'b010110000));
                 ri  = bflags10[1] && a[15] ? {1'b1, a[10:0]} :
                       !bflags6[7] ? {1'b0, bflags[1] & a[10], a[9:0]} : a[15:11] == 5'b01000 ? {1'b0, a[10:0]} :
@@ -227,7 +253,8 @@ function [16:0] decode(input [15:0] a);
                 io  = 1'b0;
             end
             5'd6, 5'd15, 5'd16, 5'd18, 5'd19: begin
-                rom = a[15:8] < top || (bflags7[4] && a[15:12] == 4'hA) || (ext_mode[3:0] == 4'd9 && a[15:14] == 2'b11);
+                rom = a[15:8] < top || (bflags7[4] && a[15:12] == 4'hA) || (ext_mode[3:0] == 4'd9 && a[15:14] == 2'b11) ||
+                      (bflags11[6] && a >= 16'h5800 && a < 16'h6800);
                 ram = a[15:11] == 5'b01000;
                 ri  = {1'b0, a[10:0]};
                 vid = a[15:11] == 5'b01001;
@@ -300,6 +327,22 @@ function [16:0] decode(input [15:0] a);
                 obj = a[15] && a[13:11] == 3'b010;
                 io  = 1'b0;
             end
+            5'd25, 5'd26: begin
+                rom = a < 16'h0400 || (a >= 16'h4000 && a < 16'hC000 && !(variant[4:0] == 5'd26 && a[15:10] == 6'b011111));
+                ram = a >= 16'h0400 && a < 16'h0C00;
+                ri  = {1'b0, a[10:0]};
+                vid = a[15:10] == 6'b000011 || (variant[4:0] == 5'd26 && a[15:10] == 6'b011111);
+                obj = variant[4:0] == 5'd25 ? a[15:9] == 7'b0001001 : a[15:10] == 6'b001000;
+                io  = 1'b0;
+            end
+            5'd27: begin
+                ram = a >= 16'h0200 && a < 16'h0600;
+                ri  = {2'b00, a[9:0]};
+                vid = a >= 16'h1200 && a < 16'h1600;
+                rom = a < 16'h5000 && !ram && !vid;
+                obj = a[15:8] == 8'hFE;
+                io  = a[15:13] == 3'b011;
+            end
             5'd4: begin
                 rom = a < 16'h4000 || (a >= 16'h8000 && a < 16'hB000);
                 ram = a[15:11] == 5'b01000;
@@ -347,7 +390,7 @@ wire        watchdog_reset = (watchdog == 4'd8) & ~bflags2[0];
 
 T80sed z80
 (
-    .RESET_n(~(reset | watchdog_reset | s26)),
+    .RESET_n(~(reset | watchdog_reset | s26 | m65)),
     .CLK_n(clk),
     .CLKEN(ce6 & hcnt[0] & ~pause),
     .WAIT_n(wait_n),
@@ -372,6 +415,7 @@ T80sed z80
 // 4000, 1800 video -> 5000, 1480 objects -> 5800 (A7 inverted), 1500 / 1580 / 1600 (1700) / 1680 I/O -> 6000 / 6800 /
 // 7000 / 7800. The NMI flip-flop drives SENSE.
 wire        s26_req, s26_wr, s26_mio, s26_ene, s26_dc, s26_intack;
+reg         s26_int = 1'b0;                 // the NMI flip-flop's Q also drives INT (MAME hunchbkg: line 0, cleared by INTACK)
 wire [14:0] s26_ad;
 wire  [7:0] s26_dw, s26_dr;
 wire  [1:0] s26_ph;
@@ -423,7 +467,7 @@ s2650_cpu s2650
     .ene(s26_ene),
     .dc(s26_dc),
     .ph(s26_ph),
-    .irq(1'b0),
+    .irq(s26_int),
     .intack(s26_intack),
     .ivec(8'h03),
     .sense(~cpu_nmi_n),
@@ -440,16 +484,60 @@ wire [15:0] s26_zaddr = ~s26_a[12]               ? {2'b00, s26_a[14:13], s26_a[1
                         s26_a[10:8] == 3'b111 && !s26_a[7] ? {13'h0E00, s26_a[2:0]} :
                         s26_a[10:7] == 4'b1101    ? {13'h0F00, s26_a[2:0]} : 16'hFFFF;
 wire        s26_mem  = s26_act & ~s26_io;
+
+// BMX Stunts: a 6502 at 1.536 MHz (MAME bmxstunts), each bus cycle replayed with the address moved onto the Galaxian
+// map (0000-3FFF + 4000, ROM C000-FFFF = 0000-3FFF with A0 inverted, 8000 kept for the SN76489A); IRQ from VBLANK
+wire        m65 = bflags11[7];
+reg   [4:0] m65_div = 5'd0;
+reg         m65_en_d = 1'b0;
+wire        m65_en = m65 & m65_div == 5'd0 & ~pause;
+always @(posedge clk) begin
+    m65_div  <= m65_div + 5'd1;
+    m65_en_d <= m65_en;
+end
+wire [23:0] m65_a;
+wire  [7:0] m65_do;
+wire        m65_rw;
+
+T65 t65
+(
+    .Mode(2'b00),
+    .Res_n(~(reset | watchdog_reset | ~m65)),
+    .Enable(m65_en),
+    .Clk(clk),
+    .Rdy(1'b1),
+    .Abort_n(1'b1),
+    .IRQ_n(cpu_nmi_n),
+    .NMI_n(1'b1),
+    .SO_n(1'b1),
+    .R_W_n(m65_rw),
+    .Sync(),
+    .EF(),
+    .MF(),
+    .XF(),
+    .ML_n(),
+    .VP_n(),
+    .VDA(),
+    .VPA(),
+    .A(m65_a),
+    .DI(cpu_din),
+    .DO(m65_do),
+    .Regs(),
+    .NMI_ack()
+);
+
+wire [15:0] m65_zaddr = m65_a[15:14] == 2'b00 ? {2'b01, m65_a[13:0]} :
+                        m65_a[15:14] == 2'b11 ? {2'b00, m65_a[13:1], ~m65_a[0]} : m65_a[15:0];
 assign s26_dr = s26_io ? (s26_ene_r && s26_a[7:0] == 8'h00 ? sbk_latch : 8'h00) : cpu_din;
 
-assign cpu_m1_n   = s26 | z80_m1_n;
-assign cpu_mreq_n = s26 ? ~s26_mem : z80_mreq_n;
-assign cpu_iorq_n = s26 | z80_iorq_n;
-assign cpu_rd_n   = s26 ? ~(s26_mem & ~s26_w) : z80_rd_n;
-assign cpu_wr_n   = s26 ? ~(s26_mem & s26_w) : z80_wr_n;
-assign cpu_rfsh_n = s26 | z80_rfsh_n;
-assign cpu_addr   = s26 ? s26_zaddr : z80_addr;
-assign cpu_dout   = s26 ? s26_d : z80_dout;
+assign cpu_m1_n   = s26 | m65 | z80_m1_n;
+assign cpu_mreq_n = s26 ? ~s26_mem : ~m65 & z80_mreq_n;
+assign cpu_iorq_n = s26 | m65 | z80_iorq_n;
+assign cpu_rd_n   = s26 ? ~(s26_mem & ~s26_w) : m65 ? ~m65_rw : z80_rd_n;
+assign cpu_wr_n   = s26 ? ~(s26_mem & s26_w) : m65 ? m65_rw : z80_wr_n;
+assign cpu_rfsh_n = s26 | m65 | z80_rfsh_n;
+assign cpu_addr   = s26 ? s26_zaddr : m65 ? m65_zaddr : z80_addr;
+assign cpu_dout   = s26 ? s26_d : m65 ? m65_do : z80_dout;
 
 wire        mem = ~cpu_mreq_n & cpu_rfsh_n;
 wire [11:0] ram_idx;
@@ -479,6 +567,14 @@ wire        sb2     = variant[4:0] == 5'd19;                          // Scrambl
 wire        tzb     = variant[4:0] == 5'd20;                          // Tazz-Mania bootleg
 wire        ck2     = variant[4:0] == 5'd23;                          // Crazy Kong on Scramble
 wire        ami     = variant[4:0] == 5'd24;                          // Amigo
+wire        fmc     = bflags10[6];                                    // Frogger (MC): sound latch A800, sound IRQ B001
+wire        msh     = bflags11[3];                                    // Moon Shuttle
+wire        kb      = bflags11[5];                                    // King & Balloon
+wire        scp     = bflags11[6];                                    // Scorpion
+wire        sbh     = bflags12[0];                                    // Space Battle (Hoei)
+wire        stn     = variant[4:0] == 5'd27;                          // Space Train: video RAM at 1200
+wire        aeu     = variant[4:0] == 5'd25;                          // The Anteater UK
+wire        aeg     = variant[4:0] == 5'd26;                          // Ameisenbaer
 wire        mdk     = variant[4:0] == 5'd21;                          // Mandinka: latches A000, watchdog A800, PPIs B000 / B800
 wire        hb_lat  = (hb || hb6) && cpu_addr[15:4] == 12'hA80;
 wire        st2_lat = st2 && cpu_addr[15:4] == 12'hB00;
@@ -494,7 +590,8 @@ wire        k_lat   = (sc && !tnv && cpu_addr[15:11] == 5'b01101) || // 6800 (Sc
                       ((tp || sb2) && cpu_addr[15:11] == 5'b01101) ||
                       (sb && !mmk_rom && cpu_addr[15] && cpu_addr[13:11] == 3'b101) || // A800 (Super Cobra)
                       (mdk && cpu_addr[15:11] == 5'b10100) ||         // A000 (Mandinka)
-                      (ck2 && cpu_addr[15:4] == 12'hA80);             // A800 (Crazy Kong on Scramble)
+                      (ck2 && cpu_addr[15:4] == 12'hA80) ||           // A800 (Crazy Kong on Scramble)
+                      (aeu && cpu_addr[15:9] == 7'b0001000) || (aeg && cpu_addr[15:9] == 7'b0010011);   // 1000 / 2600
 wire        fg_wd   = (fg && cpu_addr[15:11] == 5'b10001) ||          // 8800 watchdog
                       (sc && (cpu_addr[15:11] == 5'b01110 || (bflags5[4] && cpu_addr[15:11] == 5'b01111))) || // 7000 (+ 7800)
                       (sb && !mmk_rom && cpu_addr[15] && cpu_addr[13:11] == 3'b110) ||   // B000
@@ -503,7 +600,8 @@ wire        fg_wd   = (fg && cpu_addr[15:11] == 5'b10001) ||          // 8800 wa
                       (fa && cpu_addr == 16'h8800) || (ts && cpu_addr == 16'hB800) ||
                       (st2 && cpu_addr == 16'h9800) || (hb && cpu_addr == 16'hB000) || ((mr || tp) && cpu_addr == 16'h7000) ||
                       (sb2 && cpu_addr[15:3] == 13'h0E00) || (tzb && cpu_addr == 16'h9800) ||
-                      (mdk && cpu_addr == 16'hA800) || (ck2 && cpu_addr == 16'hB000) || (ami && cpu_addr == 16'hA800) || (sc && bflags9[6] && cpu_addr[15:11] == 5'b01101);
+                      (mdk && cpu_addr == 16'hA800) || (ck2 && cpu_addr == 16'hB000) || (ami && cpu_addr == 16'hA800) || (sc && bflags9[6] && cpu_addr[15:11] == 5'b01101) ||
+                      (aeu && cpu_addr[15:10] == 6'b000101) || (aeg && cpu_addr[15:9] == 7'b1111010);
 wire        fg_ppi  = (fg && cpu_addr[15:14] == 2'b11) || (sc && cpu_addr[15] && !tnv_rom && !mmk_rom) ||    // PPIs
                       (ff && cpu_addr[15:14] == 2'b11) || (fa && cpu_addr[15:10] == 6'b010000) ||
                       (ts && (cpu_addr[15:2] == 14'h2800 || cpu_addr[15:2] == 14'h3000)) ||
@@ -514,12 +612,13 @@ wire        fg_ppi  = (fg && cpu_addr[15:14] == 2'b11) || (sc && cpu_addr[15] &&
                       (mdk && cpu_addr[15:12] == 4'hB) || (ck2 && cpu_addr[15:12] == 4'h7) ||
                       (mr && bflags7[4] && (cpu_addr[15:4] == 12'hC10 || cpu_addr[15:4] == 12'hC20)) ||
                       (sb && !mmk_rom && cpu_addr[15] && (cpu_addr[13:11] == 3'b011 || cpu_addr[13:11] == 3'b100)) ||
-                      (tu && cpu_addr[15] && cpu_addr[13:12] == 2'b11);
+                      (tu && cpu_addr[15] && cpu_addr[13:12] == 2'b11) || (aeu && cpu_addr[15:14] == 2'b11) ||
+                      (aeg && (cpu_addr[15:9] == 7'b0010010 || cpu_addr[15:9] == 7'b1111011));
 
 // one write strobe per CPU write cycle
 reg  wr_d = 1'b1;
 always @(posedge clk) wr_d <= cpu_wr_n;
-wire wr = s26 ? s26_new2 & s26_mem & s26_w : mem & ~cpu_wr_n & wr_d;
+wire wr = s26 ? s26_new2 & s26_mem & s26_w : m65 ? m65_en_d & ~m65_rw : mem & ~cpu_wr_n & wr_d;
 
 // video RAM is fetched by the tile generator all through the active area: the CPU waits until HBLANK or VBLANK
 always @(posedge clk) begin
@@ -552,6 +651,24 @@ always @(posedge clk) begin
             3'd2: if (hb6) ctl_9n[6] <= cpu_dout[0];                 // A802 flip X (hustlerb6)
             3'd6: ctl_9n[7] <= cpu_dout[0];                          // A806 flip Y
             3'd7: if (hb) ctl_9n[6] <= cpu_dout[0];                  // A807 flip X (hustlerb)
+            default: ;
+        endcase
+    end
+    else if (wr && sbh && cpu_addr[15:11] == 5'b10100) begin         // Space Battle A002-A006 = gfx banks 0-4
+        case (cpu_addr[2:0])
+            3'd2: gfxbank[0] <= cpu_dout[0];
+            3'd3: gfxbank[1] <= cpu_dout[0];
+            3'd4: gfxbank[2] <= cpu_dout[0];
+            3'd5: gfxbank[3] <= cpu_dout[0];
+            3'd6: gfxbank4   <= cpu_dout[0];
+            default: ;
+        endcase
+    end
+    else if (wr && msh && cpu_addr[15:11] == 5'b10100) begin         // Moon Shuttle A000 IRQ, A001 stars, A002 flip
+        case (cpu_addr[2:0])
+            3'd0: ctl_9n[1] <= cpu_dout[0];
+            3'd1: ctl_9n[4] <= cpu_dout[0];
+            3'd2: begin ctl_9n[6] <= cpu_dout[0]; ctl_9n[7] <= cpu_dout[0]; end
             default: ;
         endcase
     end
@@ -651,6 +768,9 @@ always @(posedge clk) begin
     if (reset | ~bflags7[4] | (~cpu_iorq_n & ~cpu_m1_n)) cpu_int_n <= 1'b1;
     else if (ce6 & rising_vblank)                       cpu_int_n <= 1'b0;
 
+    if (reset | ~s26 | s26_intack | ~nmi_en) s26_int <= 1'b0;
+    else if (ce6 & rising_vblank)            s26_int <= 1'b1;
+
     if (reset | wdr | pause)      watchdog <= 4'd0;
     else if (ce6 & rising_vblank) watchdog <= watchdog_reset ? 4'd0 : watchdog + 4'd1;
 end
@@ -691,15 +811,31 @@ always @(posedge clk) begin
     else if (cav_acc & ~cav_acc_d) cav_bank <= ~cav_bank;
 end
 
+wire        gts3_hi = bflags11[1] & cpu_addr[15:11] == 5'b10000;
 wire [15:0] rom_a = tnv_rom ? {4'h4, cpu_addr[11:0]} :
                     bflags8[0] ? {cpu_addr[15:4], cpu_addr[2], cpu_addr[0], cpu_addr[3], cpu_addr[1]} :
                     bflags9[3] ? {cpu_addr[15:5], cpu_addr[1], cpu_addr[0], cpu_addr[3], cpu_addr[4], cpu_addr[2]} :
-                    bflags9[5] ? {cpu_addr[15:8], ~cpu_addr[7:0]} :
+                    bflags9[5] ? {cpu_addr[15] & ~gts3_hi, cpu_addr[14] | gts3_hi | (bflags10[5] & ~cpu_m1_n & cpu_addr[15:12] == 4'h0),
+                                  cpu_addr[13:8], ~cpu_addr[7:0]} :
+                    bflags11[0] && cpu_addr[15:11] == 5'b00100 ? {1'b0, gfxbank[0], ~gfxbank[0], 2'b00, cpu_addr[10:0]} :
+                    bflags10[4] && cpu_addr < 16'h5800 ? {1'b0, ckx_blk(cpu_addr[14:8]), cpu_addr[7:0]} :
                     bflags8[5] && cav_bank && cpu_addr[15:13] == 3'b000 ? {3'b010, cpu_addr[12:0]} :
                     bflags6[2] && !cpu_addr[12] && cpu_addr[15:13] < 3'd3 ? {cpu_addr[15:10], ~cpu_addr[9:0]} :
                     bflags4[2] && !cpu_addr[15] ? {1'b0, fa_lut(cpu_addr[14:10]), cpu_addr[11:10], cpu_addr[9:0]} :
                     bflags4[1] && cpu_addr[15:13] == 3'b001 ? {cpu_addr[15:13], cpu_addr[12] ^ ctl_9n[2], cpu_addr[11:0]} :
                     cpu_addr;
+
+// Crazy Kong encrypted bootlegs (MAME init_ckonggx): 256-byte blocks of 0000-57FF moved
+function [6:0] ckx_blk(input [6:0] b);
+    begin
+        if (b == 7'h00)                   ckx_blk = 7'h50;
+        else if (b < 7'h04)               ckx_blk = {3'b000, b[3:0] + 4'hC};
+        else if (b == 7'h04)              ckx_blk = 7'h0C;
+        else if (b < 7'h10)               ckx_blk = {3'b000, b[3:0] - 4'h4};
+        else if (b < 7'h50)               ckx_blk = {b[6:4], b[3:0] + 4'h4};
+        else                              ckx_blk = b[1:0] == 2'b00 ? 7'h00 : {5'b10100, b[1:0]};
+    end
+endfunction
 
 dpram_dc #(.widthad_a(16)) prog_rom
 (
@@ -713,6 +849,55 @@ dpram_dc #(.widthad_a(12)) work_ram
     .clock_b(clk), .address_b(hs_idx), .data_b(hs_data_in), .wren_b(hs_write & ~hs_vid), .q_b(hs_ram_q)
 );
 
+// Moon Shuttle opcodes (MAME mshuttle_decode): D7/D5/D3/D1 kept; table by {set, A0, D1, D7} and D6/D4/D2/D0
+function [7:0] msh_tab(input [7:0] k);
+    case (k)
+        8'h00: msh_tab = 8'h40; 8'h01: msh_tab = 8'h41; 8'h02: msh_tab = 8'h44; 8'h03: msh_tab = 8'h15; 8'h04: msh_tab = 8'h05; 8'h05: msh_tab = 8'h51;
+        8'h06: msh_tab = 8'h54; 8'h07: msh_tab = 8'h55; 8'h08: msh_tab = 8'h50; 8'h09: msh_tab = 8'h00; 8'h0A: msh_tab = 8'h01; 8'h0B: msh_tab = 8'h04;
+        8'h0C: msh_tab = 8'hFF; 8'h0D: msh_tab = 8'h10; 8'h0E: msh_tab = 8'h11; 8'h0F: msh_tab = 8'h14; 8'h10: msh_tab = 8'h45; 8'h11: msh_tab = 8'h51;
+        8'h12: msh_tab = 8'h55; 8'h13: msh_tab = 8'h44; 8'h14: msh_tab = 8'h40; 8'h15: msh_tab = 8'h11; 8'h16: msh_tab = 8'h05; 8'h17: msh_tab = 8'h41;
+        8'h18: msh_tab = 8'h10; 8'h19: msh_tab = 8'h14; 8'h1A: msh_tab = 8'h54; 8'h1B: msh_tab = 8'h50; 8'h1C: msh_tab = 8'h15; 8'h1D: msh_tab = 8'h04;
+        8'h1E: msh_tab = 8'h00; 8'h1F: msh_tab = 8'h01; 8'h20: msh_tab = 8'h11; 8'h21: msh_tab = 8'h14; 8'h22: msh_tab = 8'h10; 8'h23: msh_tab = 8'h00;
+        8'h24: msh_tab = 8'h44; 8'h25: msh_tab = 8'h05; 8'h26: msh_tab = 8'hFF; 8'h27: msh_tab = 8'h04; 8'h28: msh_tab = 8'h45; 8'h29: msh_tab = 8'h15;
+        8'h2A: msh_tab = 8'h55; 8'h2B: msh_tab = 8'h50; 8'h2C: msh_tab = 8'hFF; 8'h2D: msh_tab = 8'h01; 8'h2E: msh_tab = 8'h54; 8'h2F: msh_tab = 8'h51;
+        8'h30: msh_tab = 8'h14; 8'h31: msh_tab = 8'h01; 8'h32: msh_tab = 8'h11; 8'h33: msh_tab = 8'h10; 8'h34: msh_tab = 8'h50; 8'h35: msh_tab = 8'h15;
+        8'h36: msh_tab = 8'h00; 8'h37: msh_tab = 8'h40; 8'h38: msh_tab = 8'h04; 8'h39: msh_tab = 8'h51; 8'h3A: msh_tab = 8'h45; 8'h3B: msh_tab = 8'h05;
+        8'h3C: msh_tab = 8'h55; 8'h3D: msh_tab = 8'h54; 8'h3E: msh_tab = 8'hFF; 8'h3F: msh_tab = 8'h44; 8'h40: msh_tab = 8'h04; 8'h41: msh_tab = 8'h10;
+        8'h42: msh_tab = 8'hFF; 8'h43: msh_tab = 8'h40; 8'h44: msh_tab = 8'h15; 8'h45: msh_tab = 8'h41; 8'h46: msh_tab = 8'h50; 8'h47: msh_tab = 8'h50;
+        8'h48: msh_tab = 8'h11; 8'h49: msh_tab = 8'hFF; 8'h4A: msh_tab = 8'h14; 8'h4B: msh_tab = 8'h00; 8'h4C: msh_tab = 8'h51; 8'h4D: msh_tab = 8'h45;
+        8'h4E: msh_tab = 8'h55; 8'h4F: msh_tab = 8'h01; 8'h50: msh_tab = 8'h44; 8'h51: msh_tab = 8'h45; 8'h52: msh_tab = 8'h00; 8'h53: msh_tab = 8'h51;
+        8'h54: msh_tab = 8'hFF; 8'h55: msh_tab = 8'hFF; 8'h56: msh_tab = 8'h15; 8'h57: msh_tab = 8'h11; 8'h58: msh_tab = 8'h01; 8'h59: msh_tab = 8'h10;
+        8'h5A: msh_tab = 8'h04; 8'h5B: msh_tab = 8'h55; 8'h5C: msh_tab = 8'h05; 8'h5D: msh_tab = 8'h40; 8'h5E: msh_tab = 8'h50; 8'h5F: msh_tab = 8'h41;
+        8'h60: msh_tab = 8'h51; 8'h61: msh_tab = 8'h00; 8'h62: msh_tab = 8'h01; 8'h63: msh_tab = 8'h05; 8'h64: msh_tab = 8'h04; 8'h65: msh_tab = 8'h55;
+        8'h66: msh_tab = 8'h54; 8'h67: msh_tab = 8'h50; 8'h68: msh_tab = 8'h41; 8'h69: msh_tab = 8'hFF; 8'h6A: msh_tab = 8'h11; 8'h6B: msh_tab = 8'h15;
+        8'h6C: msh_tab = 8'h14; 8'h6D: msh_tab = 8'h10; 8'h6E: msh_tab = 8'h44; 8'h6F: msh_tab = 8'h40; 8'h70: msh_tab = 8'h05; 8'h71: msh_tab = 8'h04;
+        8'h72: msh_tab = 8'h51; 8'h73: msh_tab = 8'h01; 8'h74: msh_tab = 8'hFF; 8'h75: msh_tab = 8'hFF; 8'h76: msh_tab = 8'h55; 8'h77: msh_tab = 8'hFF;
+        8'h78: msh_tab = 8'h00; 8'h79: msh_tab = 8'h50; 8'h7A: msh_tab = 8'h15; 8'h7B: msh_tab = 8'h14; 8'h7C: msh_tab = 8'h44; 8'h7D: msh_tab = 8'h41;
+        8'h7E: msh_tab = 8'h40; 8'h7F: msh_tab = 8'h54; 8'h80: msh_tab = 8'h41; 8'h81: msh_tab = 8'h54; 8'h82: msh_tab = 8'h51; 8'h83: msh_tab = 8'h14;
+        8'h84: msh_tab = 8'h05; 8'h85: msh_tab = 8'h10; 8'h86: msh_tab = 8'h01; 8'h87: msh_tab = 8'h55; 8'h88: msh_tab = 8'h44; 8'h89: msh_tab = 8'h11;
+        8'h8A: msh_tab = 8'h00; 8'h8B: msh_tab = 8'h50; 8'h8C: msh_tab = 8'h15; 8'h8D: msh_tab = 8'h40; 8'h8E: msh_tab = 8'h04; 8'h8F: msh_tab = 8'h45;
+        8'h90: msh_tab = 8'h50; 8'h91: msh_tab = 8'h11; 8'h92: msh_tab = 8'h40; 8'h93: msh_tab = 8'h55; 8'h94: msh_tab = 8'h51; 8'h95: msh_tab = 8'h14;
+        8'h96: msh_tab = 8'h45; 8'h97: msh_tab = 8'h04; 8'h98: msh_tab = 8'h54; 8'h99: msh_tab = 8'h15; 8'h9A: msh_tab = 8'h10; 8'h9B: msh_tab = 8'h05;
+        8'h9C: msh_tab = 8'h44; 8'h9D: msh_tab = 8'h01; 8'h9E: msh_tab = 8'h00; 8'h9F: msh_tab = 8'h41; 8'hA0: msh_tab = 8'h44; 8'hA1: msh_tab = 8'h11;
+        8'hA2: msh_tab = 8'h00; 8'hA3: msh_tab = 8'h50; 8'hA4: msh_tab = 8'h41; 8'hA5: msh_tab = 8'h54; 8'hA6: msh_tab = 8'h04; 8'hA7: msh_tab = 8'h14;
+        8'hA8: msh_tab = 8'h15; 8'hA9: msh_tab = 8'h40; 8'hAA: msh_tab = 8'h51; 8'hAB: msh_tab = 8'h55; 8'hAC: msh_tab = 8'h05; 8'hAD: msh_tab = 8'h10;
+        8'hAE: msh_tab = 8'h01; 8'hAF: msh_tab = 8'h45; 8'hB0: msh_tab = 8'h10; 8'hB1: msh_tab = 8'h50; 8'hB2: msh_tab = 8'h54; 8'hB3: msh_tab = 8'h55;
+        8'hB4: msh_tab = 8'h01; 8'hB5: msh_tab = 8'h44; 8'hB6: msh_tab = 8'h40; 8'hB7: msh_tab = 8'h04; 8'hB8: msh_tab = 8'h14; 8'hB9: msh_tab = 8'h11;
+        8'hBA: msh_tab = 8'h00; 8'hBB: msh_tab = 8'h41; 8'hBC: msh_tab = 8'h45; 8'hBD: msh_tab = 8'h15; 8'hBE: msh_tab = 8'h51; 8'hBF: msh_tab = 8'h05;
+        8'hC0: msh_tab = 8'h14; 8'hC1: msh_tab = 8'h41; 8'hC2: msh_tab = 8'h01; 8'hC3: msh_tab = 8'h44; 8'hC4: msh_tab = 8'h04; 8'hC5: msh_tab = 8'h50;
+        8'hC6: msh_tab = 8'h51; 8'hC7: msh_tab = 8'h45; 8'hC8: msh_tab = 8'h11; 8'hC9: msh_tab = 8'h40; 8'hCA: msh_tab = 8'h54; 8'hCB: msh_tab = 8'h15;
+        8'hCC: msh_tab = 8'h10; 8'hCD: msh_tab = 8'h00; 8'hCE: msh_tab = 8'h55; 8'hCF: msh_tab = 8'h05; 8'hD0: msh_tab = 8'h01; 8'hD1: msh_tab = 8'h05;
+        8'hD2: msh_tab = 8'h41; 8'hD3: msh_tab = 8'h45; 8'hD4: msh_tab = 8'h54; 8'hD5: msh_tab = 8'h50; 8'hD6: msh_tab = 8'h55; 8'hD7: msh_tab = 8'h10;
+        8'hD8: msh_tab = 8'h11; 8'hD9: msh_tab = 8'h15; 8'hDA: msh_tab = 8'h51; 8'hDB: msh_tab = 8'h14; 8'hDC: msh_tab = 8'h44; 8'hDD: msh_tab = 8'h40;
+        8'hDE: msh_tab = 8'h04; 8'hDF: msh_tab = 8'h00; 8'hE0: msh_tab = 8'h05; 8'hE1: msh_tab = 8'h55; 8'hE2: msh_tab = 8'h00; 8'hE3: msh_tab = 8'h50;
+        8'hE4: msh_tab = 8'h11; 8'hE5: msh_tab = 8'h40; 8'hE6: msh_tab = 8'h54; 8'hE7: msh_tab = 8'h14; 8'hE8: msh_tab = 8'h45; 8'hE9: msh_tab = 8'h51;
+        8'hEA: msh_tab = 8'h10; 8'hEB: msh_tab = 8'h04; 8'hEC: msh_tab = 8'h44; 8'hED: msh_tab = 8'h01; 8'hEE: msh_tab = 8'h41; 8'hEF: msh_tab = 8'h15;
+        8'hF0: msh_tab = 8'h55; 8'hF1: msh_tab = 8'h50; 8'hF2: msh_tab = 8'h15; 8'hF3: msh_tab = 8'h10; 8'hF4: msh_tab = 8'h01; 8'hF5: msh_tab = 8'h04;
+        8'hF6: msh_tab = 8'h41; 8'hF7: msh_tab = 8'h44; 8'hF8: msh_tab = 8'h45; 8'hF9: msh_tab = 8'h40; 8'hFA: msh_tab = 8'h05; 8'hFB: msh_tab = 8'h00;
+        8'hFC: msh_tab = 8'h11; 8'hFD: msh_tab = 8'h14; 8'hFE: msh_tab = 8'h51; 8'hFF: msh_tab = 8'h54;
+        default: msh_tab = 8'h00;
+    endcase
+endfunction
 // Moon Cresta program decryption (MAME decode_mooncrst): all of 0000-3FFF, or opcode fetches only (Moon Quasar)
 function [7:0] mc_decrypt(input [7:0] d, input a0);
     reg [7:0] r;
@@ -724,7 +909,9 @@ endfunction
 
 wire       decrypt = cpu_addr[15:14] == 2'b00 && (bflags[3] || (bflags[4] && !cpu_m1_n));
 wire       hus_rom = cpu_addr[15:14] == 2'b00;
-wire [7:0] rom_d   = bflags8[4] && cpu_addr == 16'h2EF9 ? 8'hC9 : decrypt ? mc_decrypt(rom_q, cpu_addr[0]) : bflags3[3] ? cm_decrypt(rom_q, cpu_addr[2:0]) :
+wire [7:0] rom_d   = msh && !cpu_m1_n && !cpu_addr[15] ? (rom_q & 8'hAA) | msh_tab({bflags11[4], rom_q[7], rom_q[1], cpu_addr[0],
+                                                                    rom_q[6], rom_q[4], rom_q[2], rom_q[0]}) :
+                     bflags8[4] && cpu_addr == 16'h2EF9 ? 8'hC9 : decrypt ? mc_decrypt(rom_q, cpu_addr[0]) : bflags3[3] ? cm_decrypt(rom_q, cpu_addr[2:0]) :
                      bflags6[5] && hus_rom ? hus_decrypt(rom_q, cpu_addr[7:0]) :
                      bflags6[6] && hus_rom ? bil_decrypt(rom_q, cpu_addr[7:0]) :
                      bflags9[0] && cpu_addr < 16'h6000 ? sce_decrypt(rom_q, cpu_addr[7:0]) :
@@ -963,12 +1150,25 @@ wire  [7:0] sbp2 = mr_pc == 16'h01CA ? 8'h90 : 8'h00;
 wire  [7:0] tp_pip = tp_pc == 16'h015A ? 8'hFF : tp_pc == 16'h0886 ? 8'h05 : 8'h00;
 wire  [7:0] tp_pap = tp_pc == 16'h015D ? 8'h04 : 8'h00;
 
+// Moon War (MAME dial_r): a 74LS161 per dial counts bars either way; bit 4 holds the last direction
+wire [7:0] ppi0_pc;
+wire       mw_sel = ~ppi0_pc[4];
+reg  [3:0] mw_cnt[2];
+reg  [1:0] mw_dir = 2'b00;
+always @(posedge clk) begin
+    for (int p = 0; p < 2; p++)
+        if (reset) begin mw_cnt[p] <= 4'd0; mw_dir[p] <= 1'b0; end
+        else if (dial_step[p]) begin mw_cnt[p] <= mw_cnt[p] + 4'd1; mw_dir[p] <= dial_dir[p]; end
+end
+
 // Konami PPIs: 0 = IN0 / IN1 / IN2, 1 = sound command / sound control / IN3
 wire [7:0] ppi0_q, ppi1_q, ppi1_pa, ppi1_pb;
 wire       ppi0_sel = fg_ppi & (fg ? cpu_addr[13] : ff ? cpu_addr[12] : sc | fa | hb | mr | tp ? cpu_addr[8] : tu ? ~cpu_addr[11] :
-                                ts ? cpu_addr[15:13] == 3'b101 : st2 | mdk | ck2 ? ~cpu_addr[11] : cpu_addr[13:11] == 3'b011);
+                                ts ? cpu_addr[15:13] == 3'b101 : st2 | mdk | ck2 ? ~cpu_addr[11] : aeu ? cpu_addr[8] : aeg ? cpu_addr[15] :
+                                cpu_addr[13:11] == 3'b011);
 wire       ppi1_sel = fg_ppi & (fg ? cpu_addr[12] : ff ? cpu_addr[13] : sc | fa | hb | mr | tp ? cpu_addr[9] : tu ?  cpu_addr[11] :
-                                ts ? cpu_addr[15:13] == 3'b110 : st2 | mdk | ck2 ?  cpu_addr[11] : cpu_addr[13:11] == 3'b100);
+                                ts ? cpu_addr[15:13] == 3'b110 : st2 | mdk | ck2 ?  cpu_addr[11] : aeu ? ~cpu_addr[8] : aeg ? ~cpu_addr[15] :
+                                cpu_addr[13:11] == 3'b100);
 wire [1:0] ppi_a    = fg ? cpu_addr[2:1] : ff ? cpu_addr[4:3] : tu ? cpu_addr[5:4] : mr ? {cpu_addr[3], cpu_addr[1]} :
                       st2 && !bflags6[0] ? cpu_addr[3:2] : cpu_addr[1:0];
 // Frogger (AM): the PPI data bus is wired bit-reversed (both directions)
@@ -1009,17 +1209,37 @@ always @(posedge clk) begin
 end
 wire [7:0] in2_k = prot ? {~prot_res[7], in2[6], ~prot_res[7], in2[4:0]} : in2;
 
+// Scorpion (MAME zac_scorpion protection_r / _w): port C reads the bit count of state & CE29; a write with bit 5
+// low clears the state, with bit 4 low shifts in the inverted count's low bit
+function [3:0] scp_cnt(input [15:0] st);
+    reg [15:0] m;
+    begin
+        m = st & 16'hCE29;
+        scp_cnt = {3'd0, m[0]} + {3'd0, m[3]} + {3'd0, m[5]} + {3'd0, m[9]} + {3'd0, m[10]} + {3'd0, m[11]} +
+                  {3'd0, m[14]} + {3'd0, m[15]};
+    end
+endfunction
+reg  [15:0] scp_st = 16'd0;
+wire  [3:0] scp_n  = scp_cnt(scp_st);
+wire [15:0] scp_r  = ppi1_pc[5] ? scp_st : 16'd0;
+wire  [3:0] scp_nr = scp_cnt(scp_r);
+always @(posedge clk) begin
+    if (reset) scp_st <= 16'd0;
+    else if (pc_we_d && scp) scp_st <= ppi1_pc[4] ? scp_r : {scp_r[14:0], ~scp_nr[0]};
+end
+
 galaxian_ppi ppi0
 (
     .clk(clk), .reset(reset), .addr(ppi_a), .din(ppi_din), .we(wr & ppi0_sel), .dout(ppi0_q),
-    .pa_in(in0), .pb_in(in1), .pc_in(in2_k), .pa_out(), .pb_out(), .pc_out(), .pc_we()
+    .pa_in(bflags11[2] ? {in0[7:5], mw_dir[mw_sel], mw_cnt[mw_sel]} : in0), .pb_in(in1), .pc_in(in2_k),
+    .pa_out(), .pb_out(), .pc_out(), .pc_we(), .pc_pins(ppi0_pc)
 );
 
 galaxian_ppi ppi1
 (
     .clk(clk), .reset(reset), .addr(ppi_a), .din(ppi_din), .we(wr & ppi1_sel), .dout(ppi1_q),
-    .pa_in(8'hFF), .pb_in(8'hFF), .pc_in(prot ? prot_res : bflags6[1] ? 8'hFC : bflags8[2] ? 8'h00 : in3), .pa_out(ppi1_pa), .pb_out(ppi1_pb),
-    .pc_out(ppi1_pc), .pc_we(ppi1_pc_we)
+    .pa_in(8'hFF), .pb_in(8'hFF), .pc_in(scp ? {4'd0, scp_n} : prot ? prot_res : bflags6[1] ? 8'hFC : bflags8[2] ? 8'h00 : in3), .pa_out(ppi1_pa), .pb_out(ppi1_pb),
+    .pc_out(ppi1_pc), .pc_we(ppi1_pc_we), .pc_pins()
 );
 
 wire [7:0] ay_dout, ay2_dout;
@@ -1027,10 +1247,10 @@ wire [7:0] ay_dout, ay2_dout;
 // Hustler bootleg without PPIs: 4800 write = sound command, 5000 = sound control
 reg  [7:0] hb6_ctl = 8'd0;
 always @(posedge clk) if (reset) hb6_ctl <= 8'd0; else if (wr && (hb6 || ami) && cpu_addr == 16'h5000) hb6_ctl <= cpu_dout;
-wire       snd_cmd_we = hb6 ? wr && cpu_addr == 16'h4800 : ami ? wr && cpu_addr == 16'h4000 :
+wire       snd_cmd_we = fmc ? wr && cpu_addr[15:11] == 5'b10101 : hb6 ? wr && cpu_addr == 16'h4800 : ami ? wr && cpu_addr == 16'h4000 :
                         hsk ? wr && cpu_addr == 16'h8000 : wr & ppi1_sel & ppi_a == 2'd0;
-wire [7:0] snd_ctl    = hsk ? 8'h00 : (hb6 || ami ? hb6_ctl : ppi1_pb) & ~{3'b000, bflags8[3], 4'b0000};
-wire       snd_irq    = wr & hsk & cpu_addr == 16'h9000;
+wire [7:0] snd_ctl    = hsk || fmc ? 8'h00 : (hb6 || ami ? hb6_ctl : ppi1_pb) & ~{3'b000, bflags8[3], 4'b0000};
+wire       snd_irq    = (wr & hsk & cpu_addr == 16'h9000) | (wr & fmc & cpu_addr[15:11] == 5'b10110 & cpu_addr[2:0] == 3'd1);
 
 // Hustler / Billiard (MAME init_hustler / init_billiard): 0000-3FFF XOR-masked from A7-A0 (Billiard also shuffled)
 function [7:0] hus_decrypt(input [7:0] d, input [7:0] a);
@@ -1072,7 +1292,8 @@ wire       fa_cs = bflags4[3] && mem && cpu_addr[15:4] == 12'h880;
 
 always @(*) begin
     cpu_din = 8'hFF;
-    if (io_rd) cpu_din = bflags2[2] && cpu_addr[7:0] == 8'h02 ? ay_dout :
+    if (io_rd) cpu_din = msh ? (cpu_addr[3:0] == 4'hC && !msh_cs ? ay_dout : 8'hFF) :
+                         bflags2[2] && cpu_addr[7:0] == 8'h02 ? ay_dout :
                          bflags8[6] && cpu_addr[7:0] == 8'h01 ? ay_dout :
                          bflags8[7] && cpu_addr[7:0] == 8'h02 ? tp_pip :
                          bflags8[7] && cpu_addr[7:0] == 8'h03 ? tp_pap : 8'hFF;
@@ -1092,6 +1313,7 @@ always @(*) begin
         cpu_din = cpu_addr[1:0] == 2'd0 ? in0 : cpu_addr[1:0] == 2'd1 ? in1 : cpu_addr[1:0] == 2'd2 ? in2 : in3;
     else if (hb6 && cpu_addr[15:2] == 14'h1200)                      // 4800 IN0, 4801 IN1, 4803 IN2
         cpu_din = cpu_addr[1:0] == 2'd0 ? in0 : cpu_addr[1:0] == 2'd1 ? in1 : cpu_addr[1:0] == 2'd3 ? in2 : 8'hFF;
+    else if (sbh && cpu_addr[15:11] == 5'b10001) cpu_din = sb_p1;   // 8800: the speech CPU's P1
     else if (tnv_rom) cpu_din = rom_d;
     else if (fa_cs) cpu_din = cpu_addr[3:0] == 4'h7 ? ay_dout : cpu_addr[3:0] == 4'hD ? ay2_dout : 8'hFF;
     else if (prot_cs) cpu_din = prot_q;
@@ -1102,8 +1324,8 @@ always @(*) begin
     else if (vid_cs) cpu_din = vram_q;
     else if (obj_cs) cpu_din = obj_q;
     else if (io_cs) case (io_sel)
-        2'd0: cpu_din = in0;
-        2'd1: cpu_din = in1;
+        2'd0: cpu_din = kb ? {in0[7], ctl_9n[3] ? in0[6] : in3[0], in0[5:0]} : in0;
+        2'd1: cpu_din = kb ? {in1[7:6], kb_noise[16], in1[4:0]} : in1;
         2'd2: cpu_din = bflags2[3] ? in3 : in2;
         2'd3: cpu_din = 8'hFF;
     endcase
@@ -1135,14 +1357,14 @@ galaxian_video video
     .vflags2(vflags2[3:0]),
     .vflags3(vflags3[7:0]),
     .vflags4(vflags4),
-    .vflags5(vflags5[3:0]),
+    .vflags5(vflags5[5:0]),
     .bg_en(mmk ? ctl_9n[4] : ctl_9n[3]),
     .bg_rgb(bg_rgb),
-    .gfxbank(mmk ? {ctl_9n[2], 2'b00, ctl_9n[0]} : gfxbank),
+    .gfxbank(mmk ? {ctl_9n[2], 2'b00, ctl_9n[0]} : ext_mode[3:0] == 4'd10 ? {3'b000, ctl_9n[2]} : gfxbank),
     .gfxbank4(gfxbank4),
     .stars_232(bflags2[5]),
 
-    .cpu_addr(pause ? hs_address[9:0] : obj_cs ? obj_idx : cpu_addr[9:0]),
+    .cpu_addr(pause ? {hs_address[9] ^ stn, hs_address[8:0]} : obj_cs ? obj_idx : {cpu_addr[9] ^ stn, cpu_addr[8:0]}),
     .cpu_dout(pause ? hs_data_in : cpu_dout),
     .vram_we(pause ? hs_write & hs_vid : wr & vid_cs),
     .obj_we(wr & obj_cs),
@@ -1166,12 +1388,33 @@ galaxian_video video
 
 //----------------------------------------------------------- Sound ------------------------------------------------------------//
 
-wire signed [15:0] disc_audio, ay_audio;
+wire signed [15:0] gal_audio, sbs_audio, disc_audio, ay_audio;
+assign disc_audio = sbh ? sbs_audio : gal_audio;
+
+// Space Battle: its own discrete board (A000 / A001 noise 1 / 2, A803 noise 3, A805 fire, A806-7 volume, B800 pitch)
+reg  [1:0] sb_noise = 2'b00;
+always @(posedge clk) if (reset) sb_noise <= 2'b00; else if (wr && sbh && cpu_addr[15:11] == 5'b10100 && cpu_addr[2:1] == 2'b00) sb_noise[cpu_addr[0]] <= cpu_dout[0];
+
+galaxian_sbsound sbsound
+(
+    .clk(clk),
+    .reset(reset | ~sbh),
+    .pause(pause),
+    .v2(vcnt[1]),
+    .v4(vcnt[2]),
+    .h64(hcnt[6]),
+    .n3a(n3a),
+    .noise_en({snd_9l[3], sb_noise}),
+    .fire(snd_9l[5]),
+    .vol(snd_9l[7:6]),
+    .pitch(pitch),
+    .out(sbs_audio)
+);
 
 galaxian_sound sound
 (
     .clk(clk),
-    .reset(reset),
+    .reset(reset | sbh),
     .mc(bflags[6]),
     .pdiv8(bflags2[4]),
     .pause(pause),
@@ -1183,13 +1426,17 @@ galaxian_sound sound
     .fire(snd_9l[5]),
     .vol(snd_9l[7:6]),
     .pitch(pitch),
-    .out(disc_audio)
+    .out(gal_audio)
 );
 
 // AY-3-8910: Jump Bug 5900 address / 5800 data, Bongo I/O 00 address / 01 data / 02 read (1.536 MHz);
 // Check Man sound board (1.78975 MHz, Japan / Dingo 1.62 MHz)
 reg [4:0] ay_div = 5'd0;
-always @(posedge clk) ay_div <= ay_div + 5'd1;
+reg [6:0] oz_div = 7'd0;
+always @(posedge clk) begin
+    ay_div <= ay_div + 5'd1;
+    oz_div <= oz_div == 7'd95 ? 7'd0 : oz_div + 7'd1;
+end
 
 // 1.78975 MHz = 49.152 MHz x 7159 / 196608, 1.62 MHz = 49.152 MHz x 675 / 20480
 reg [17:0] cm_frac = 18'd0;
@@ -1203,7 +1450,8 @@ always @(posedge clk) begin
 end
 
 wire snd_board = bflags3[0];
-wire ay_cen    = ~pause & (snd_board ? (bflags3[1] ? cj_cen : cm_cen) : bflags4[5] ? ay_div[3:0] == 4'd0 : ay_div == 5'd0);
+wire ay_cen    = ~pause & (snd_board ? (bflags3[1] ? cj_cen : cm_cen) : bflags4[5] ? ay_div[3:0] == 4'd0 :
+                           bflags10[7] ? oz_div == 7'd0 : ay_div == 5'd0);
 
 wire io_wr   = ~cpu_iorq_n & cpu_m1_n & ~cpu_wr_n;
 wire bongo   = bflags2[2];
@@ -1217,11 +1465,12 @@ wire zz_w  = mem & ~cpu_wr_n & zz_cs & cpu_addr[9:8] == 2'b00 & cpu_addr[0];
 wire fa_w    = fa_cs & ~cpu_wr_n;
 wire fa_r    = fa_cs & ~cpu_rd_n;
 wire tp_ay   = bflags8[6];
-wire m_bdir  = jb_ay | (bongo & io_wr & cpu_addr[7:1] == 7'd0) | (tp_ay & io_wr & cpu_addr[7:1] == 7'd0) | zz_w |
+wire m_bdir  = (msh & ~msh_cs & io_wr & cpu_addr[3:1] == 3'b100) | jb_ay | (bongo & io_wr & cpu_addr[7:1] == 7'd0) | (tp_ay & io_wr & cpu_addr[7:1] == 7'd0) | zz_w |
                (fa_w & (cpu_addr[3:0] == 4'h3 || cpu_addr[3:0] == 4'hB));
 wire m_bc1   = (jb_ay & cpu_addr[8]) | (bongo & io_wr & cpu_addr[7:0] == 8'h00) | (bongo & io_rd & cpu_addr[7:0] == 8'h02) |
                (zz_w & cpu_addr[1]) | (fa_w & cpu_addr[3:0] == 4'h3) | (fa_r & cpu_addr[3:0] == 4'h7) |
-               (tp_ay & (io_wr | io_rd) & cpu_addr[7:0] == 8'h01);
+               (tp_ay & (io_wr | io_rd) & cpu_addr[7:0] == 8'h01) |
+               (msh & ~msh_cs & ((io_wr & cpu_addr[3:0] == 4'h8) | (io_rd & cpu_addr[3:0] == 4'hC)));
 wire ay2_bdir = fa_w & (cpu_addr[3:0] == 4'hC || cpu_addr[3:0] == 4'hE);
 wire ay2_bc1  = (fa_w & cpu_addr[3:0] == 4'hC) | (fa_r & cpu_addr[3:0] == 4'hD);
 wire s_bdir, s_bc1;
@@ -1269,9 +1518,67 @@ jt49_bus #(.COMP(3'b010)) ay
     .C(ay_c),
     .sample(),
     .IOA_in(snd_board ? snd_latch : in3),
-    .IOA_out(),
+    .IOA_out(ay_ioa),
     .IOB_in(8'hFF),
-    .IOB_out()
+    .IOB_out(ay_iob)
+);
+
+// Moon Shuttle sample board: A004 trigger, A007 AY chip select (0 = on), A800 rate, B000 volume
+wire [7:0] ay_ioa, ay_iob, samp_out;
+reg        msh_trig = 1'b0, msh_cs = 1'b0;
+reg  [7:0] msh_rate = 8'd0;
+reg  [4:0] msh_vol  = 5'd0;
+always @(posedge clk) begin
+    if (reset) begin
+        msh_trig <= 1'b0;
+        msh_cs   <= 1'b0;
+        msh_rate <= 8'd0;
+        msh_vol  <= 5'd0;
+    end
+    else if (wr && msh) begin
+        if (cpu_addr == 16'hA004) msh_trig <= cpu_dout != 8'd0;
+        if (cpu_addr == 16'hA007) msh_cs   <= cpu_dout[0];
+        if (cpu_addr == 16'hA800) msh_rate <= cpu_dout;
+        if (cpu_addr == 16'hB000) msh_vol  <= cpu_dout[4:0];
+    end
+end
+
+galaxian_cclimb_snd cclimb_snd
+(
+    .clk(clk),
+    .reset(reset | ~msh),
+    .pause(pause),
+    .trigger(msh_trig),
+    .rate(msh_rate),
+    .volume(msh_vol),
+    .start_addr(ay_ioa),
+    .loop_addr(ay_iob),
+    .rom_addr(ioctl_addr[12:0]),
+    .rom_data(ioctl_dout),
+    .rom_we(ioctl_wr0 & samp_cs),
+    .out(samp_out)
+);
+
+// King & Balloon: B002 latches {F, 0, B002 D0, B000 D0} for the speech CPU; NOISE is only checked for activity
+reg  [7:0] kb_latch = 8'hF0;
+reg [16:0] kb_noise = 17'h1FFFF;
+wire [3:0] kb_dac;
+always @(posedge clk) begin
+    if (reset) kb_latch <= 8'hF0;
+    else if (wr && kb && cpu_addr[15:11] == 5'b10110 && cpu_addr[2:0] == 3'd2) kb_latch <= {6'b111100, cpu_dout[0], ctl_9n[0]};
+    if (ce6) kb_noise <= {kb_noise[15:0], kb_noise[16] ^ kb_noise[13]};
+end
+
+galaxian_kbsnd kbsnd
+(
+    .clk(clk),
+    .reset(reset | ~kb),
+    .pause(pause),
+    .latch(kb_latch),
+    .rom_addr(ioctl_addr[12:0]),
+    .rom_data(ioctl_dout),
+    .rom_we(ioctl_wr0 & snd_cs),
+    .dac(kb_dac)
 );
 
 wire [7:0] ay2_a, ay2_b, ay2_c;
@@ -1298,7 +1605,7 @@ jt49_bus #(.COMP(3'b010)) ay2
 );
 
 // AC coupling approximated by the DC remover (as the Crazy Climber core); two AYs at half weight each (MAME 0.25)
-wire [9:0]  ay_sum  = {2'b00, ay_a} + {2'b00, ay_b} + {2'b00, ay_c};
+wire [9:0]  ay_sum  = {2'b00, ay_a} + {2'b00, ay_b} + {2'b00, ay_c} + {2'b00, samp_out} + {2'b00, kb_dac, kb_dac};
 wire [10:0] ay_sum2 = {1'b0, ay_sum} + {3'b000, ay2_a} + {3'b000, ay2_b} + {3'b000, ay2_c};
 reg  [9:0] dc_div = 10'd0;
 always @(posedge clk) dc_div <= dc_div + 10'd1;
@@ -1334,12 +1641,50 @@ galaxian_konami_snd konami_snd
     .rom_data(ioctl_dout),
     .rom_we(ioctl_wr0 & snd_cs),
     .rom_swap01(bflags5[2]),
+    .swap4k(fmc),
+    .scorpion(scp),
+    .dk_rom_we(ioctl_wr0 & dk_cs),
     .out(konami_audio)
+);
+
+// Space Battle speech board: 8800 write = command
+wire        [7:0] sb_p1;
+wire signed [15:0] sb_audio;
+galaxian_sbspeech sbspeech
+(
+    .clk(clk),
+    .reset(reset | ~sbh),
+    .pause(pause),
+    .cmd_we(wr && sbh && cpu_addr[15:11] == 5'b10001),
+    .cmd(cpu_dout),
+    .p1_out(sb_p1),
+    .rom_addr(ioctl_addr[11:0]),
+    .rom_data(ioctl_dout),
+    .prog_we(ioctl_wr0 & sbp_cs),
+    .data_we(ioctl_wr0 & sbd_cs),
+    .audio(sb_audio)
+);
+
+// BMX Stunts SN76489A at 3.072 MHz, written with the data bits reversed (MAME snsnd_w)
+reg  [3:0] sn_div = 4'd0;
+always @(posedge clk) sn_div <= sn_div + 4'd1;
+wire signed [10:0] sn_out;
+jt89 sn
+(
+    .rst(reset | ~m65),
+    .clk(clk),
+    .clk_en(sn_div == 4'd0 && !pause),
+    .wr_n(~(wr && m65 && cpu_addr == 16'h8000)),
+    .cs_n(1'b0),
+    .din({cpu_dout[0], cpu_dout[1], cpu_dout[2], cpu_dout[3], cpu_dout[4], cpu_dout[5], cpu_dout[6], cpu_dout[7]}),
+    .sound(sn_out),
+    .ready()
 );
 
 // discrete (unless cut) plus AY plus the Konami board; a sound source that is idle stays at 0
 wire signed [17:0] mix = (bflags2[1] ? 18'sd0 : {{2{disc_audio[15]}}, disc_audio}) + {{2{ay_audio[15]}}, ay_audio} +
-                         {{2{konami_audio[15]}}, konami_audio};
+                         {{2{konami_audio[15]}}, konami_audio} + {{3{sn_out[10]}}, sn_out, 4'd0} +
+                         {{2{sb_audio[15]}}, sb_audio};
 assign audio = mix > 18'sd32767 ? 16'sd32767 : mix < -18'sd32767 ? -16'sd32767 : mix[15:0];
 
 endmodule
