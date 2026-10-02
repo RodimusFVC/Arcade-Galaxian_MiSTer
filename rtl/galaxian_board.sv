@@ -80,7 +80,7 @@ module galaxian_board
                                         // from VBLANK), [3:2] S2650 clock 0 = 1.536, 1 = 3.072, 2 = 0.768 MHz,
                                         // [4] extended port 00 reads 1 at PC 002B / 0A27 (MAME hncholms_prot_r),
                                         // [5] Driving Force (drivfrcg_program: 1600 write = pitch, 1700 = DSW1,
-                                        // 1704-1707 = LFO; INT and SENSE from VBLANK), [6] port 00 reads 1 at PC
+                                        // 1704-1707 = LFO; INT from VBLANK, SENSE = !VBLANK), [6] port 00 reads 1 at PC
                                         // 002E / 0297 (drivfrcg_port0_r)
     input         [7:0] bflags13,       // [0] Rack + Roll (racknrol_map: objects 1400-14FF, INT from VBLANK, SENSE =
                                         // !VBLANK, I/O 20-3F = column tile banks), [1] SN76489 on extended I/O 1D,
@@ -430,6 +430,9 @@ reg         s26_int = 1'b0;
 reg  [14:0] s26_lastcode = 15'd0;               // last opcode fetch (PC-keyed protection reads, as the Pacman core)
 wire [14:0] s26_pc = s26_lastcode + 15'd1;
 wire        s26_sc = bflags12[1];               // S2650 on a Scramble board
+// PC of an extended I/O read: REDE is opcode + port byte, so the instruction sits one below the last memory read
+reg  [14:0] s26_lastrd = 15'd0;
+wire [14:0] s26_ipc = s26_lastrd - 15'd1;
 wire        s26_df = bflags12[5];               // Driving Force map
 wire        s26_rk = bflags13[0];               // Rack + Roll map
 wire        s26_vb = s26_sc | s26_df | s26_rk;  // INT latched at VBLANK, SENSE = VBLANK (inverted on Rack + Roll)                 // the NMI flip-flop's Q also drives INT (MAME hunchbkg: line 0, cleared by INTACK)
@@ -470,6 +473,7 @@ always @(posedge clk) begin
         s26_w     <= s26_wr;
         s26_d     <= s26_dw;
     end
+    if (s26_new2 && s26_act && !s26_io && !s26_w) s26_lastrd <= s26_a;
     // Rack + Roll: extended I/O 20-3F = column tile banks; SN76489 at 1D (or on the data port)
     rk_tb_we <= s26_new2 && s26_act && s26_io && s26_w && s26_ene_r && s26_a[7:5] == 3'b001 && s26_rk;
     rk_sn_we <= s26_new2 && s26_act && s26_io && s26_w &&
@@ -496,7 +500,7 @@ s2650_cpu s2650
     .irq(s26_int),
     .intack(s26_intack),
     .ivec(8'h03),
-    .sense(s26_vb ? vblank ^ s26_rk : ~cpu_nmi_n),
+    .sense(s26_vb ? vblank ^ (s26_rk | s26_df) : ~cpu_nmi_n),   // Driving Force: !VBLANK, as the Pacman core's drivfrcp
     .flag()
 );
 
@@ -512,9 +516,9 @@ wire [15:0] s26_saddr = s26_a[11:10] == 2'b11           ? {6'b010000, s26_a[9:0]
 wire [15:0] s26_zaddr = ~s26_a[12]               ? {2'b00, s26_a[14:13], s26_a[11:0]} :
                         s26_sc                   ? s26_saddr :
                         s26_rk && s26_a[11:8] == 4'h4 ? {8'h58, s26_a[7:0]} :                       // objects 1400-14FF
-                        s26_df && s26_a[10:7] == 4'b1100 ? (s26_w ? 16'h7800 : 16'h7000) :      // DSW0 / pitch
-                        s26_df && s26_a[10:7] == 4'b1110 ? (s26_a[2] ? {14'h1801, s26_a[1:0]} : 16'hFFFF) :   // LFO
-                        s26_df && s26_a[10:7] == 4'b1101 ? 16'hFFFF :
+                        s26_df && s26_a[11:7] == 5'b01100 ? (s26_w ? 16'h7800 : 16'h7000) :      // DSW0 / pitch
+                        s26_df && s26_a[11:7] == 5'b01110 ? (s26_a[2] ? {14'h1801, s26_a[1:0]} : 16'hFFFF) :   // LFO
+                        s26_df && s26_a[11:7] == 5'b01101 ? 16'hFFFF :
                         s26_a[11:10] == 2'b11     ? {6'b010000, s26_a[9:0]} :
                         s26_a[11:10] == 2'b10     ? {6'b010100, s26_a[9:0]} :
                         s26_a[10:7] == 4'b1001    ? {8'h58, ~s26_a[7], s26_a[6:0]} :
@@ -569,10 +573,10 @@ T65 t65
 wire [15:0] m65_zaddr = m65_a[15:14] == 2'b00 ? {2'b01, m65_a[13:0]} :
                         m65_a[15:14] == 2'b11 ? {2'b00, m65_a[13:1], ~m65_a[0]} : m65_a[15:0];
 assign s26_dr = s26_io && !s26_ene_r && s26_dc_r ? {7'd0, s26_dp1} :
-                s26_io ? (s26_ene_r && s26_a[7:0] == 8'h00 ? (bflags12[4] ? {7'd0, s26_pc == 15'h002B || s26_pc == 15'h0A27} :
-                                                               bflags12[6] ? {7'd0, s26_pc == 15'h002E || s26_pc == 15'h0297} :
+                s26_io ? (s26_ene_r && (s26_a[7:0] == 8'h00 || bflags12[6]) ? (bflags12[4] ? {7'd0, s26_ipc == 15'h002B || s26_ipc == 15'h0A27} :
+                                                               bflags12[6] ? {7'd0, s26_ipc == 15'h002C || s26_ipc == 15'h0295} :   // MAME PCs 002E / 0297, as this core reports them
                                                                              sbk_latch) : 8'h00) :
-                s26_df && s26_a[12] && s26_a[10:7] == 4'b1110 && !s26_a[2] ? in3 : cpu_din;
+                s26_df && s26_a[12] && s26_a[11:7] == 5'b01110 && !s26_a[2] ? in3 : cpu_din;
 // data port (REDD / WRTD) reads, keyed on the PC (MAME hexpoola / bullsdrtg_data_port_r)
 wire s26_dp1 = (bflags13[3] && s26_pc == 15'h0031) || (bflags13[4] && (s26_pc == 15'h009B || s26_pc == 15'h6B58));
 
