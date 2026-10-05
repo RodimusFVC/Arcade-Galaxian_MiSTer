@@ -25,7 +25,7 @@
     <joystick>8-way</joystick>
     <special_controls></special_controls>
     <num_buttons>3</num_buttons>
-    <buttons names="Fire,Button 2,Button 3,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+    <buttons names="Fire,Button 2,Button 3,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,B,X,Y,Select,Start,R,L"/>
 
     <switches default="FF,FC,F1,FC,F7">
         <dip name="Lives" bits="8,9" ids="3,4,5,255 (Cheat)"/>

@@ -25,7 +25,7 @@
     <joystick>8-way</joystick>
     <special_controls>twin joysticks (right stick = fire directions)</special_controls>
     <num_buttons>4</num_buttons>
-    <buttons names="Fire Up,Fire Down,Fire Left,Fire Right,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+    <buttons names="Fire Up,Fire Down,Fire Left,Fire Right,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,B,X,Y,Select,Start,R,L"/>
 
     <switches default="FF,FD,F3,FF">
         <dip name="Starting Level" bits="1" ids="1,3" values="1,0"/>

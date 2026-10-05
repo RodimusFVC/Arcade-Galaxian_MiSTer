@@ -25,7 +25,7 @@
     <joystick>2-way horizontal</joystick>
     <special_controls></special_controls>
     <num_buttons>2</num_buttons>
-    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,Y,B,X,Select,Start,R,L"/>
+    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,B,X,Y,Select,Start,R,L"/>
 
     <switches default="00,C0,00,FF">
         <dip name="Coin A" bits="14" ids="1C/1C,1C/2C" values="1,0"/>

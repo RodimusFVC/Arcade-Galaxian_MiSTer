@@ -912,7 +912,7 @@ def mra(g, games, segs, build_inputs):
     <joystick>{"2-way horizontal" if twoway else "4-way" if fourway else "8-way"}</joystick>
     <special_controls>{"twin joysticks (right stick = fire directions)" if twin else ""}</special_controls>
     <num_buttons>{nbtn}</num_buttons>
-    <buttons names="{names}" default="A,Y,B,X,Select,Start,R,L"/>
+    <buttons names="{names}" default="A,B,X,Y,Select,Start,R,L"/>
 
     <switches default="{",".join(f"{b:02X}" for b in idle)}">
 {dip_lines}

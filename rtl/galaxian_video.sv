@@ -18,6 +18,7 @@ module galaxian_video
     input               flip_y,
     input               crt_flip,       // mirrors shells/missile, which the flip latches do not move in X
     input               stars_on,
+    input               pause,          // stars freeze: every frame replays the one shown when pause began
     input               bullet_mode,    // 0 Galaxian (4 px, white shells + yellow missile), 1 Scramble (2 px, yellow)
     input               rgb_gbr,        // wiring harness RGB -> GBR (Eagle)
     input               gfx_packed,     // Mr. Kougar: both planes of 4 pixels in one byte, the ROM loaded into each store
@@ -511,6 +512,7 @@ end
 // 17-bit LFSR clocked twice per active pixel on every line but VSYNC; unflipped, 6B holds off the first two clocks
 reg  [16:0] sr = 17'd0;
 reg   [1:0] sr_hold = 2'd0;
+reg  [16:0] sr_frame = 17'd0;          // LFSR at the start of the last frame drawn while running
 wire [16:0] sr_n = {sr[12] ^ ~sr[0], sr[16:1]};
 wire        vsync = ~vcnt[8];
 assign      n3a   = ~sr[0];
@@ -526,17 +528,21 @@ reg [6:0] star_a, star_b;
 reg  [25:0] blink_cnt = 26'd0;
 reg   [1:0] blink = 2'd0;
 always @(posedge clk) begin
-    if (blink_cnt == 26'd40874802) begin blink_cnt <= 26'd0; blink <= blink + 2'd1; end
-    else blink_cnt <= blink_cnt + 26'd1;
+    if (!pause) begin
+        if (blink_cnt == 26'd40874802) begin blink_cnt <= 26'd0; blink <= blink + 2'd1; end
+        else blink_cnt <= blink_cnt + 26'd1;
+    end
 end
 
 always @(posedge clk) begin
     if (!stars_on || (vflags3[5] && vsync)) sr <= 17'd0;
+    else if (vsync && pause) sr <= sr_frame;
     else if (active && !vsync && (ph == 3'd2 || ph == 3'd5)) begin
         if (sr_hold != 2'd2 && !flip_x) sr_hold <= sr_hold + 2'd1;
         else sr <= sr_n;
     end
     if (vsync) sr_hold <= 2'd0;
+    if (vsync && !pause) sr_frame <= sr;   // the LFSR does not step during VSYNC
     if (ph == 3'd1) begin star_a <= star(sr); star_b <= star(sr_n); end
 end
 

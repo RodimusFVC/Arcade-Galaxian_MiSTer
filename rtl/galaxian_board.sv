@@ -111,6 +111,8 @@ module galaxian_board
     input               ioctl_wr0,      // ioctl index 0
 
     input               crt_flip,
+    input  signed [3:0] h_adj,          // CRT position: HSYNC moved 2 pixels per step
+    input  signed [3:0] v_adj,          //               VSYNC moved 1 line per step
 
     output        [7:0] video_r,
     output        [7:0] video_g,
@@ -162,6 +164,13 @@ reg       vblank = 1'b1;
 wire vcnt_step     = (hcnt == 9'h0AF);
 wire rising_vblank = vcnt_step & (vcnt == 9'h1EF);
 
+// CRT position: only the sync pulses move, blanking stays put. HSYNC 0B0 + 2h (inside hblank 080-0FF); VSYNC 8 lines
+// from line index 0 (vcnt 0F8) + v, wrapping at 264 (inside vblank 1F0-10F)
+wire [8:0] hs_on    = 9'h0B0 + {{4{h_adj[3]}}, h_adj, 1'b0};
+wire [8:0] v_line   = vcnt - 9'h0F8;                               // 0-263
+wire [8:0] vs_start = v_adj[3] ? 9'd264 + {{5{1'b1}}, v_adj} : {5'd0, v_adj};
+wire [9:0] vs_end   = {1'b0, vs_start} + 10'd8;
+
 always @(posedge clk) begin
     if (ce6) begin
         hcnt <= (hcnt == 9'h1FF) ? 9'h080 : hcnt + 9'd1;
@@ -174,8 +183,8 @@ always @(posedge clk) begin
         // outputs lag the counters by one pixel, like the video pipeline
         video_hblank <= ~hcnt[8];
         video_vblank <= vblank;
-        video_hs     <= hcnt >= 9'h0B0 && hcnt < 9'h0D0;
-        video_vs     <= ~vcnt[8];
+        video_hs     <= hcnt >= hs_on && hcnt < hs_on + 9'h020;
+        video_vs     <= (v_line >= vs_start && {1'b0, v_line} < vs_end) || (vs_end > 10'd264 && {1'b0, v_line} < vs_end - 10'd264);
     end
 end
 
@@ -1392,6 +1401,7 @@ wire mmk = ext_mode[3:0] == 4'd9;
 galaxian_video video
 (
     .clk(clk),
+    .pause(pause),
     .ph(ph),
     .hcnt(hcnt),
     .vcnt(vcnt),
