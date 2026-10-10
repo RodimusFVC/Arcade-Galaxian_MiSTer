@@ -52,7 +52,7 @@
     <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
     <rom index="1">
         <part>
-            00 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 B0 00 00 00 00 00 00 00 00 00 00 00 00 00 00
             11 09 03 04 05 00 02 01 13 14 0B 0C 0D 0A 00 00
             00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
             00 00 00

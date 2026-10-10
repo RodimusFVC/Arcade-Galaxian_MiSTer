@@ -19,6 +19,8 @@
 //   0x1F000 - 0x1FFFF  speech data       "sbhoei_sound_rom" (Space Battle)
 //   0x20000 - 0x22FFF  speech ROM        "digitalker" (Scorpion)
 //   0x24000 - 0x27FFF  gfx planes 0 / 1 upper 8K (16K planes: Rack + Roll)
+//   0x28000 - 0x29FFF  speech ROMs       "tmsprom" (A.D. 2083, TMS5110)
+//   0x2A000 - 0x2A01F  speech PROM       "5110ctrl" (A.D. 2083, TMS5110 sequencer)
 //
 // ioctl index 1: board variant, flags and input map (see the top level)
 // ioctl indexes 3 and 4 are reserved for hiscore config and NVRAM
@@ -37,10 +39,12 @@ module selector
     output logic        sbp_cs,
     output logic        sbd_cs,
     output logic        dk_cs,
-    output logic        gfxh_cs
+    output logic        gfxh_cs,
+    output logic        tms_cs,
+    output logic        tmsp_cs
 );
     always_comb begin
-        {prog_cs, gfx0_cs, gfx1_cs, gfx2_cs, pal_cs, snd_cs, bgp_cs, samp_cs, sbp_cs, sbd_cs, dk_cs, gfxh_cs} = '0;
+        {prog_cs, gfx0_cs, gfx1_cs, gfx2_cs, pal_cs, snd_cs, bgp_cs, samp_cs, sbp_cs, sbd_cs, dk_cs, gfxh_cs, tms_cs, tmsp_cs} = '0;
 
         if      (ioctl_addr < 25'h10000) prog_cs = 1'b1;
         else if (ioctl_addr < 25'h12000) gfx0_cs = 1'b1;
@@ -54,5 +58,7 @@ module selector
         else if (ioctl_addr >= 25'h1F000 && ioctl_addr < 25'h20000) sbd_cs = 1'b1;
         else if (ioctl_addr >= 25'h20000 && ioctl_addr < 25'h23000) dk_cs = 1'b1;
         else if (ioctl_addr >= 25'h24000 && ioctl_addr < 25'h28000) gfxh_cs = 1'b1;
+        else if (ioctl_addr >= 25'h28000 && ioctl_addr < 25'h2A000) tms_cs  = 1'b1;
+        else if (ioctl_addr >= 25'h2A000 && ioctl_addr < 25'h2A020) tmsp_cs = 1'b1;
     end
 endmodule

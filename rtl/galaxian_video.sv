@@ -22,6 +22,8 @@ module galaxian_video
     input               bullet_mode,    // 0 Galaxian (4 px, white shells + yellow missile), 1 Scramble (2 px, yellow)
     input               rgb_gbr,        // wiring harness RGB -> GBR (Eagle)
     input               gfx_packed,     // Mr. Kougar: both planes of 4 pixels in one byte, the ROM loaded into each store
+    input               spr_hi,         // sprites from the upper 8K of 16K planes (4 Fun in 1)
+    input               spr_ad,         // A.D. 2083 sprites: code = byte 1 bits 6-0 | colour bits 5-4 << 6, no X flip
     input         [3:0] ext_mode,       // code extension: 0 none, 1 Moon Cresta, 2 Moon Quasar, 3 Pisces,
                                         // 4 upper sprites (Kong), 5 Batman Part 2, 6 Moon Shuttle sprites, 7 Jump Bug,
                                         // 8 sprites from the upper half of the planes (separate sprite ROM, Zig Zag),
@@ -30,7 +32,8 @@ module galaxian_video
                                         // MAME's 32-entry palette), 11 Moon Shuttle (colour byte bits 5-4 above
                                         // the tile and sprite codes), 12 BMX Stunts (sprite colour bit 4 adds 40),
                                         // 13 Space Battle (banks 2 / 3 enable codes 80-BF / C0-FF, banks 0 / 1 /
-                                        // 4 replace their upper bits), 15 Rack + Roll (tile code A10-A8 = the
+                                        // 4 replace their upper bits), 14 Harem (tile A9 = col_bank bit of the
+                                        // column / 4, sprites as 10), 15 Rack + Roll (tile code A10-A8 = the
                                         // column's bank latch)
     input         [3:0] vflags2,        // [0] second sprite generator (objram 60-7F), [1] shells at objram C0,
                                         // [2] no shells, [3] sprite RAM page per 64 lines (Time Fighter)
@@ -77,6 +80,10 @@ module galaxian_video
     input               tb_we,          // column tile banks (Rack + Roll I/O 20-3F)
     input         [4:0] tb_addr,
     input         [2:0] tb_d,
+    input         [7:0] col_bank,       // Harem 5000: one tile bank bit per 4 columns
+    input               db,             // Dambusters (MAME dambustr video): character bank, sprites + 40, split
+    input         [7:0] db_bg,          //   background, priority over sprites; PROM colours R / G / B from bits
+    input         [7:0] db_split,       //   3-5 / 6-7 / 0-2
     input               bd_patch,       // Bulls Eye Darts (MAME init_bullsdrtg): plane 0 bytes 0000-0007, 1000-10D7,
                                         // 1180-11CF read as 0
     input               pal_we,
@@ -135,7 +142,8 @@ function [12:0] gfx_remap(input [12:0] i);
     reg [12:0] j;
     begin
         j = i;
-        if (vflags4[4]) begin
+        if (db) j = {i[12:4], i[2:0], i[3]};       // Dambusters (MAME init_dambustr): byte pairs of each 16 interleaved
+        else if (vflags4[4]) begin
             j = i & 13'h1A7F;
             j[7]  = i[3] ^ i[10];
             j[8]  = i[1] ^ i[7];
@@ -273,6 +281,7 @@ function [10:0] tile_code(input [7:0] code, input [7:0] attr, input [2:0] bank);
         4'd7:    tile_code = gfxbank[3] && code[7:6] == 2'b10 ?
                              {2'b00, code} + 10'd128 + {3'd0, gfxbank[0], 6'd0} + {2'd0, gfxbank[2], 7'd0} +
                              {1'b0, ~gfxbank4, 8'd0} : {2'b00, code};
+        4'd14,
         4'd15:   tile_code = {bank, code};
         default: tile_code = {2'b00, code};
     endcase
@@ -298,7 +307,8 @@ always @(posedge clk) begin
             3'd2: ot_addr <= {2'b00, xn[7:3], 1'b1};
             3'd3: begin vr_addr <= {t_sum[7:3], xn[7:3]}; t_line <= t_sum[2:0]; end
             3'd4: begin nxt_col <= col_fix(ot_q[2:0]); nxt_c3 <= c4 & ot_q[6]; end
-            3'd5: gt_addr <= {tile_code(vr_q, ot_q, tbank[xn[7:3]]) | {2'b00, mar & bgp[{2'b10, xn[7:3]}][0], 8'd0}, t_line};
+            3'd5: if (db) gt_addr <= {1'b0, ~db_bg[7] || xn[7:3] == 5'd28 ? 2'b11 : 2'b00, vr_q, t_line};   // text 300+, graphics 0+
+                  else gt_addr <= {tile_code(vr_q, ot_q, ext_mode == 4'd14 ? {1'b0, col_bank[xn[7:5]], 1'b0} : tbank[xn[7:3]]) | {2'b00, mar & bgp[{2'b10, xn[7:3]}][0], 8'd0}, t_line};
             3'd7: begin nxt_p0 <= g0t_q; nxt_p1 <= g1t_q; nxt_p2 <= g2t_q; end
             default: ;
         endcase
@@ -358,7 +368,8 @@ function [7:0] spr_ext(input [5:0] code, input [7:0] attr);
                            {1'b0, ~gfxbank4, 6'd0} : {2'b00, code};
         4'd8:    spr_ext = {2'b10, code};
         4'd9:    spr_ext = {gfxbank[3], gfxbank[0], code};
-        4'd10:   spr_ext = {gfxbank[0], 1'b1, code};
+        4'd10,
+        4'd14:   spr_ext = {gfxbank[0], 1'b1, code};
         4'd11:   spr_ext = {attr[5:4], code};
         4'd12:   spr_ext = {1'b0, attr[4], code};
         4'd13:   spr_ext = (gfxbank[2] && code[5:4] == 2'b10) || (gfxbank[3] && code[5:4] == 2'b11) ?
@@ -368,7 +379,8 @@ function [7:0] spr_ext(input [5:0] code, input [7:0] attr);
 endfunction
 
 reg  [7:0] s_code8;
-wire [7:0] spr_code = vflags5[3] ? s_code8 : spr_ext(s_code, s_attr);
+wire [7:0] spr_code = db ? {2'b01, s_code} : vflags5[3] ? s_code8 : spr_ad ? {s_attr[5], s_attr[4] | s_code8[6], s_code8[5:0]} :
+                      spr_ext(s_code, s_attr);
 
 // sprite RAM page (Time Fighter: MAME sprites_base = 40 | ((vpos + 16) << 2 & 300)) and the shell base
 wire [7:0] y16   = y + 8'd16;
@@ -400,15 +412,15 @@ always @(posedge clk) begin
                 3'd4: begin
                     os_addr <= {spage, 3'b010, sn, 2'd3};
                     s_code <= os_q[5:0]; s_code8 <= os_q;
-                    s_fx <= os_q[6] & ~vflags5[3]; s_fy <= os_q[7] & ~vflags5[3];
+                    s_fx <= os_q[6] & ~vflags5[3] & ~spr_ad; s_fy <= os_q[7] & ~vflags5[3];
                 end
                 3'd5: begin s_color <= col_fix(os_q[2:0]); s_c3 <= c4 & os_q[6]; s_attr <= os_q; end
                 3'd6: begin s_x <= os_q; s_hit <= s_sum[7:4] == 4'hF; end
                 default: ;
             endcase
             4'd1: case (ph)
-                3'd1: gs_addr <= {spr_code, s_row[3], 1'b0, s_row[2:0]};
-                3'd2: gs_addr <= {spr_code, s_row[3], 1'b1, s_row[2:0]};
+                3'd1: gs_addr <= {spr_hi, spr_code, s_row[3], 1'b0, s_row[2:0]};
+                3'd2: gs_addr <= {spr_hi, spr_code, s_row[3], 1'b1, s_row[2:0]};
                 3'd3: begin sp0h0 <= g0s_q; sp1h0 <= g1s_q; sp2h0 <= g2s_q; end
                 3'd4: begin sp0h1 <= g0s_q; sp1h1 <= g1s_q; sp2h1 <= g2s_q; end
                 default: ;
@@ -590,11 +602,28 @@ wire [7:0] mblue = (mbg[0] ? 8'h0E : 8'h00) + (mbg[1] ? 8'h1F : 8'h00) + (mbg[2]
 wire       m_st  = bgp[{2'b10, x[7:3] + 5'd1}][2];
 wire [23:0] strat = {~sp[1] & bg_rgb[2] ? 8'h7C : 8'h00, ~sp[1] & bg_rgb[1] ? 8'h3C : 8'h00, ~sp[0] & bg_rgb[0] ? 8'h47 : 8'h00};
 
+// Dambusters (MAME dambustr_draw_background / _draw_upper_background): colour 1 left of H = 256 - split (right of it
+// flipped), colour 2 beyond; with the priority bit the colour 1 side shows background and stars over everything
+// except tiles of columns with colour > 3
+wire [8:0] db_edge = 9'd256 - {1'b0, db_split};
+wire       db_side = flip_x ? {1'b0, x} >= db_edge : {1'b0, x} < db_edge;
+wire [2:0] db_col  = db_side ? db_bg[2:0] : db_bg[6:4];
+wire [23:0] db_bgc = {db_col[0] ? 8'h47 : 8'h00, db_col[1] ? 8'h47 : 8'h00, db_col[2] ? 8'h47 : 8'h00};
+wire       db_hide = db & db_bg[3] & db_side;
+wire [7:0] db_tv   = pal[{1'b0, cur_col, t_pen}];
+function [23:0] db_rgb(input [7:0] v);
+    db_rgb = {RG_LUT[v[5:3]*8 +: 8], B_LUT[v[7:6]*8 +: 8], RG_LUT[v[2:0]*8 +: 8]};
+endfunction
+
 reg [23:0] rgb;
 always @(*) begin
-    if ((missile_on | shell_on) && vflags5[4]) rgb = bx[6] ? 24'hFF00FF : MSH_BUL[bx[4:2]*24 +: 24];
+    if (db_hide)                     rgb = t_pen != 2'd0 && cur_col[2] ? db_rgb(db_tv) :
+                                           st_on ? {ST_LUT[{st[4], st[5]}*8 +: 8], ST_LUT[{st[2], st[3]}*8 +: 8], ST_LUT[{st[0], st[1]}*8 +: 8]} :
+                                           db_bgc;
+    else if ((missile_on | shell_on) && vflags5[4]) rgb = bx[6] ? 24'hFF00FF : MSH_BUL[bx[4:2]*24 +: 24];
     else if (missile_on)             rgb = vflags3[6] ? 24'hFF00FF : 24'hFFFF00;   // The End: yellow -> blue / green swap
     else if (shell_on)               rgb = bullet_mode ? 24'hFFFF00 : 24'hFFFFFF;
+    else if (pen_on && db)           rgb = db_rgb(pvx);
     else if (pen_on && vflags5[5])   rgb = {RG_LUT[pvx[2:0]*8 +: 8], B_LUT[pvx[7:6]*8 +: 8], RG_LUT[pvx[5:3]*8 +: 8]};
     else if (pen_on)                 rgb = {RG_LUT[pvx[2:0]*8 +: 8], RG_LUT[pvx[5:3]*8 +: 8], B_LUT[pvx[7:6]*8 +: 8]};
     else if (st_on)                  rgb = {ST_LUT[{st[4], st[5]}*8 +: 8], ST_LUT[{st[2], st[3]}*8 +: 8], ST_LUT[{st[0], st[1]}*8 +: 8]};
@@ -605,6 +634,7 @@ always @(*) begin
                                                    {8'h00, bg_grad, bg_grad[6:0], 1'b0};
     else if (vflags4[3])             rgb = strat;
     else if (mar)                    rgb = {16'h0000, mblue};
+    else if (db)                     rgb = db_bgc;
     else if (vflags3[7])             rgb = {bg_rgb[2] ? 8'h55 : 8'h00, bg_rgb[1] ? 8'h47 : 8'h00, bg_rgb[0] ? 8'h55 : 8'h00};
     else                             rgb = 24'd0;
 end

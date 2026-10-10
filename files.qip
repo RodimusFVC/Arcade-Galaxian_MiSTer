@@ -16,6 +16,8 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/sp0250/sp0250.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_sbspeech.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_sbsound.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/galaxian_digitalker.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/tms5110.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/sound/tmsprom.sv
 set_global_assignment -name VHDL_FILE rtl/cpu/T65/T65_Pack.vhd
 set_global_assignment -name VHDL_FILE rtl/cpu/T65/T65_ALU.vhd
 set_global_assignment -name VHDL_FILE rtl/cpu/T65/T65_MCode.vhd

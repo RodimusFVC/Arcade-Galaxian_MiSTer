@@ -75,6 +75,8 @@ REGIONS = {
     "digitalker": (0x20000, 0x03000),                             # Scorpion speech ROM (Digitalker)
     "gfx1_p0h": (0x24000, 0x02000),                               # upper 8K of 16K planes (Rack + Roll)
     "gfx1_p1h": (0x26000, 0x02000),
+    "tmsprom": (0x28000, 0x02000),                                # A.D. 2083 speech ROMs (TMS5110)
+    "5110ctrl": (0x2A000, 0x00020),                               # A.D. 2083 speech sequencer PROM
     "i8039": (0x1E000, 0x00800),                                  # Space Battle speech CPU
     "sbhoei_sound_rom": (0x1F000, 0x01000),                       # Space Battle speech data
 }
@@ -83,7 +85,10 @@ TRUNCATE = {"user1"}                    # PROMs whose tail the hardware never ad
 IGNORED_REGIONS = {"plds", "pld", "unknown", "unk", "unused_proms",   # dumps MAME does not use
                    "tempgfx",                                  # ROM_COPY source only
                    "other_proms",                              # decoding PROMs (Superbike)
-                   "proms2", "extra_prom", "epoxy_block_prom"} # unknown PROMs (ckongcv / ckongis, guttangts3, bmxstunts)
+                   "proms2", "extra_prom", "epoxy_block_prom", # unknown PROMs (ckongcv / ckongis, guttangts3, bmxstunts)
+                   "unk_prom"}                                 # Dambusters timing PROM
+# per-driver region placement where MAME's region name means something else
+REGION_OVERRIDE = {"dambustr.cpp": {"user1": (0x08000, 0x04000)}}   # Dambusters program (address-swapped, read path)
 
 # (machine config, init) pairs the board implements -> (memory map, video flags, board flags, ROM top >> 8, code
 # extension); see rtl/galaxian_board.sv
@@ -131,7 +136,10 @@ V3_TURTLES_BG = 0x80
 SCR = (V3_SCR_BG | V3_SCR_STARS, B5_KONAMI | B5_TWO_AY)                  # Scramble background + 2-AY sound board
 # board flags 8 (15th field): scramble.cpp boards
 M_MARS, M_HOTSHOCK, M_TRIPLEP = 15, 16, 17
-V_PACKED = 0x04                                                 # Mr. Kougar packed gfx (ROM loaded into both planes)
+M_HAREM, X_HAREM, M_DAMBUSTR = 28, 14, 29
+V_PACKED, V_SPRHI, V_AD2083 = 0x04, 0x08, 0x10                                  # Mr. Kougar packed gfx (ROM loaded into both planes);
+                                                                # sprites from the upper 8K of 16K planes (4 Fun in 1);
+                                                                # A.D. 2083 sprite code (colour bits 5-4 above it, no X flip)
 B8_ADDRSWAP, B8_KOUGAR_NMI, B8_PC00, B8_NOMUTE, B8_HSPATCH, B8_CAVELON, B8_AYIO01, B8_TPPROT = \
     0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80
 KOUGAR = B8_KOUGAR_NMI | B8_PC00 | B8_NOMUTE                    # mrkougar_map + mrkougar_sh_irqtrigger_w
@@ -302,6 +310,16 @@ SUPPORTED = {
     # scramble.cpp (Konami-style boards)
     ("scramble.cpp", "mars", "init_mars"):         (M_MARS, V_SCRAMBLE_SHELLS, 0, 0, 0, B2_NODISC, 0, 0, 0, *SCRS, 0, 0, B7_ROM12K,
                                                     B8_ADDRSWAP),
+    # Harem: own map (28), run-time ROM decryption, column tile banks + Bagman sprite bank (code extension 14),
+    # Scorpion sound board (third AY + Digitalker, INTR at 6000)
+    # 4 Fun in 1: Galaxian board, 8000 game bank (ROM, gfx bank, DIP set), menu ROM C000, program XOR (board flags 13 0x40)
+    ("galaxold.cpp", "_4in1", "init_4in1"):        (M_GAL, V_SPRHI, 0, 0, X_PISCES, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                                                    0, 0, 0x40),
+    # Dambusters: own map (29), split background with priority, character bank, PROM R/G/B swap (board), program and
+    # gfx unscrambled on the read path; Galaxian discrete sound
+    ("dambustr.cpp", "dambustr", "init_dambustr"): (M_DAMBUSTR, V_SCRAMBLE_SHELLS, 0, 0, 0),
+    ("scramble.cpp", "harem", "init_harem"):       (M_HAREM, V_SCRAMBLE_SHELLS, 0, 0, X_HAREM, B2_NODISC, 0, 0, 0, *SCRS,
+                                                    0, 0, B7_ROM12K),
     ("scramble.cpp", "mars", "empty_init"):        (M_MARS, V_SCRAMBLE_SHELLS, 0, 0, 0, B2_NODISC, 0, 0, 0, *SCRS, 0, 0, B7_ROM12K),
     ("scramble.cpp", "devilfsh", "init_devilfsh"): (M_MARS, V_SCRAMBLE_SHELLS, 0, 0, X_UPPER, B2_NODISC, 0, 0, 0, *SCRS,
                                                     0, 0, B7_ROM12K, B8_ADDRSWAP),
@@ -318,6 +336,11 @@ SUPPORTED = {
                                                         0, 0, B7_S2650, 0, 0, 0, 0, 0, 0x02 | 0x04 | 0x10),
     ("scramble.cpp", "hncholms", "init_scramble_ppi"): (M_SCRAMBLE, V_SCRAMBLE_SHELLS, 0, 0, 0, B2_NODISC, 0, 0, 0, *SCRS,
                                                         0, 0, B7_S2650, 0, 0, 0, 0, 0, 0x02 | 0x08 | 0x10),
+    # A.D. 2083: Hot Shocker map + ROM A000-DFFF / RAM E800 / RGB background / program XOR (board flags 13 0x80), tile and
+    # sprite codes from colour bits 5-4 (code extension 11 + V_AD2083), TMS5110 speech on the sound board
+    ("scramble.cpp", "ad2083", "init_ad2083"):     (M_HOTSHOCK, V_SCRAMBLE_SHELLS | V_AD2083, 0, 0, 11, B2_NODISC, 0, 0, 0,
+                                                    V3_TURTLES_BG, B5_KONAMI | B5_TWO_AY, 0, 0, B7_ROM12K, 0, 0, 0, 0, 0, 0,
+                                                    0x80),
     ("scramble.cpp", "hotshock", "init_hotshock"): (M_HOTSHOCK, 0, 0, 0, X_PISCES, B2_NODISC, 0, 0, 0, 0,
                                                     B5_KONAMI | B5_TWO_AY, 0, 0, B7_ROM12K, B8_HSPATCH),
     # Triple Punch: no sound board, one AY on the main CPU's I/O
@@ -349,11 +372,17 @@ SUPPORTED = {
                                                       B7_S2650 | B7_SBK_LATCH),
 }
 # program ROM beyond 0x10000 moved into a free part of the 64K store: set -> (source, length, destination)
-ROM_MOVE = {"cavelon": (0x10000, 0x2000, 0x4000)}              # bank 1 of 0000-1FFF (see B8_CAVELON)
+ROM_MOVE = {"cavelon": [(0x10000, 0x2000, 0x4000)],             # bank 1 of 0000-1FFF (see B8_CAVELON)
+            # 4 Fun in 1 games 10000-1FFFF packed around the menu at C000 (rtl/galaxian_board.sv fin_a)
+            "4in1": [(0x10000, 0x4000, 0x0000), (0x14000, 0x4000, 0x4000), (0x18000, 0x3000, 0x8000),
+                     (0x1C000, 0x1000, 0xB000), (0x1D000, 0x2000, 0xE000)]}
 # 4K gfx planes read with 8K codes (Moon Shuttle sprite banks): the unconnected top address line mirrors the ROM
 GFX_MIRROR = {"cavelon"}
+# gfx1 = chars plane 0 / 1, then sprites plane 0 / 1 (8K each; sprites read from the upper 8K, V_SPRHI)
+GFX_QUARTERS = {"4in1"}
 
-F_4WAY, F_IMPULSE, F_TWIN, F_VERT, F_ROT90 = 0x01, 0x04, 0x08, 0x10, 0x80
+F_4WAY, F_IMPULSE, F_TWIN, F_VERT, F_MOUSE, F_ROT90 = 0x01, 0x04, 0x08, 0x10, 0x20, 0x80
+MOUSE_SETS = {"warofbug", "warofbugg", "warofbugu"}   # optional mouse / trackball (Game Options), user 2026-09-29
 
 # port order on the board: DIP bytes 0-3 and input map bytes 16-47
 PORTS = [("IN0",), ("IN1",), ("IN2", "DSW0", "DSW1"), ("IN3", "FAKE", "DSW", "DSW1"), ("IN4", "COINAGE")]   # each tag used once   # first name present wins; IN4 = DIPs only
@@ -376,7 +405,7 @@ CTL = {("JOYSTICK_UP", 1): 1, ("JOYSTICK_DOWN", 1): 2, ("JOYSTICK_LEFT", 1): 3, 
 TWIN_FIRE = {"JOYSTICKRIGHT_UP": (1, "Fire Up"), "JOYSTICKRIGHT_DOWN": (2, "Fire Down"),
              "JOYSTICKRIGHT_LEFT": (3, "Fire Left"), "JOYSTICKRIGHT_RIGHT": (4, "Fire Right")}
 TRACKBALL = {}
-IGNORED_TYPES = {"UNUSED", "UNKNOWN"}
+IGNORED_TYPES = {"UNUSED", "UNKNOWN", "OTHER"}   # OTHER: operator-only buttons (Dambusters Initials Reset)
 
 SERIES_BY_PARENT = {}
 REGION_WORDS = [("US", "US"), ("Japan", "Japan"), ("Spanish", "Spain"), ("Italian", "Italy"), ("French", "France"),
@@ -544,7 +573,12 @@ def parse_inputs(src):
                     fld = dict(mask=mask, kind="unused", default=int(args[1], 0) if d is None else d)
                 ports[cur].append(fld)
             elif mac in ("PORT_DIPSETTING", "PORT_CONFSETTING"):
-                fld["settings"].append((int(args[0], 0), def_str(args[1])))
+                v, n = int(args[0], 0), def_str(args[1])
+                same = [i for i, (sv, _) in enumerate(fld["settings"]) if sv == v]
+                if same:                                # PORT_CONDITION alternatives (Dambusters coinage): one entry
+                    fld["settings"][same[0]] = (v, f'{fld["settings"][same[0]][1]} / {n}')
+                else:
+                    fld["settings"].append((v, n))
             elif mac == "PORT_PLAYER":
                 fld["player"] = int(args[0])
             elif mac == "PORT_COCKTAIL":
@@ -568,6 +602,9 @@ def parse_inputs(src):
                 if args[0] == "FUNC(kingball_state::noise_r)":
                     fld["board"] = True                 # the board's noise bit
                     continue
+                if re.fullmatch(r'FUNC\(\w+::_4in1_fake_port_r<0x[0-9a-fA-F]+>\)', args[0]):
+                    fld["board"] = True                 # the board picks the bank's DIP set (FIN_DIPS)
+                    continue
                 if re.fullmatch(r'FUNC\(\w+::theend_protection_alt_r<\d>\)', args[0]):
                     fld["board"] = True                 # driven by the board's protection PAL model
                     continue
@@ -582,13 +619,36 @@ def parse_inputs(src):
                 pass
             else:
                 raise SystemExit(f"INPUT_PORTS({name}): unhandled {mac}")
+        if name in FIN_DIPS:
+            ports = fin_dips(ports, FIN_DIPS[name])
         cache[name] = ports
         return copy.deepcopy(ports)
 
     return build
 
 
-def split_planes(segs, packed=False, bpp3=False):
+# 4 Fun in 1: the four per-game FAKE DIP ports, selected by the game bank, packed into DIP bytes 3 (IN3) / 4 (IN4) as
+# rtl/galaxian_board.sv fin_dip unpacks them: port -> [(MAME mask, DIP byte, packed mask)]
+FIN_DIPS = {"4in1": {"FAKE1": [(0x03, 3, 0x03), (0xC0, 3, 0x0C)], "FAKE3": [(0x03, 3, 0x30), (0xC0, 3, 0xC0)],
+                     "FAKE4": [(0x01, 4, 0x01), (0xC0, 4, 0x06)],
+                     "FAKE2": [(0x08, 4, 0x08), (0x10, 4, 0x10), (0x20, 4, 0x20), (0xC0, 4, 0xC0)]}}
+
+
+def fin_dips(ports, table):
+    def move(v, src, dst):                          # bits of src (low first) -> bits of dst
+        sb = [i for i in range(8) if src >> i & 1]
+        db = [i for i in range(8) if dst >> i & 1]
+        return sum(1 << d for s_, d in zip(sb, db) if v >> s_ & 1)
+    out = {k: v for k, v in ports.items() if k not in table}
+    for tag, moves in table.items():
+        for m, byte, nm in moves:
+            f = next(f for f in ports[tag] if f["kind"] == "dip" and f["mask"] == m)
+            out.setdefault(f"IN{byte}", []).append(dict(f, mask=nm, default=move(f["default"], m, nm),
+                                                        settings=[(move(v, m, nm), n) for v, n in f["settings"]]))
+    return out
+
+
+def split_planes(segs, packed=False, bpp3=False, setname=""):
     """gfx1 / gfx2 = two bitplanes, RGN_FRAC(0,2) and RGN_FRAC(1,2): each half goes to its own plane store.
     Packed gfx (both planes in each byte, V_PACKED): the whole region goes to both stores."""
     out = []
@@ -604,6 +664,13 @@ def split_planes(segs, packed=False, bpp3=False):
                 lo, hi = max(s["dst"], base), min(s["dst"] + s["len"], base + 0x1000)
                 if lo < hi:
                     out.append(dict(s, region=rg, src=s["src"] + lo - s["dst"], dst=lo - base, len=hi - lo))
+            continue
+        if s["region"] == "gfx1" and setname in GFX_QUARTERS:
+            for q in range(4):
+                lo, hi = max(s["dst"], q * 0x2000), min(s["dst"] + s["len"], (q + 1) * 0x2000)
+                if lo < hi:
+                    out.append(dict(s, region=f"gfx1_p{q & 1}" + ("h" if q & 2 else ""), src=s["src"] + lo - s["dst"],
+                                    dst=lo - q * 0x2000, len=hi - lo))
             continue
         rg = s["region"]
         half = s["rsize"] // 2
@@ -631,17 +698,18 @@ def split_high(segs):
     return out
 
 
-def place(segs, setname, packed=False, bpp3=False):
+def place(segs, setname, packed=False, bpp3=False, regions=None):
+    regions = dict(REGIONS, **(regions or {}))
     out = []
-    for s in split_high(split_planes(segs, packed, bpp3)):
+    for s in split_high(split_planes(segs, packed, bpp3, setname)):
         if s["region"] in IGNORED_REGIONS:
             continue
-        if s["region"] not in REGIONS:
+        if s["region"] not in regions:
             raise SystemExit(f"{setname}: unmapped region {s['region']}")
-        base, size = REGIONS[s["region"]]
+        base, size = regions[s["region"]]
         if s["dst"] >= size:
             continue                                   # e.g. the namco timing PROM
-        if s["dst"] + s["len"] > size and s["region"] in TRUNCATE:
+        if s["dst"] + s["len"] > size and s["region"] in TRUNCATE and regions[s["region"]] == REGIONS.get(s["region"]):
             s = dict(s, len=size - s["dst"])
         if s["dst"] + s["len"] > size:
             raise SystemExit(f"{setname}: {s['name']} overruns {s['region']}")
@@ -853,7 +921,7 @@ def mra(g, games, segs, build_inputs):
     twin = any(f.get("type", "").startswith("JOYSTICKRIGHT") for fl in ports.values() for f in fl)
     flags = (F_4WAY if fourway else 0) | (F_IMPULSE if impulse else 0) | (F_TWIN if twin else 0) | \
             (F_VERT if g["rot"] in ("ROT90", "ROT270") else 0) | \
-            (F_ROT90 if g["rot"] == "ROT90" else 0)
+            (F_MOUSE if g["name"] in MOUSE_SETS else 0) | (F_ROT90 if g["rot"] == "ROT90" else 0)
     nbtn = max(buttons) if buttons else 0
     names = ",".join([buttons.get(i, "Not Used") for i in range(1, 5)] + ["Coin", "Start 1P", "Start 2P", "Pause"] +
                      [buttons.get(i, "Not Used") for i in (5, 6)])
@@ -1034,10 +1102,10 @@ def rom_segments(g, src):
     if name in PROM_STANDIN:
         _, fn, crc = PROM_STANDIN[name]
         raw.append(dict(name=fn, crc=crc, src=0, dst=0, len=0x20, flen=0x20, region="proms", rsize=0x20))
-    if name in ROM_MOVE:
-        mv_src, n, mv_dst = ROM_MOVE[name]
+    for mv_src, n, mv_dst in ROM_MOVE.get(name, []):
         for s in raw:
             if s["region"] == "maincpu" and mv_src <= s["dst"] < mv_src + n:
+                assert s["dst"] + s["len"] <= mv_src + n, f"{name}: ROM move splits {s['name']}"
                 s["dst"] += mv_dst - mv_src
     cfg = board_cfg(g)
     if (list(cfg[5:]) + [0] * 9)[8] & B7_S2650:
@@ -1045,7 +1113,8 @@ def rom_segments(g, src):
             if s["region"] == "maincpu":
                 assert not s["dst"] & 0x1000 and (s["dst"] & 0xFFF) + s["len"] <= 0x1000, f"{name}: S2650 page"
                 s["dst"] = (s["dst"] >> 13 << 12) | (s["dst"] & 0xFFF)
-    segs = place(raw, name, bool(cfg[1] & V_PACKED), bool((list(cfg[5:]) + [0] * 8)[6] & V4_BPP3))
+    segs = place(raw, name, bool(cfg[1] & V_PACKED), bool((list(cfg[5:]) + [0] * 8)[6] & V4_BPP3),
+                 REGION_OVERRIDE.get(g["drv"]))
     if name in GFX_MIRROR:
         for base in (REGIONS["gfx1_p0"][0], REGIONS["gfx1_p1"][0]):
             half = [s for s in segs if base <= s["addr"] < base + 0x1000]

@@ -25,7 +25,13 @@ module galaxian_konami_snd
     input               irq_set,        // also sets the IRQ without hs_map (Frogger on Moon Cresta hardware: B001)
     input               scorpion,       // Scorpion: third AY at A2 address / A3 data, its ports A / B = Digitalker
                                         // data / {WR, CMS, CS}; 3000 reads the Digitalker INTR
+    input               harem,          // Harem: the Scorpion sound board with the Digitalker INTR at 6000, RAM
+                                        // 8000-8FFF only, no filter latch (A000 writes ignored, as MAME)
     input               dk_rom_we,      // Digitalker speech ROM (rom_addr)
+    input               ad2083,         // A.D. 2083: I/O 01 = TMS5110 control (MAME ad2083_tms5110_ctrl_w), AY #2
+                                        // port A = the timer
+    input               tms_rom_we,     // its speech ROMs (2 x 4K, rom_addr)
+    input               tms_prom_we,    // its sequencer PROM (32 bytes, rom_addr)
     input               pause,
 
     input               latch_we,       // PPI 1 port A: command
@@ -99,8 +105,8 @@ wire io  = ~iorq_n & m1_n;
 // Scramble: ROM 0000-1FFF, RAM 8000-83FF (mirror to EFFF), filters 9000-9FFF (+ B/D/F000)
 wire rom_cs = mem && (hb_map ? addr[15:14] == 2'b00 : two_ay ? addr[15:13] == 3'b000 || (rom12k && addr[15:12] == 4'h2) :
                       addr[14:13] == 2'b00);
-wire ram_cs = mem && (hb_map ? addr[15:12] == 4'h8 : two_ay ? addr[15] && !addr[12] : addr[14:13] == 2'b10);
-wire flt_cs = mem && ~wr_n && !hb_map && (two_ay ? addr[15] && addr[12] : addr[14:13] == 2'b11);
+wire ram_cs = mem && (hb_map || harem ? addr[15:12] == 4'h8 : two_ay ? addr[15] && !addr[12] : addr[14:13] == 2'b10);
+wire flt_cs = mem && ~wr_n && !hb_map && !harem && (two_ay ? addr[15] && addr[12] : addr[14:13] == 2'b11);
 
 wire [7:0] rom_q, ram_q;
 wire [7:0] rom_d = rom_swap01 && addr[13:12] == 2'b00 && (swap4k || !addr[11]) ? {rom_q[7:2], rom_q[0], rom_q[1]} : rom_q;
@@ -163,7 +169,7 @@ jt49_bus #(.COMP(3'b100)) ay2
     .rst_n(~reset), .clk(clk), .clk_en(cen),
     .bdir(a2_addr_w | a2_data_w), .bc1(a2_addr_w | a2_rd), .din(dout),
     .sel(1'b1), .dout(a2_dout), .sound(), .A(a2A), .B(a2B), .C(a2C), .sample(),
-    .IOA_in(8'hFF), .IOA_out(), .IOB_in(8'hFF), .IOB_out()
+    .IOA_in(ad2083 ? timer : 8'hFF), .IOA_out(), .IOB_in(8'hFF), .IOB_out()
 );
 
 wire [7:0] a3_dout, a3A, a3B, a3C;
@@ -178,7 +184,7 @@ jt49_bus #(.COMP(3'b100)) ay3
 
 always @(*) begin
     din = 8'hFF;
-    if      (scorpion && mem && addr[15:12] == 4'h3) din = {7'd0, dk_intr};
+    if      (scorpion && mem && addr[15:12] == (harem ? 4'h6 : 4'h3)) din = {7'd0, dk_intr};
     else if (rom_cs) din = rom_d;
     else if (ram_cs) din = ram_q;
     else if (io_r)   din = (a1_rd ? a1_dout : 8'hFF) & (a2_rd ? a2_dout : 8'hFF) & (a3_rd ? a3_dout : 8'hFF);
@@ -257,6 +263,95 @@ galaxian_digitalker digitalker
     .out(dk_out)
 );
 
+// A.D. 2083 speech: I/O 01 D2-D0 = ROM bit (reversed), D7-D3 = 1 / 3 selects ROM 1 / 0, every write pulses the
+// sequencer enable low then high. The chip selects reach tmsprom as one-clock low pulses (its edge-driven inputs).
+reg  [2:0] tms_bit = 3'd0;
+reg        io_w_d = 1'b0;
+reg        tms_en = 1'b0, tms_en_lo = 1'b0, tms_cs0 = 1'b1, tms_cs1 = 1'b1;
+always @(posedge clk) begin
+    tms_cs0 <= 1'b1;
+    tms_cs1 <= 1'b1;
+    if (reset) begin
+        tms_bit <= 3'd0; tms_en <= 1'b0; tms_en_lo <= 1'b0;
+    end
+    else if (tms_en_lo) begin
+        tms_en    <= 1'b1;
+        tms_en_lo <= 1'b0;
+    end
+    else if (ad2083 && io_w && addr[7:0] == 8'h01 && !io_w_d) begin
+        tms_bit   <= {dout[0], dout[1], dout[2]};
+        tms_cs1   <= dout[7:3] != 5'd1;
+        tms_cs0   <= dout[7:3] != 5'd3;
+        tms_en    <= 1'b0;
+        tms_en_lo <= 1'b1;
+    end
+end
+always @(posedge clk) io_w_d <= io_w;
+
+// 640 kHz chip: PROM clock 320 kHz (49.152 MHz x 5 / 768), one sample per 40 PROM clocks (the Crazy Climber core's)
+reg  [9:0] tms_acc = 10'd0;
+reg  [5:0] tms_div = 6'd0;
+reg        tms_ce = 1'b0, tms_smp = 1'b0;
+always @(posedge clk) begin
+    tms_ce  <= 1'b0;
+    tms_smp <= 1'b0;
+    if (pause) ;
+    else if (tms_acc >= 10'd763) begin
+        tms_acc <= tms_acc - 10'd763;
+        tms_ce  <= 1'b1;
+        tms_div <= tms_div == 6'd39 ? 6'd0 : tms_div + 6'd1;
+        tms_smp <= tms_div == 6'd39;
+    end
+    else tms_acc <= tms_acc + 10'd5;
+end
+
+wire [12:0] spch_addr;
+wire  [7:0] spch_q;
+wire  [3:0] tms_ctl;
+wire        tms_pdc, tms_m0, tms_data, tms_busy;
+wire signed [15:0] tms_out;
+
+dpram_dc #(.widthad_a(13)) spch_rom
+(
+    .clock_a(clk), .address_a(rom_addr[12:0]), .data_a(rom_data), .wren_a(tms_rom_we),
+    .clock_b(clk), .address_b(spch_addr), .q_b(spch_q)
+);
+
+tmsprom tms_vsm
+(
+    .clk(clk),
+    .reset(reset | ~ad2083),
+    .ce_romclk(tms_ce),
+    .chip_busy(tms_busy),
+    .enable(tms_en),
+    .bit_sel(tms_bit),
+    .csq0(tms_cs0),
+    .csq1(tms_cs1),
+    .prom_wr(tms_prom_we),
+    .prom_waddr(rom_addr[4:0]),
+    .prom_wdata(rom_data),
+    .rom_addr(spch_addr),
+    .rom_q(spch_q),
+    .m0(tms_m0),
+    .data_bit(tms_data),
+    .ctl(tms_ctl),
+    .pdc(tms_pdc)
+);
+
+tms5110 tms
+(
+    .clk(clk),
+    .reset(reset | ~ad2083),
+    .ce_sample(tms_smp),
+    .ctl(tms_ctl),
+    .pdc(tms_pdc),
+    .m0(tms_m0),
+    .data_bit(tms_data),
+    .busy(tms_busy),
+    .talk_status(),
+    .sample(tms_out)
+);
+
 // Scorpion's third AY: unfiltered, at MAME's 0.25 against the board AYs' 0.33
 wire [9:0]  a3_sum = {2'b00, a3A} + {2'b00, a3B} + {2'b00, a3C};
 wire signed [15:0] a3_dcr;
@@ -266,7 +361,8 @@ wire signed [18:0] a3_out = scorpion ? (19'(a3_dcr) >>> 2) * 19'sd3 : 19'sd0;
 wire signed [18:0] sum = 19'(ch_out[0]) + 19'(ch_out[1]) + 19'(ch_out[2]) +
                          (two_ay ? 19'(ch_out[3]) + 19'(ch_out[4]) + 19'(ch_out[5]) : 19'sd0) + a3_out;
 // the Digitalker (MAME 0.16) joins after the board's amplifier
-wire signed [18:0] amp = (control[4] ? 19'sd0 : -sum) + (scorpion ? 19'(dk_out >>> 3) : 19'sd0);
+wire signed [18:0] amp = (control[4] ? 19'sd0 : -sum) + (scorpion ? 19'(dk_out >>> 3) : 19'sd0) +
+                         (ad2083 ? 19'(tms_out >>> 3) : 19'sd0);
 assign out = amp > 19'sd32767 ? 16'sd32767 : amp < -19'sd32767 ? -16'sd32767 : amp[15:0];
 
 endmodule

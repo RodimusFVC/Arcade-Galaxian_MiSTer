@@ -85,7 +85,8 @@ assign BUTTONS = 0;
 // MRA index 1:
 //   byte 0      memory map (see rtl/galaxian_board.sv)
 //   byte 1      flags: [0] 4-way joystick, [2] coins are 2-frame pulses, [3] twin sticks (right analog stick = fire
-//               directions on buttons 1-4), [4] vertical, [7] vertical is ROT90
+//               directions on buttons 1-4), [4] vertical, [5] mouse / trackball option (War of the Bugs),
+//               [7] vertical is ROT90
 //   byte 2      video flags (see rtl/galaxian_board.sv)
 //   byte 3      board flags, byte 4 program ROM top >> 8, byte 5 tile/sprite code extension, byte 6 board flags 2,
 //               byte 7 board flags 3, byte 8 video flags 2, byte 9 board flags 4, byte 10 video flags 3,
@@ -168,6 +169,9 @@ localparam CONF_STR = {
 	"P1O[40:37],H Position (CRT),0,+1,+2,+3,+4,+5,+6,+7,-8,-7,-6,-5,-4,-3,-2,-1;",
 	"P1O[44:41],V Position (CRT),0,+1,+2,+3,+4,+5,+6,+7,-8,-7,-6,-5,-4,-3,-2,-1;",
 	"P1OGI,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
+	"H1-;",
+	"H1P2,Game Options;",
+	"P2O[45],Mouse/Trackball,Off,On;",
 	"-;",
 	"P3,Pause Options;",
 	"P3OJ,Pause when OSD is open,On,Off;",
@@ -197,7 +201,7 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 
 	.buttons(buttons),
 	.status(status),
-	.status_menumask({direct_video}),
+	.status_menumask({~game_flags[5], direct_video}),
 
 	.ioctl_download(ioctl_download),
 	.ioctl_upload(ioctl_upload),
@@ -300,8 +304,40 @@ endfunction
 wire [3:0] al1 = stick(joy_la0), al2 = stick(joy_la1);
 wire [3:0] ar1 = game_flags[3] ? stick(joy_ra0) : 4'd0, ar2 = game_flags[3] ? stick(joy_ra1) : 4'd0;
 
+// Mouse / trackball as player 1 joystick (War of the Bugs, Game Options): each count of movement queues ~5.3 ms of
+// that direction, so the stick stays pressed while the mouse moves and lets go within ~1/4 s of it stopping
+reg         mouse_seen = 1'b0;
+reg  [17:0] mj_div = 18'd0;
+reg  signed [7:0] mj_x = 8'sd0, mj_y = 8'sd0;   // pending counts, + = right / up
+wire        mouse_on = game_flags[5] & status[45];
+wire signed [8:0] mouse_dx = {ps2_mouse[4], ps2_mouse[15:8]};
+wire signed [8:0] mouse_dy = {ps2_mouse[5], ps2_mouse[23:16]};   // PS/2 Y is positive upward
+
+function signed [7:0] mj_step(input signed [7:0] p, input signed [8:0] d, input ev, input tick);
+    reg signed [10:0] n;
+    begin
+        n = {{3{p[7]}}, p} + (ev ? {{2{d[8]}}, d} : 11'sd0);
+        if (tick && n != 0) n = n[10] ? n + 11'sd1 : n - 11'sd1;
+        mj_step = n > 11'sd48 ? 8'sd48 : n < -11'sd48 ? -8'sd48 : n[7:0];
+    end
+endfunction
+
+always @(posedge CLK_49M) begin
+    mj_div     <= mj_div + 18'd1;
+    mouse_seen <= ps2_mouse[24];
+    if (reset | ~mouse_on) begin
+        mj_x <= 8'sd0;
+        mj_y <= 8'sd0;
+    end
+    else begin
+        mj_x <= mj_step(mj_x, mouse_dx, mouse_seen != ps2_mouse[24], mj_div == 18'd0);
+        mj_y <= mj_step(mj_y, mouse_dy, mouse_seen != ps2_mouse[24], mj_div == 18'd0);
+    end
+end
+wire [3:0] mouse_dir = {mj_y > 8'sd0, mj_y < 8'sd0, mj_x < 8'sd0, mj_x > 8'sd0};   // {U, D, L, R}
+
 wire [3:0] dir1_raw = {joystick_0[3] | kb_up, joystick_0[2] | kb_down, joystick_0[1] | kb_left, joystick_0[0] | kb_right} |
-                      al1;
+                      al1 | mouse_dir;
 wire [3:0] dir2_raw = joystick_1[3:0] | al2;
 wire [3:0] dir1, dir2;   // {U, D, L, R}
 
@@ -457,6 +493,7 @@ galaxian_board board
 	.in1(in_port[1]),
 	.in2(in_port[2]),
 	.in3(in_port[3]),
+	.dip4(dip_sw[4]),
 
 	.ioctl_addr(ioctl_addr),
 	.ioctl_dout(ioctl_dout),

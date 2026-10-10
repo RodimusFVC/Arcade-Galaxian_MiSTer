@@ -24,7 +24,10 @@ module galaxian_board
                                         // 23 Crazy Kong on Scramble (PPIs 7000 / 7800, latches A800, watchdog B000),
                                         // 24 Amigo (IN0-IN3 4000-4003, 4000 write = sound command, 5000 sound control,
                                         // RAM 8000, video 8800, objects 9000, Turtles latches A000 on A5-A3, watchdog A800)
-    input         [7:0] vflags,         // [0] Scramble shells, [1] RGB -> GBR harness (Eagle), [2] Mr. Kougar packed gfx
+                                        // 28 Harem (run-time decrypted ROM 8000-9FFF, column tile banks at 5000)
+                                        // 29 Dambusters (Galaxian I/O at E000-FFFF, background latches 8000 / 8001)
+    input         [7:0] vflags,         // [0] Scramble shells, [1] RGB -> GBR harness (Eagle), [2] Mr. Kougar packed gfx,
+                                        // [3] sprites from the upper 8K of 16K planes (4 Fun in 1)
     input         [7:0] bflags,         // [0] NMI enable on latch 0, [1] 2K work RAM, [2] stars cut, [3] Moon Cresta
                                         // decryption, [4] same on opcodes only, [5] latch 2 is gfx bank 0,
                                         // [6] Moon Cresta sound mixer
@@ -85,7 +88,9 @@ module galaxian_board
     input         [7:0] bflags13,       // [0] Rack + Roll (racknrol_map: objects 1400-14FF, INT from VBLANK, SENSE =
                                         // !VBLANK, I/O 20-3F = column tile banks), [1] SN76489 on extended I/O 1D,
                                         // [2] SN76496 on the data port, [3] data port reads 1 at PC 0031 (hexpoola),
-                                        // [4] at PC 009B / 6B58 (bullsdrtg), [5] Bulls Eye Darts gfx patch
+                                        // [4] at PC 009B / 6B58 (bullsdrtg), [5] Bulls Eye Darts gfx patch,
+                                        // [6] 4 Fun in 1 (8000 = game bank: ROM 0000-3FFF, gfx bank, DIP set; menu
+                                        // ROM C000-DFFF; program XOR A7-A0)
     input         [7:0] bflags11,       // [0] ROM 2000-27FF banked by the 6000 latch D0 (Guttang Gottong: bank 1 = 4000),
                                         // [1] ROM 8000-87FF = ROM 4000-47FF (guttangts3_map), [2] Moon War dials
                                         // on IN0 bits 4-0 (74LS161 count + direction, PPI 0 PC4 = 0 selects player 2),
@@ -104,7 +109,8 @@ module galaxian_board
     input         [1:0] dial_dir,       // 1 = count up
     input         [7:0] in1,            // 6800 / A800
     input         [7:0] in2,            // 7000 / B000
-    input         [7:0] in3,            // DSW (AY port A on Bongo)
+    input         [7:0] in3,            // DSW (AY port A on Bongo); 4 Fun in 1: DIP byte 3
+    input         [7:0] dip4,           // DIP byte 4 (4 Fun in 1)
 
     input        [24:0] ioctl_addr,
     input         [7:0] ioctl_dout,
@@ -135,7 +141,7 @@ wire ce6 = (ph == 3'd0);
 
 //------------------------------------------------------- ROM load map --------------------------------------------------------//
 
-wire prog_cs, gfx0_cs, gfx1_cs, gfx2_cs, pal_cs, snd_cs, bgp_cs, samp_cs, sbp_cs, sbd_cs, dk_cs, gfxh_cs;
+wire prog_cs, gfx0_cs, gfx1_cs, gfx2_cs, pal_cs, snd_cs, bgp_cs, samp_cs, sbp_cs, sbd_cs, dk_cs, gfxh_cs, tms_cs, tmsp_cs;
 
 selector rom_selector
 (
@@ -151,7 +157,9 @@ selector rom_selector
     .sbp_cs(sbp_cs),
     .sbd_cs(sbd_cs),
     .dk_cs(dk_cs),
-    .gfxh_cs(gfxh_cs)
+    .gfxh_cs(gfxh_cs),
+    .tms_cs(tms_cs),
+    .tmsp_cs(tmsp_cs)
 );
 
 //------------------------------------------------------- Video timing --------------------------------------------------------//
@@ -231,6 +239,10 @@ end
 // 0400-0BFF, video 0C00 (and 7C00), objects 2000, PPI 1 2400, latches 2600, watchdog F400, PPI 0 F600.
 // Space Train (spactrai_map): ROM 0000-4FFF with RAM 0200-05FF and video 1200-15FF over it, objects FE00, the
 // Galaxian I/O at 6000-7FFF.
+// Dambusters (dambustr_map): ROM 0000-7FFF, background colour / split latches 8000 / 8001, RAM C000-C7FF, video D000,
+// objects D800, the Galaxian I/O at E000-FFFF.
+// Harem (scramble.cpp harem_map): ROM 0000-1FFF + 8000-9FFF (decrypted), RAM 2000-27FF, objects 4000 (4100-47FF RAM),
+// video 4800, column tile banks 5000, latches 5800-5807, PPIs 6100 / 6200.
 wire [7:0] top = rom_top == 8'd0 ? 8'h40 : rom_top;
 
 // {rom, ram, vid, obj, io, ram index[11:0]}
@@ -242,7 +254,8 @@ function [16:0] decode(input [15:0] a);
         ri  = {1'b0, bflags[1] & a[10], a[9:0]};
         case (variant[4:0])
             5'd0: begin
-                rom = a[15:8] < top || (bflags9[2] && a[15:11] == 5'b11000) || (bflags11[1] && a[15:11] == 5'b10000);
+                rom = a[15:8] < top || (bflags9[2] && a[15:11] == 5'b11000) || (bflags11[1] && a[15:11] == 5'b10000) ||
+                      (bflags13[6] && a[15:13] == 3'b110);
                 ram = a[15:11] == 5'b01000 || (bflags10[1] && a[15:11] == 5'b10000) || (bflags6[7] && (a[15:10] == 6'b010010 || a[15:7] == 9'b010110000));
                 ri  = bflags10[1] && a[15] ? {1'b1, a[10:0]} :
                       !bflags6[7] ? {1'b0, bflags[1] & a[10], a[9:0]} : a[15:11] == 5'b01000 ? {1'b0, a[10:0]} :
@@ -274,9 +287,9 @@ function [16:0] decode(input [15:0] a);
             end
             5'd6, 5'd15, 5'd16, 5'd18, 5'd19: begin
                 rom = a[15:8] < top || (bflags7[4] && a[15:12] == 4'hA) || (ext_mode[3:0] == 4'd9 && a[15:14] == 2'b11) ||
-                      (bflags11[6] && a >= 16'h5800 && a < 16'h6800);
-                ram = a[15:11] == 5'b01000;
-                ri  = {1'b0, a[10:0]};
+                      (bflags11[6] && a >= 16'h5800 && a < 16'h6800) || (bflags13[7] && a >= 16'hA000 && a < 16'hE000);
+                ram = a[15:11] == 5'b01000 || (bflags13[7] && a[15:10] == 6'b111010);
+                ri  = a[15] ? {2'b10, a[9:0]} : {1'b0, a[10:0]};
                 vid = a[15:11] == 5'b01001;
                 obj = a[15:11] == 5'b01010;
                 io  = variant[4:0] == 5'd18 && a[15:13] == 3'b011;
@@ -362,6 +375,22 @@ function [16:0] decode(input [15:0] a);
                 rom = a < 16'h5000 && !ram && !vid;
                 obj = a[15:8] == 8'hFE;
                 io  = a[15:13] == 3'b011;
+            end
+            5'd29: begin
+                rom = ~a[15];
+                ram = a[15:11] == 5'b11000;
+                ri  = {1'b0, a[10:0]};
+                vid = a[15:11] == 5'b11010;
+                obj = a[15:11] == 5'b11011;
+                io  = a[15:13] == 3'b111;
+            end
+            5'd28: begin
+                rom = a[15:13] == 3'b000 || a[15:13] == 3'b100;
+                ram = a[15:11] == 5'b00100 || (a[15:11] == 5'b01000 && a[10:8] != 3'd0);
+                ri  = {a[14], a[10:0]};
+                vid = a[15:11] == 5'b01001;
+                obj = a[15:8] == 8'h40;
+                io  = 1'b0;
             end
             5'd4: begin
                 rom = a < 16'h4000 || (a >= 16'h8000 && a < 16'hB000);
@@ -635,6 +664,10 @@ wire        stn     = variant[4:0] == 5'd27;                          // Space T
 wire        aeu     = variant[4:0] == 5'd25;                          // The Anteater UK
 wire        aeg     = variant[4:0] == 5'd26;                          // Ameisenbaer
 wire        mdk     = variant[4:0] == 5'd21;                          // Mandinka: latches A000, watchdog A800, PPIs B000 / B800
+wire        hm      = variant[4:0] == 5'd28;                          // Harem: latches 5800, PPIs 6100 / 6200
+wire        db      = variant[4:0] == 5'd29;                          // Dambusters: background latches 8000 / 8001
+wire        fin     = bflags13[6];                                    // 4 Fun in 1: 8000 = game bank
+wire        ad      = hsk && bflags13[7];                             // A.D. 2083 on the Hot Shocker map
 wire        hb_lat  = (hb || hb6) && cpu_addr[15:4] == 12'hA80;
 wire        st2_lat = st2 && cpu_addr[15:4] == 12'hB00;
 wire        tnv     = sc && bflags5[7];                               // Turpin NV
@@ -660,7 +693,8 @@ wire        fg_wd   = (fg && cpu_addr[15:11] == 5'b10001) ||          // 8800 wa
                       (st2 && cpu_addr == 16'h9800) || (hb && cpu_addr == 16'hB000) || ((mr || tp) && cpu_addr == 16'h7000) ||
                       (sb2 && cpu_addr[15:3] == 13'h0E00) || (tzb && cpu_addr == 16'h9800) ||
                       (mdk && cpu_addr == 16'hA800) || (ck2 && cpu_addr == 16'hB000) || (ami && cpu_addr == 16'hA800) || (sc && bflags9[6] && cpu_addr[15:11] == 5'b01101) ||
-                      (aeu && cpu_addr[15:10] == 6'b000101) || (aeg && cpu_addr[15:9] == 7'b1111010);
+                      (aeu && cpu_addr[15:10] == 6'b000101) || (aeg && cpu_addr[15:9] == 7'b1111010) ||
+                      (hm && cpu_addr == 16'h5800) || (ad && cpu_addr == 16'h7000);
 wire        fg_ppi  = (fg && cpu_addr[15:14] == 2'b11) || (sc && cpu_addr[15] && !tnv_rom && !mmk_rom) ||    // PPIs
                       (ff && cpu_addr[15:14] == 2'b11) || (fa && cpu_addr[15:10] == 6'b010000) ||
                       (ts && (cpu_addr[15:2] == 14'h2800 || cpu_addr[15:2] == 14'h3000)) ||
@@ -672,7 +706,8 @@ wire        fg_ppi  = (fg && cpu_addr[15:14] == 2'b11) || (sc && cpu_addr[15] &&
                       (mr && bflags7[4] && (cpu_addr[15:4] == 12'hC10 || cpu_addr[15:4] == 12'hC20)) ||
                       (sb && !mmk_rom && cpu_addr[15] && (cpu_addr[13:11] == 3'b011 || cpu_addr[13:11] == 3'b100)) ||
                       (tu && cpu_addr[15] && cpu_addr[13:12] == 2'b11) || (aeu && cpu_addr[15:14] == 2'b11) ||
-                      (aeg && (cpu_addr[15:9] == 7'b0010010 || cpu_addr[15:9] == 7'b1111011));
+                      (aeg && (cpu_addr[15:9] == 7'b0010010 || cpu_addr[15:9] == 7'b1111011)) ||
+                      (hm && (cpu_addr[15:8] == 8'h61 || cpu_addr[15:8] == 8'h62));
 
 // one write strobe per CPU write cycle
 reg  wr_d = 1'b1;
@@ -731,10 +766,23 @@ always @(posedge clk) begin
             default: ;
         endcase
     end
+    else if (wr && hm && cpu_addr[15:3] == 13'h0B00) begin           // Harem 5800 NMI, 5805 sprite bank, 5806/7 flip
+        case (cpu_addr[2:0])
+            3'd0: ctl_9n[1] <= cpu_dout[0];
+            3'd5: gfxbank[1:0] <= {1'b0, cpu_dout[0]};
+            3'd6: ctl_9n[6] <= cpu_dout[0];
+            3'd7: ctl_9n[7] <= cpu_dout[0];
+            default: ;
+        endcase
+    end
+    else if (wr && fin && cpu_addr == 16'h8000) gfxbank[1:0] <= cpu_dout[1:0];   // 4 Fun in 1 bank (also the gfx bank)
     else if (wr && sb2 && cpu_addr == 16'h7800) pitch <= cpu_dout;
     else if (wr && hsk && cpu_addr == 16'h6004) begin ctl_9n[6] <= cpu_dout[0]; ctl_9n[7] <= cpu_dout[0]; end
     else if (wr && hsk && cpu_addr == 16'h6006) gfxbank[1:0] <= cpu_dout[1:0];
     else if (wr && hsk && cpu_addr == 16'h6801) ctl_9n[1] <= cpu_dout[0];
+    else if (wr && ad && cpu_addr == 16'h6803) bg_rgb[0] <= cpu_dout[0];          // A.D. 2083 background blue
+    else if (wr && ad && cpu_addr == 16'h6806) bg_rgb[2] <= cpu_dout[0];          // red
+    else if (wr && ad && cpu_addr == 16'h6807) bg_rgb[1] <= cpu_dout[0];          // green
     else if (wr && mr_lat) begin                                     // 6801 stars (Mr. Kougar NMI), 6802 NMI, 6809/B flip
         case (cpu_addr[3:0])
             4'h1: if (bflags8[1]) ctl_9n[1] <= cpu_dout[0]; else ctl_9n[4] <= cpu_dout[0];
@@ -806,6 +854,7 @@ always @(posedge clk) begin
                       default: ;
                   endcase
                   else if (cpu_addr[2]) lfo_9m[cpu_addr[1:0]] <= cpu_dout[0];
+                  else if (fin) ;                                  // 4 Fun in 1: 6000-6003 = LEDs / coin counter
                   else if (cpu_addr[1:0] == 2'd0 || (cpu_addr[1:0] == 2'd2 && bflags[5])) gfxbank[1:0] <= cpu_dout[1:0];
                   else if (cpu_addr[1:0] != 2'd3) gfxbank[cpu_addr[1:0] + 2'd1] <= cpu_dout[0];
             2'd1: snd_9l[cpu_addr[2:0]] <= cpu_dout[0];
@@ -871,7 +920,13 @@ always @(posedge clk) begin
 end
 
 wire        gts3_hi = bflags11[1] & cpu_addr[15:11] == 5'b10000;
-wire [15:0] rom_a = tnv_rom ? {4'h4, cpu_addr[11:0]} :
+// 4 Fun in 1 games (MAME 10000-1FFFF) packed around the menu at C000: banks 0-2 at 0000 / 4000 / 8000, bank 3 (12K)
+// at B000 + E000
+wire [15:0] fin_a = gfxbank[1:0] != 2'd3 ? {gfxbank[1:0], cpu_addr[13:0]} :
+                    cpu_addr[13:12] == 2'd0 ? {4'hB, cpu_addr[11:0]} : 16'hD000 + {2'b00, cpu_addr[13:0]};
+wire [15:0] rom_a = db ? db_a :
+                    fin && cpu_addr[15:14] == 2'b00 ? fin_a :
+                    tnv_rom ? {4'h4, cpu_addr[11:0]} :
                     bflags8[0] ? {cpu_addr[15:4], cpu_addr[2], cpu_addr[0], cpu_addr[3], cpu_addr[1]} :
                     bflags9[3] ? {cpu_addr[15:5], cpu_addr[1], cpu_addr[0], cpu_addr[3], cpu_addr[4], cpu_addr[2]} :
                     bflags9[5] ? {cpu_addr[15] & ~gts3_hi, cpu_addr[14] | gts3_hi | (bflags10[5] & ~cpu_m1_n & cpu_addr[15:12] == 4'h0),
@@ -883,6 +938,76 @@ wire [15:0] rom_a = tnv_rom ? {4'h4, cpu_addr[11:0]} :
                     bflags4[2] && !cpu_addr[15] ? {1'b0, fa_lut(cpu_addr[14:10]), cpu_addr[11:10], cpu_addr[9:0]} :
                     bflags4[1] && cpu_addr[15:13] == 3'b001 ? {cpu_addr[15:13], cpu_addr[12] ^ ctl_9n[2], cpu_addr[11:0]} :
                     cpu_addr;
+
+// Dambusters background (MAME dambustr_bg_color_w / _split_line_w): 8000 = {char bank, colour 2, priority, colour 1},
+// 8001 = split line
+reg  [7:0] db_bg = 8'd0, db_split = 8'd0;
+always @(posedge clk) begin
+    if (reset) begin db_bg <= 8'd0; db_split <= 8'd0; end
+    else if (wr && db && cpu_addr == 16'h8000) db_bg    <= cpu_dout;
+    else if (wr && db && cpu_addr == 16'h8001) db_split <= cpu_dout;
+end
+
+// Dambusters program (MAME init_dambustr, undone on the read path): 0000-3FFF = user1 (stored at 8000) through an
+// address swap (A11 <-> A4 / A3 order), then 1000 / 5000 / 6000 rotated (1000 <- 5000 <- 6000 <- 1000) and the data
+// of 1000-1FFF / 4000-5FFF bit-swapped
+function [15:0] db_usr(input [13:0] i);
+    db_usr = {2'b10, i[13:12], i[4], i[10:5], i[3], i[11], i[2:0]};
+endfunction
+wire [15:0] db_a = cpu_addr[14:12] == 3'h1 ? {4'h5, cpu_addr[11:0]} :
+                   cpu_addr[14:12] == 3'h5 ? {4'h6, cpu_addr[11:0]} :
+                   cpu_addr[14:12] == 3'h6 ? db_usr({2'b01, cpu_addr[11:0]}) :
+                   !cpu_addr[14]           ? db_usr(cpu_addr[13:0]) : {1'b0, cpu_addr[14:0]};
+wire       db_dsw = cpu_addr[14:12] == 3'h1 || cpu_addr[14:12] == 3'h4 || cpu_addr[14:12] == 3'h5;
+
+// Harem (MAME harem_decrypt_*_w): 5802 = bit, 5801 rising D0 shifts it in from the top; the fourth shift picks the
+// bitswap of 8000-9FFF (mode 3 / 9 / A = bank 0 / 1 / 2, else 0), 5803 restarts the count. 5000 = column tile banks.
+reg  [3:0] hm_mode = 4'd0;
+reg  [2:0] hm_cnt  = 3'd0;
+reg  [1:0] hm_bank = 2'd0;
+reg        hm_bit  = 1'b0, hm_clk = 1'b0;
+reg  [7:0] hm_cb   = 8'd0;
+always @(posedge clk) begin
+    if (reset) begin
+        hm_mode <= 4'd0;
+        hm_cnt  <= 3'd0;
+        hm_bank <= 2'd0;
+        hm_bit  <= 1'b0;
+        hm_clk  <= 1'b0;
+        hm_cb   <= 8'd0;
+    end
+    else if (wr && hm) begin
+        if (cpu_addr == 16'h5000) hm_cb  <= cpu_dout;
+        if (cpu_addr == 16'h5802) hm_bit <= cpu_dout[0];
+        if (cpu_addr == 16'h5803) begin hm_mode <= 4'd0; hm_cnt <= 3'd0; end
+        if (cpu_addr == 16'h5801) begin : hm_shift
+            reg [3:0] m;
+            reg [2:0] c;
+            m = hm_mode;
+            c = hm_cnt;
+            if (cpu_dout[0] && !hm_clk) begin m = {hm_bit, hm_mode[3:1]}; c = c + 3'd1; end
+            hm_clk <= cpu_dout[0];
+            if (c == 3'd4) begin
+                hm_bank <= m == 4'h9 ? 2'd1 : m == 4'hA ? 2'd2 : 2'd0;
+                m = 4'd0;
+                c = 3'd0;
+            end
+            hm_mode <= m;
+            hm_cnt  <= c;
+        end
+    end
+end
+
+function [7:0] hm_decrypt(input [7:0] x, input [1:0] bank, input op);
+    case ({bank, op})
+        3'b001:  hm_decrypt = {x[7], x[0], x[5], x[2], x[3], x[4], x[1], x[6]};
+        3'b000:  hm_decrypt = {x[7], x[6], x[5], x[0], x[3], x[4], x[1], x[2]};
+        3'b011:  hm_decrypt = {x[7], x[0], x[5], x[6], x[3], x[2], x[1], x[4]};
+        3'b010:  hm_decrypt = {x[7], x[4], x[5], x[0], x[3], x[6], x[1], x[2]};
+        3'b101:  hm_decrypt = {x[7], x[2], x[5], x[6], x[3], x[0], x[1], x[4]};
+        default: hm_decrypt = {x[7], x[2], x[5], x[4], x[3], x[0], x[1], x[6]};
+    endcase
+endfunction
 
 // Crazy Kong encrypted bootlegs (MAME init_ckonggx): 256-byte blocks of 0000-57FF moved
 function [6:0] ckx_blk(input [6:0] b);
@@ -968,7 +1093,13 @@ endfunction
 
 wire       decrypt = cpu_addr[15:14] == 2'b00 && (bflags[3] || (bflags[4] && !cpu_m1_n));
 wire       hus_rom = cpu_addr[15:14] == 2'b00;
-wire [7:0] rom_d   = msh && !cpu_m1_n && !cpu_addr[15] ? (rom_q & 8'hAA) | msh_tab({bflags11[4], rom_q[7], rom_q[1], cpu_addr[0],
+// A.D. 2083 (MAME init_ad2083): XOR 35, then D6 D2 D5 D1 D7 D3 D4 D0
+wire [7:0] ad_x    = rom_q ^ 8'h35;
+wire [7:0] rom_d   = db && db_dsw ? {rom_q[7:5], rom_q[1], rom_q[3], rom_q[2], rom_q[4], rom_q[0]} :
+                     ad ? {ad_x[6], ad_x[2], ad_x[5], ad_x[1], ad_x[7], ad_x[3], ad_x[4], ad_x[0]} :
+                     fin ? rom_q ^ cpu_addr[7:0] :
+                     hm && cpu_addr[15:13] == 3'b100 ? hm_decrypt(rom_q, hm_bank, ~cpu_m1_n) :
+                     msh && !cpu_m1_n && !cpu_addr[15] ? (rom_q & 8'hAA) | msh_tab({bflags11[4], rom_q[7], rom_q[1], cpu_addr[0],
                                                                     rom_q[6], rom_q[4], rom_q[2], rom_q[0]}) :
                      bflags8[4] && cpu_addr == 16'h2EF9 ? 8'hC9 : decrypt ? mc_decrypt(rom_q, cpu_addr[0]) : bflags3[3] ? cm_decrypt(rom_q, cpu_addr[2:0]) :
                      bflags6[5] && hus_rom ? hus_decrypt(rom_q, cpu_addr[7:0]) :
@@ -1138,6 +1269,19 @@ function [7:0] sce_decrypt(input [7:0] d, input [7:0] a);
     end
 endfunction
 
+// 4 Fun in 1 (MAME _4in1_fake_port_r): IN1 bits 7-6 and DSW0 bits 5-3 / 1-0 come from the bank's DIP set, packed
+// into DIP bytes 3 / 4 by the generator (byte 3: game 0 bits 1-0 / 7-6, game 2 bits 1-0 / 7-6; byte 4: game 3 bit 0 /
+// bits 7-6, game 1 bits 5-3 / 7-6)
+reg [7:0] fin_dip;
+always @(*) begin
+    case (gfxbank[1:0])
+        2'd0: fin_dip = {in3[3:2], 4'd0, in3[1:0]};
+        2'd1: fin_dip = {dip4[7:6], dip4[5:3], 3'd0};
+        2'd2: fin_dip = {in3[7:6], 4'd0, in3[5:4]};
+        2'd3: fin_dip = {dip4[2:1], 5'd0, dip4[0]};
+    endcase
+end
+
 // Jump Bug protection reads (MAME jumpbug_protection_r)
 reg [7:0] prot_q;
 always @(*) begin
@@ -1222,10 +1366,10 @@ end
 
 // Konami PPIs: 0 = IN0 / IN1 / IN2, 1 = sound command / sound control / IN3
 wire [7:0] ppi0_q, ppi1_q, ppi1_pa, ppi1_pb;
-wire       ppi0_sel = fg_ppi & (fg ? cpu_addr[13] : ff ? cpu_addr[12] : sc | fa | hb | mr | tp ? cpu_addr[8] : tu ? ~cpu_addr[11] :
+wire       ppi0_sel = fg_ppi & (fg ? cpu_addr[13] : ff ? cpu_addr[12] : sc | fa | hb | mr | tp | hm ? cpu_addr[8] : tu ? ~cpu_addr[11] :
                                 ts ? cpu_addr[15:13] == 3'b101 : st2 | mdk | ck2 ? ~cpu_addr[11] : aeu ? cpu_addr[8] : aeg ? cpu_addr[15] :
                                 cpu_addr[13:11] == 3'b011);
-wire       ppi1_sel = fg_ppi & (fg ? cpu_addr[12] : ff ? cpu_addr[13] : sc | fa | hb | mr | tp ? cpu_addr[9] : tu ?  cpu_addr[11] :
+wire       ppi1_sel = fg_ppi & (fg ? cpu_addr[12] : ff ? cpu_addr[13] : sc | fa | hb | mr | tp | hm ? cpu_addr[9] : tu ?  cpu_addr[11] :
                                 ts ? cpu_addr[15:13] == 3'b110 : st2 | mdk | ck2 ?  cpu_addr[11] : aeu ? ~cpu_addr[8] : aeg ? ~cpu_addr[15] :
                                 cpu_addr[13:11] == 3'b100);
 wire [1:0] ppi_a    = fg ? cpu_addr[2:1] : ff ? cpu_addr[4:3] : tu ? cpu_addr[5:4] : mr ? {cpu_addr[3], cpu_addr[1]} :
@@ -1374,6 +1518,7 @@ always @(*) begin
         cpu_din = cpu_addr[1:0] == 2'd0 ? in0 : cpu_addr[1:0] == 2'd1 ? in1 : cpu_addr[1:0] == 2'd3 ? in2 : 8'hFF;
     else if (sbh && cpu_addr[15:11] == 5'b10001) cpu_din = sb_p1;   // 8800: the speech CPU's P1
     else if (tnv_rom) cpu_din = rom_d;
+    else if (hm && cpu_addr == 16'h5000) cpu_din = hm_cb;
     else if (fa_cs) cpu_din = cpu_addr[3:0] == 4'h7 ? ay_dout : cpu_addr[3:0] == 4'hD ? ay2_dout : 8'hFF;
     else if (prot_cs) cpu_din = prot_q;
     else if (cm_prot) cpu_din = cm_prot_q;
@@ -1384,8 +1529,8 @@ always @(*) begin
     else if (obj_cs) cpu_din = obj_q;
     else if (io_cs) case (io_sel)
         2'd0: cpu_din = kb ? {in0[7], ctl_9n[3] ? in0[6] : in3[0], in0[5:0]} : in0;
-        2'd1: cpu_din = kb ? {in1[7:6], kb_noise[16], in1[4:0]} : in1;
-        2'd2: cpu_din = bflags2[3] ? in3 : in2;
+        2'd1: cpu_din = kb ? {in1[7:6], kb_noise[16], in1[4:0]} : fin ? {fin_dip[7:6], in1[5:0]} : in1;
+        2'd2: cpu_din = bflags2[3] ? in3 : fin ? {in2[7:6], fin_dip[5:3], in2[2], fin_dip[1:0]} : in2;
         2'd3: cpu_din = 8'hFF;
     endcase
 end
@@ -1413,6 +1558,8 @@ galaxian_video video
     .bullet_mode(vflags[0]),
     .rgb_gbr(vflags[1]),
     .gfx_packed(vflags[2]),
+    .spr_hi(vflags[3]),
+    .spr_ad(vflags[4]),
     .ext_mode(ext_mode[3:0]),
     .vflags2(vflags2[3:0]),
     .vflags3(vflags3[7:0]),
@@ -1440,6 +1587,10 @@ galaxian_video video
     .tb_we(rk_tb_we),
     .tb_addr(s26_a[4:0]),
     .tb_d(s26_d[2:0]),
+    .col_bank(hm_cb),
+    .db(db),
+    .db_bg(db_bg),
+    .db_split(db_split),
     .bd_patch(bflags13[5]),
     .pal_we(ioctl_wr0 & pal_cs),
     .bgp_we(ioctl_wr0 & bgp_cs),
@@ -1707,7 +1858,11 @@ galaxian_konami_snd konami_snd
     .rom_we(ioctl_wr0 & snd_cs),
     .rom_swap01(bflags5[2]),
     .swap4k(fmc),
-    .scorpion(scp),
+    .scorpion(scp | hm),
+    .harem(hm),
+    .ad2083(ad),
+    .tms_rom_we(ioctl_wr0 & tms_cs),
+    .tms_prom_we(ioctl_wr0 & tmsp_cs),
     .dk_rom_we(ioctl_wr0 & dk_cs),
     .out(konami_audio)
 );

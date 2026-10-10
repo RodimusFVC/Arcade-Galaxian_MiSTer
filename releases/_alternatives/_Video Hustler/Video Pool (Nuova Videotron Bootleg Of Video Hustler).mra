@@ -30,8 +30,8 @@
     <switches default="00,00,08,FF">
         <dip name="Half Coinage" bits="14" ids="Off,On"/>
         <dip name="Cabinet" bits="15" ids="Upright,Cocktail"/>
-        <dip name="Coin A" bits="16" ids="2C/1C,1C/1C,1C/3C,1C/6C" values="0,0,1,1"/>
-        <dip name="Coin B" bits="17" ids="2C/1C,1C/1C,1C/3C,1C/6C" values="0,0,1,1"/>
+        <dip name="Coin A" bits="16" ids="2C/1C / 1C/1C,1C/3C / 1C/6C"/>
+        <dip name="Coin B" bits="17" ids="2C/1C / 1C/1C,1C/3C / 1C/6C"/>
         <dip name="Lives" bits="18,19" ids="1,2,3,Infinite (Cheat)"/>
     </switches>
 

@@ -1,0 +1,73 @@
+<misterromdescription>
+    <name>A. D. 2083</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>A. D. 2083</series>
+    <year>1983</year>
+    <manufacturer>Midcoin</manufacturer>
+    <category>Shooter</category>
+
+    <setname>ad2083</setname>
+    <parent>ad2083</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,B,X,Y,Select,Start,R,L"/>
+
+    <switches default="00,00,00,10">
+        <dip name="Coin A" bits="16,19" ids="2C/1C,2C/2C,1C/1C,2C/3C,2C/4C,1C/2C,2C/5C,2C/6C,1C/3C,2C/7C,2C/8C,1C/4C,1C/5C,1C/6C,1C/7C,1C/8C" values="8,9,0,10,11,1,12,13,2,14,15,3,4,5,6,7"/>
+        <dip name="Coin B" bits="20,23" ids="2C/1C,2C/2C,1C/1C,2C/3C,2C/4C,1C/2C,2C/5C,2C/6C,1C/3C,2C/7C,2C/8C,1C/4C,1C/5C,1C/6C,1C/7C,1C/8C" values="8,9,0,10,11,1,12,13,2,14,15,3,4,5,6,7"/>
+        <dip name="Lives" bits="24,25" ids="2,3,4,5" values="3,2,1,0"/>
+        <dip name="Bonus Life" bits="26,27" ids="None,150000,100000,200000" values="3,1,2,0"/>
+        <dip name="Cabinet" bits="28" ids="Upright,Cocktail" values="1,0"/>
+        <dip name="Allow Continue" bits="29" ids="No,Yes" values="1,0"/>
+        <dip name="Unknown" bits="30" ids="Off,On"/>
+        <dip name="Demo Sounds" bits="31" ids="Off,On" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="ad2083.zip">
+        <part crc="4d34325a" name="ad0.10o"/>
+        <part crc="0f37134b" name="ad1.9o"/>
+        <part repeat="0x6000">00</part>
+        <part crc="bcfa655f" name="ad2.8o"/>
+        <part crc="60655225" name="ad3.7o"/>
+        <part repeat="0x2000">00</part>
+        <part crc="388cdd21" name="ad4.5k"/>
+        <part crc="f53f3449" name="ad5.3k"/>
+        <part crc="2759aebd" name="prom-am27s19dc.1m"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="80f39b0f" name="ad1s.3d"/>
+        <part crc="5177fe2b" name="ad2s.4d"/>
+        <part repeat="0xD000">00</part>
+        <part crc="4cb93fff" name="ad1v.9a"/>
+        <part crc="4b530ea7" name="ad2v.10a"/>
+        <part crc="c58a4f6a" name="prom-sn74s188.8a"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            10 90 11 00 00 0B 02 00 00 00 80 03 00 00 04 00
+            01 06 02 05 04 03 00 00 00 00 12 11 16 00 14 13
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00 00 80
+        </part>
+    </rom>
+
+    <remark>A. D. 2083 (Midcoin)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>
