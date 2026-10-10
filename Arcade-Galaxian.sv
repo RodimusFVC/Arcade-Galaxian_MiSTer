@@ -86,7 +86,7 @@ assign BUTTONS = 0;
 //   byte 0      memory map (see rtl/galaxian_board.sv)
 //   byte 1      flags: [0] 4-way joystick, [2] coins are 2-frame pulses, [3] twin sticks (right analog stick = fire
 //               directions on buttons 1-4), [4] vertical, [5] mouse / trackball option (War of the Bugs),
-//               [7] vertical is ROT90
+//               [6] ROT180 (Rock Climber: shown through the board's CRT flip), [7] vertical is ROT90
 //   byte 2      video flags (see rtl/galaxian_board.sv)
 //   byte 3      board flags, byte 4 program ROM top >> 8, byte 5 tile/sprite code extension, byte 6 board flags 2,
 //               byte 7 board flags 3, byte 8 video flags 2, byte 9 board flags 4, byte 10 video flags 3,
@@ -499,7 +499,7 @@ galaxian_board board
 	.ioctl_dout(ioctl_dout),
 	.ioctl_wr0(ioctl_wr & (ioctl_index == 8'd0)),
 
-	.crt_flip(status[22]),
+	.crt_flip(status[22] ^ game_flags[6]),
 	.h_adj(status[40:37]),
 	.v_adj(status[44:41]),
 

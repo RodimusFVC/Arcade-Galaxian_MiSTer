@@ -47,7 +47,16 @@ HISCORE_INIT_FRAME = {"galaxian": 132, "starfght": 127, "exodus": 133, "warofbug
                       "pacmanblv": 2, "phoenxp2": 2, "pisces": 0, "rescue": 43, "scramb2": 248, "scramb3":
                       248, "scramblb": 161, "scrambleo": 172, "scrambler": 162, "stratgyx": 161, "streakng":
                       2, "superbon": 1, "tazmani2": 47, "tazmani3": 47, "tazmaniet": 47, "tazzmang": 32,
-                      "tazzmang2": 32, "triplep": 99}
+                      "tazzmang2": 32, "triplep": 99,
+                      # core-measured 2026-10-10 (hsmeasure, 400 frames; kingball 1200): last boot-time table write.
+                      # S2650 sets traced at their replayed RAM address (hs_addr); Driving Force f65 / King & Balloon
+                      # f405 are clears before the real init
+                      "ad2083": 161, "anteaterg": 1, "anteatergg": 1, "anteateruk": 1, "bagmanmc": 5, "bagmanm2": 5,
+                      "drivfrcg": 201, "drivfrcb": 201, "drivfrcsg": 201, "drivfrct": 137, "guttangt": 116,
+                      "guttangts3": 116, "hunchbkg": 263, "hunchbgb": 263, "hunchbks": 263, "hunchbks2": 263,
+                      "kingball": 419, "moonwar": 50, "moonwara": 50, "mshuttle": 137, "mshuttle2": 137,
+                      "mshuttlea": 137, "mshuttlej": 137, "mshuttlej2": 137, "ozon1": 4, "rockclim": 283,
+                      "sbhoei": 14, "sbhoeia": 14}
 # colour PROMs never dumped: stand-in from a related set, (zip, file, crc). Kong (Taito do Brasil) takes Crazy Kong's
 # first palette PROM (user, 2026-09-29) - same byte layout; which colour group goes where is a guess
 PROM_STANDIN = {"kong": ("ckong.zip", "ck6v.bin", "751c3325"),
@@ -56,7 +65,7 @@ PROM_STANDIN = {"kong": ("ckong.zip", "ck6v.bin", "751c3325"),
 # hiscore.dat entries that can't work here: atlantisb's range is live game state, omegab's C060 is unmapped
 HISCORE_SKIP = {"atlantisb", "omegab"}
 # sets waiting for a core measurement: no hiscore entry until then (safe: the top gates an unconfigured hiscore)
-HISCORE_PENDING = {"hunchbkg", "hunchbgb"}                  # no ROMs to measure with yet
+HISCORE_PENDING = set()
 CLK_HZ, FRAME_HZ = 49_152_000, 60.61
 
 # region -> (base in ioctl index 0, size taken); "gfx1" is split by plane into gfx1_p0 / gfx1_p1
@@ -79,6 +88,8 @@ REGIONS = {
     "5110ctrl": (0x2A000, 0x00020),                               # A.D. 2083 speech sequencer PROM
     "i8039": (0x1E000, 0x00800),                                  # Space Battle speech CPU
     "sbhoei_sound_rom": (0x1F000, 0x01000),                       # Space Battle speech data
+    "bg_gfx": (0x2C000, 0x02000),                                 # Rock Climber background tiles (lc13 / lc14)
+    "bg_proms": (0x14020, 0x00020),                               # Rock Climber background PROM: colour PROM entries 20-3F
 }
 
 TRUNCATE = {"user1"}                    # PROMs whose tail the hardware never addresses
@@ -137,6 +148,7 @@ SCR = (V3_SCR_BG | V3_SCR_STARS, B5_KONAMI | B5_TWO_AY)                  # Scram
 # board flags 8 (15th field): scramble.cpp boards
 M_MARS, M_HOTSHOCK, M_TRIPLEP = 15, 16, 17
 M_HAREM, X_HAREM, M_DAMBUSTR = 28, 14, 29
+M_ROCKCLIM = 30
 V_PACKED, V_SPRHI, V_AD2083 = 0x04, 0x08, 0x10                                  # Mr. Kougar packed gfx (ROM loaded into both planes);
                                                                 # sprites from the upper 8K of 16K planes (4 Fun in 1);
                                                                 # A.D. 2083 sprite code (colour bits 5-4 above it, no X flip)
@@ -318,6 +330,9 @@ SUPPORTED = {
     # Dambusters: own map (29), split background with priority, character bank, PROM R/G/B swap (board), program and
     # gfx unscrambled on the read path; Galaxian discrete sound
     ("dambustr.cpp", "dambustr", "init_dambustr"): (M_DAMBUSTR, V_SCRAMBLE_SHELLS, 0, 0, 0),
+    # Rock Climber: own map (30) = Moon Cresta + scrolling background (RAM 4000, scroll 4800, ROM 6000, IN3 5800, IN4 8800),
+    # sprite banks 0 / 1 swapped; melody chip (Epson 7910C) NO_DUMP and silent in MAME too
+    ("galaxian_rockclim.cpp", "rockclim", "init_rockclim"): (M_ROCKCLIM, 0, MC, 0, X_MC),
     ("scramble.cpp", "harem", "init_harem"):       (M_HAREM, V_SCRAMBLE_SHELLS, 0, 0, X_HAREM, B2_NODISC, 0, 0, 0, *SCRS,
                                                     0, 0, B7_ROM12K),
     ("scramble.cpp", "mars", "empty_init"):        (M_MARS, V_SCRAMBLE_SHELLS, 0, 0, 0, B2_NODISC, 0, 0, 0, *SCRS, 0, 0, B7_ROM12K),
@@ -381,8 +396,10 @@ GFX_MIRROR = {"cavelon"}
 # gfx1 = chars plane 0 / 1, then sprites plane 0 / 1 (8K each; sprites read from the upper 8K, V_SPRHI)
 GFX_QUARTERS = {"4in1"}
 
-F_4WAY, F_IMPULSE, F_TWIN, F_VERT, F_MOUSE, F_ROT90 = 0x01, 0x04, 0x08, 0x10, 0x20, 0x80
+F_4WAY, F_IMPULSE, F_TWIN, F_VERT, F_MOUSE, F_ROT180, F_ROT90 = 0x01, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80
 MOUSE_SETS = {"warofbug", "warofbugg", "warofbugu"}   # optional mouse / trackball (Game Options), user 2026-09-29
+# twin sticks that are two hands (Crazy Climber style), not move + fire: the right stick is labelled as a stick
+TWIN_HANDS = {"rockclim"}
 
 # port order on the board: DIP bytes 0-3 and input map bytes 16-47
 PORTS = [("IN0",), ("IN1",), ("IN2", "DSW0", "DSW1"), ("IN3", "FAKE", "DSW", "DSW1"), ("IN4", "COINAGE")]   # each tag used once   # first name present wins; IN4 = DIPs only
@@ -407,7 +424,7 @@ TWIN_FIRE = {"JOYSTICKRIGHT_UP": (1, "Fire Up"), "JOYSTICKRIGHT_DOWN": (2, "Fire
 TRACKBALL = {}
 IGNORED_TYPES = {"UNUSED", "UNKNOWN", "OTHER"}   # OTHER: operator-only buttons (Dambusters Initials Reset)
 
-SERIES_BY_PARENT = {}
+SERIES_BY_PARENT = {"rockclim": ("Rock Climber", "Platform - Climb")}
 REGION_WORDS = [("US", "US"), ("Japan", "Japan"), ("Spanish", "Spain"), ("Italian", "Italy"), ("French", "France"),
                 ("Brazil", "Brazil"), ("Argentina", "Argentina"), ("Greek", "Greece"), ("Hungarian", "Hungary")]
 
@@ -857,6 +874,17 @@ HISCORES = parse_hiscores(HISCORE_DAT) if HISCORE_DAT.exists() else {}
 HISCORE_UNMEASURED = []
 
 
+def hs_addr(g, a):
+    """hiscore.dat address -> the Z80-map address the core's hiscore port decodes. S2650 sets: hiscore.dat holds S2650
+    addresses; their RAM (1C00-1FFF and its mirrors) is replayed at 4000 (rtl/galaxian_board.sv s26_zaddr)."""
+    cfg = board_cfg(g)
+    if cfg and (list(cfg[5:]) + [0] * 9)[8] & B7_S2650:
+        if a & 0x1C00 != 0x1C00:
+            raise SystemExit(f'{g["name"]}: hiscore address {a:04X} outside S2650 RAM')
+        return 0x4000 | (a & 0x3FF)
+    return a
+
+
 def hiscore_xml(g):
     lines = HISCORES.get(g["name"])
     if not lines or g["name"] in HISCORE_SKIP or g["name"] in HISCORE_PENDING:
@@ -866,7 +894,7 @@ def hiscore_xml(g):
         f = line.split(",")
         if f[0] != "@:maincpu" or f[1] != "program":
             raise SystemExit(f'{g["name"]}: unsupported hiscore.dat line {line}')
-        ents.append((int(f[2], 16), int(f[3], 16), int(f[4], 16), int(f[5], 16)))
+        ents.append((hs_addr(g, int(f[2], 16)), int(f[3], 16), int(f[4], 16), int(f[5], 16)))
     rows = "\n".join(f"            {a >> 24 & 0xFF:02X} {a >> 16 & 0xFF:02X} {a >> 8 & 0xFF:02X} {a & 0xFF:02X} "
                       f"{n >> 8:02X} {n & 0xFF:02X} {s:02X} {e:02X}" for a, n, s, e in ents)
     total = sum(n for _, n, _, _ in ents)
@@ -921,14 +949,17 @@ def mra(g, games, segs, build_inputs):
     twin = any(f.get("type", "").startswith("JOYSTICKRIGHT") for fl in ports.values() for f in fl)
     flags = (F_4WAY if fourway else 0) | (F_IMPULSE if impulse else 0) | (F_TWIN if twin else 0) | \
             (F_VERT if g["rot"] in ("ROT90", "ROT270") else 0) | \
-            (F_MOUSE if g["name"] in MOUSE_SETS else 0) | (F_ROT90 if g["rot"] == "ROT90" else 0)
+            (F_MOUSE if g["name"] in MOUSE_SETS else 0) | (F_ROT90 if g["rot"] == "ROT90" else 0) | \
+            (F_ROT180 if g["rot"] == "ROT180" else 0)
+    if g["name"] in TWIN_HANDS:
+        buttons = {1: "Right Up", 2: "Right Down", 3: "Right Left", 4: "Right Right"}
     nbtn = max(buttons) if buttons else 0
     names = ",".join([buttons.get(i, "Not Used") for i in range(1, 5)] + ["Coin", "Start 1P", "Start 2P", "Pause"] +
                      [buttons.get(i, "Not Used") for i in (5, 6)])
     parent = g["parent"] or g["name"]
     zipname = f'{g["name"]}.zip' + (f'|{g["parent"]}.zip' if g["parent"] else "") + \
               (f'|{PROM_STANDIN[g["name"]][0]}' if g["name"] in PROM_STANDIN else "")
-    rotation = {"ROT0": "horizontal", "ROT270": "vertical (ccw)", "ROT90": "vertical (cw)"}[g["rot"]]
+    rotation = {"ROT0": "horizontal", "ROT180": "horizontal", "ROT270": "vertical (ccw)", "ROT90": "vertical (cw)"}[g["rot"]]
     bootleg = "yes" if "bootleg" in g["manuf"].lower() or "hack" in g["desc"].lower() else "no"
     top = games.get(parent, g)                         # parent may live in another driver (suprglob: epos)
     series, category = SERIES_BY_PARENT.get(parent, (title_case(clean_title(top["desc"])), "Shooter"))
@@ -978,7 +1009,7 @@ def mra(g, games, segs, build_inputs):
 
     <players>2 (alternating)</players>
     <joystick>{"2-way horizontal" if twoway else "4-way" if fourway else "8-way"}</joystick>
-    <special_controls>{"twin joysticks (right stick = fire directions)" if twin else ""}</special_controls>
+    <special_controls>{"" if not twin else "twin joysticks (left / right hand; right stick on buttons 1-4)" if g["name"] in TWIN_HANDS else "twin joysticks (right stick = fire directions)"}</special_controls>
     <num_buttons>{nbtn}</num_buttons>
     <buttons names="{names}" default="A,B,X,Y,Select,Start,R,L"/>
 

@@ -1,0 +1,85 @@
+<misterromdescription>
+    <name>Rock Climber</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Rock Climber</series>
+    <year>1981</year>
+    <manufacturer>Taito</manufacturer>
+    <category>Platform - Climb</category>
+
+    <setname>rockclim</setname>
+    <parent>rockclim</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>horizontal</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls>twin joysticks (left / right hand; right stick on buttons 1-4)</special_controls>
+    <num_buttons>4</num_buttons>
+    <buttons names="Right Up,Right Down,Right Left,Right Right,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,B,X,Y,Select,Start,R,L"/>
+
+    <switches default="00,00,00,00,FF">
+        <dip name="Cabinet" bits="6" ids="Upright,Cocktail"/>
+        <dip name="Bonus Life" bits="14" ids="30000,50000"/>
+        <dip name="Coin Slots" bits="15" ids="1,2" values="1,0"/>
+        <dip name="Lives" bits="16,17" ids="3,4,5,6"/>
+        <dip name="Coin A" bits="32,35" ids="9C/1C,8C/1C,7C/1C,6C/1C,5C/1C,4C/1C,3C/1C,2C/1C,1C/1C,1C/2C,1C/3C,1C/4C,1C/5C,1C/6C,1C/7C,1C/8C" values="0,1,2,3,4,5,6,7,15,14,13,12,11,10,9,8"/>
+        <dip name="Coin B" bits="36,39" ids="9C/1C,8C/1C,7C/1C,6C/1C,5C/1C,4C/1C,3C/1C,2C/1C,1C/1C,1C/2C,1C/3C,1C/4C,1C/5C,1C/6C,1C/7C,1C/8C" values="0,1,2,3,4,5,6,7,15,14,13,12,11,10,9,8"/>
+    </switches>
+
+    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <rom index="0" md5="none" zip="rockclim.zip">
+        <part crc="8601ae8d" name="lc01.a1"/>
+        <part crc="2dde9d4c" name="lc02.a2"/>
+        <part crc="82c48a67" name="lc03.a3"/>
+        <part crc="7cd3a04a" name="lc04.a4"/>
+        <part repeat="0x2000">00</part>
+        <part crc="5e542149" name="lc05.a5"/>
+        <part crc="b2bdca64" name="lc06.a6"/>
+        <part repeat="0x8000">00</part>
+        <part crc="7f18e1ef" name="lc08.a9"/>
+        <part crc="f18b50ac" name="lc07.a7"/>
+        <part repeat="0x1000">00</part>
+        <part crc="dec5781b" name="lc10.c9"/>
+        <part crc="06c0b5de" name="lc09.c7"/>
+        <part repeat="0x1000">00</part>
+        <part crc="6a0c7d87" name="lc11.f4"/>
+        <part crc="f6e76547" name="lc12.e9"/>
+        <part repeat="0x17FC0">00</part>
+        <part crc="19475f2b" name="lc13.g5"/>
+        <part crc="cc96d1db" name="lc14.g7"/>
+    </rom>
+
+    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <rom index="1">
+        <part>
+            1E 48 00 41 00 01 00 00 00 00 00 00 00 00 00 00
+            12 16 07 08 06 05 00 11 13 14 03 04 02 01 00 00
+            00 00 00 15 00 00 00 00 0F 10 0E 0D 0B 0C 0A 09
+            00 00 00
+        </part>
+    </rom>
+
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            0D C6 A5 51 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 80 D9 00 15 03 00
+            00 00 80 EB 00 01 03 03
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="22"></nvram>
+
+    <remark>Rock Climber (Taito)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

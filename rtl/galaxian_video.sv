@@ -87,6 +87,13 @@ module galaxian_video
     input               bd_patch,       // Bulls Eye Darts (MAME init_bullsdrtg): plane 0 bytes 0000-0007, 1000-10D7,
                                         // 1180-11CF read as 0
     input               pal_we,
+    input               rcl,            // Rock Climber (MAME galaxian_rockclim): scrolling background, sprite banks swapped
+    input         [8:0] rc_h,           //   background scroll X / Y (4800-4803)
+    input         [7:0] rc_v,
+    input        [10:0] rc_addr,        //   background RAM 4000-47FF, CPU side
+    input               rc_we,
+    output        [7:0] rc_q,
+    input               rcg_we,         //   background gfx load: lc13 at 0000, lc14 at 1000
 
     output              n3a,            // star LFSR N3A: the sound noise source (7474 at 2D)
 
@@ -357,7 +364,8 @@ wire [3:0] s_row = s_sum[3:0] ^ {4{s_fy}};
 // sprite code extensions (MAME *_extend_sprite_info); attr = the sprite's colour byte
 function [7:0] spr_ext(input [5:0] code, input [7:0] attr);
     case (ext_mode)
-        4'd1:    spr_ext = gfxbank[3] && code[5:4] == 2'b10 ? {2'b01, gfxbank[2], gfxbank[0], code[3:0]} : {2'b00, code};
+        4'd1:    spr_ext = gfxbank[3] && code[5:4] == 2'b10 ? (rcl ? {2'b01, gfxbank[0], gfxbank[2], code[3:0]} :   // Rock Climber: banks 0 / 1 swapped
+                                                                      {2'b01, gfxbank[2], gfxbank[0], code[3:0]}) : {2'b00, code};
         4'd2:    spr_ext = {1'b0, attr[5], code};
         4'd3:    spr_ext = {gfxbank[1:0], code};
         4'd4,
@@ -519,6 +527,49 @@ always @(posedge clk) begin
     endcase
 end
 
+//-------------------------------------------------- Rock Climber background ---------------------------------------------------//
+
+// MAME galaxian_rockclim: an opaque 64 x 32 map of 4bpp 8 x 8 tiles under everything else, scrolled by 4800-4803, colours
+// from its own PROM (pal 20-2F, MAME's plain 0x21 / 0x47 / 0x97 and 0x52 / 0xAD weights). It follows the display flip
+// (CRT Flip / ROT180) but not the flip latches, as in MAME. Fetched per pixel: RAM in phases 1-3, gfx 3-5.
+reg  [10:0] rcv_addr;
+wire  [7:0] rcv_q;
+
+dpram_dc #(.widthad_a(11)) rc_vram
+(
+    .clock_a(clk), .address_a(rc_addr), .data_a(cpu_dout), .wren_a(rc_we), .q_a(rc_q),
+    .clock_b(clk), .address_b(rcv_addr), .q_b(rcv_q)
+);
+
+// tile row = 2 bytes (pixels 0-3, 4-7) in each ROM: lc13 holds pen bits 3 / 2 in D3-D0 / D7-D4, lc14 bits 1 / 0
+reg  [11:0] rcg_addr;
+wire  [7:0] rcg_hi, rcg_lo;
+
+dpram_dc #(.widthad_a(13)) rc_gfx
+(
+    .clock_a(clk), .address_a(rcg_we ? ioctl_addr[12:0] : {1'b0, rcg_addr}), .data_a(ioctl_dout), .wren_a(rcg_we), .q_a(rcg_hi),
+    .clock_b(clk), .address_b({1'b1, rcg_addr}), .q_b(rcg_lo)
+);
+
+reg  [2:0] rc_row, rc_col;
+reg  [3:0] rc_pen = 4'd0;
+wire [8:0] rc_bx = {1'b0, x ^ {8{crt_flip}}} + rc_h;
+wire [7:0] rc_by = (y ^ {8{crt_flip}}) + rc_v;
+
+always @(posedge clk) begin
+    case (ph)
+        3'd1: begin rcv_addr <= {rc_by[7:3], rc_bx[8:3]}; rc_row <= rc_by[2:0]; rc_col <= rc_bx[2:0]; end
+        3'd3: rcg_addr <= {rcv_q, rc_row, rc_col[2]};
+        3'd5: rc_pen <= {rcg_hi[{1'b0, rc_col[1:0]}], rcg_hi[{1'b1, rc_col[1:0]}], rcg_lo[{1'b0, rc_col[1:0]}], rcg_lo[{1'b1, rc_col[1:0]}]};
+        default: ;
+    endcase
+end
+
+localparam [63:0] RC_RG = {8'hFF, 8'hDE, 8'hB8, 8'h97, 8'h68, 8'h47, 8'h21, 8'h00};
+localparam [31:0] RC_B  = {8'hFF, 8'hAD, 8'h52, 8'h00};
+wire  [7:0] rcp    = pal[{2'b10, rc_pen}];
+wire [23:0] rc_rgb = {RC_RG[rcp[2:0]*8 +: 8], RC_RG[rcp[5:3]*8 +: 8], RC_B[rcp[7:6]*8 +: 8]};
+
 //----------------------------------------------------------- Stars ------------------------------------------------------------//
 
 // 17-bit LFSR clocked twice per active pixel on every line but VSYNC; unflipped, 6B holds off the first two clocks
@@ -626,6 +677,7 @@ always @(*) begin
     else if (pen_on && db)           rgb = db_rgb(pvx);
     else if (pen_on && vflags5[5])   rgb = {RG_LUT[pvx[2:0]*8 +: 8], B_LUT[pvx[7:6]*8 +: 8], RG_LUT[pvx[5:3]*8 +: 8]};
     else if (pen_on)                 rgb = {RG_LUT[pvx[2:0]*8 +: 8], RG_LUT[pvx[5:3]*8 +: 8], B_LUT[pvx[7:6]*8 +: 8]};
+    else if (rcl)                    rgb = rc_rgb;
     else if (st_on)                  rgb = {ST_LUT[{st[4], st[5]}*8 +: 8], ST_LUT[{st[2], st[3]}*8 +: 8], ST_LUT[{st[0], st[1]}*8 +: 8]};
     else if (bg_blue)                rgb = 24'h000047;
     else if (vflags3[4] && bg_en)    rgb = 24'h000056;

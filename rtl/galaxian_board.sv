@@ -26,6 +26,7 @@ module galaxian_board
                                         // RAM 8000, video 8800, objects 9000, Turtles latches A000 on A5-A3, watchdog A800)
                                         // 28 Harem (run-time decrypted ROM 8000-9FFF, column tile banks at 5000)
                                         // 29 Dambusters (Galaxian I/O at E000-FFFF, background latches 8000 / 8001)
+                                        // 30 Rock Climber (Moon Cresta + background RAM 4000, scroll 4800, ROM 6000)
     input         [7:0] vflags,         // [0] Scramble shells, [1] RGB -> GBR harness (Eagle), [2] Mr. Kougar packed gfx,
                                         // [3] sprites from the upper 8K of 16K planes (4 Fun in 1)
     input         [7:0] bflags,         // [0] NMI enable on latch 0, [1] 2K work RAM, [2] stars cut, [3] Moon Cresta
@@ -141,7 +142,7 @@ wire ce6 = (ph == 3'd0);
 
 //------------------------------------------------------- ROM load map --------------------------------------------------------//
 
-wire prog_cs, gfx0_cs, gfx1_cs, gfx2_cs, pal_cs, snd_cs, bgp_cs, samp_cs, sbp_cs, sbd_cs, dk_cs, gfxh_cs, tms_cs, tmsp_cs;
+wire prog_cs, gfx0_cs, gfx1_cs, gfx2_cs, pal_cs, snd_cs, bgp_cs, samp_cs, sbp_cs, sbd_cs, dk_cs, gfxh_cs, tms_cs, tmsp_cs, rcg_cs;
 
 selector rom_selector
 (
@@ -159,7 +160,8 @@ selector rom_selector
     .dk_cs(dk_cs),
     .gfxh_cs(gfxh_cs),
     .tms_cs(tms_cs),
-    .tmsp_cs(tmsp_cs)
+    .tmsp_cs(tmsp_cs),
+    .rcg_cs(rcg_cs)
 );
 
 //------------------------------------------------------- Video timing --------------------------------------------------------//
@@ -243,6 +245,8 @@ end
 // objects D800, the Galaxian I/O at E000-FFFF.
 // Harem (scramble.cpp harem_map): ROM 0000-1FFF + 8000-9FFF (decrypted), RAM 2000-27FF, objects 4000 (4100-47FF RAM),
 // video 4800, column tile banks 5000, latches 5800-5807, PPIs 6100 / 6200.
+// Rock Climber (galaxian_rockclim.cpp rockclim_map): Moon Cresta + background RAM 4000-47FF, scroll 4800-4803, RAM
+// 5000-53FF, IN3 5800, ROM 6000-7FFF, IN4 (DSW 2) 8800.
 wire [7:0] top = rom_top == 8'd0 ? 8'h40 : rom_top;
 
 // {rom, ram, vid, obj, io, ram index[11:0]}
@@ -264,8 +268,10 @@ function [16:0] decode(input [15:0] a);
                 obj = a[15:11] == 5'b01011;
                 io  = a[15:13] == 3'b011;
             end
-            5'd1: begin
-                ram = a[15:11] == 5'b10000;
+            5'd1, 5'd30: begin
+                rom = a[15:8] < top || (variant[4:0] == 5'd30 && a[15:13] == 3'b011);
+                ram = a[15:11] == 5'b10000 || (variant[4:0] == 5'd30 && a[15:10] == 6'b010100);
+                ri  = a[15] ? {1'b0, bflags[1] & a[10], a[9:0]} : {2'b10, a[9:0]};
                 vid = a[15:11] == 5'b10010;
                 obj = a[15:11] == 5'b10011;
                 io  = a[15:13] == 3'b101;
@@ -666,6 +672,7 @@ wire        aeg     = variant[4:0] == 5'd26;                          // Ameisen
 wire        mdk     = variant[4:0] == 5'd21;                          // Mandinka: latches A000, watchdog A800, PPIs B000 / B800
 wire        hm      = variant[4:0] == 5'd28;                          // Harem: latches 5800, PPIs 6100 / 6200
 wire        db      = variant[4:0] == 5'd29;                          // Dambusters: background latches 8000 / 8001
+wire        rc      = variant[4:0] == 5'd30;                          // Rock Climber: background RAM 4000, scroll 4800
 wire        fin     = bflags13[6];                                    // 4 Fun in 1: 8000 = game bank
 wire        ad      = hsk && bflags13[7];                             // A.D. 2083 on the Hot Shocker map
 wire        hb_lat  = (hb || hb6) && cpu_addr[15:4] == 12'hA80;
@@ -938,6 +945,20 @@ wire [15:0] rom_a = db ? db_a :
                     bflags4[2] && !cpu_addr[15] ? {1'b0, fa_lut(cpu_addr[14:10]), cpu_addr[11:10], cpu_addr[9:0]} :
                     bflags4[1] && cpu_addr[15:13] == 3'b001 ? {cpu_addr[15:13], cpu_addr[12] ^ ctl_9n[2], cpu_addr[11:0]} :
                     cpu_addr;
+
+// Rock Climber background scroll (MAME rockclim_scroll_w): 4800 / 4801 = H low / high, 4802 / 4803 = V low / high;
+// the map is 512 x 256, so only H bit 8 of the high bytes matters
+reg  [8:0] rc_h = 9'd0;
+reg  [7:0] rc_v = 8'd0;
+wire [7:0] rc_q;
+wire       rc_vr = rc && cpu_addr[15:11] == 5'b01000;
+always @(posedge clk) begin
+    if (wr && rc && cpu_addr[15:2] == 14'h1200) begin
+        if (cpu_addr[1:0] == 2'd0) rc_h[7:0] <= cpu_dout;
+        if (cpu_addr[1:0] == 2'd1) rc_h[8]   <= cpu_dout[0];
+        if (cpu_addr[1:0] == 2'd2) rc_v      <= cpu_dout;
+    end
+end
 
 // Dambusters background (MAME dambustr_bg_color_w / _split_line_w): 8000 = {char bank, colour 2, priority, colour 1},
 // 8001 = split line
@@ -1523,6 +1544,9 @@ always @(*) begin
     else if (prot_cs) cpu_din = prot_q;
     else if (cm_prot) cpu_din = cm_prot_q;
     else if (dg_prot) cpu_din = cpu_addr[0] ? 8'h8C : 8'hAA;
+    else if (rc_vr) cpu_din = rc_q;
+    else if (rc && cpu_addr == 16'h5800) cpu_din = in3;
+    else if (rc && cpu_addr == 16'h8800) cpu_din = dip4;
     else if (rom_cs) cpu_din = rom_d;
     else if (ram_cs) cpu_din = ram_q;
     else if (vid_cs) cpu_din = vram_q;
@@ -1594,6 +1618,13 @@ galaxian_video video
     .bd_patch(bflags13[5]),
     .pal_we(ioctl_wr0 & pal_cs),
     .bgp_we(ioctl_wr0 & bgp_cs),
+    .rcl(rc),
+    .rc_h(rc_h),
+    .rc_v(rc_v),
+    .rc_addr(cpu_addr[10:0]),
+    .rc_we(wr & rc_vr),
+    .rc_q(rc_q),
+    .rcg_we(ioctl_wr0 & rcg_cs),
 
     .n3a(n3a),
 
