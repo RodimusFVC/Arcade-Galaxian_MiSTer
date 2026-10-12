@@ -626,6 +626,7 @@ BEGIN
           -- next opcode comes from IAR, not the I/O port address
           ad_c<=iar;
           ph_c<=phCODE;
+          wr_c<='0'; -- the fetch after WRTx is a read, not another write cycle
           IF ri(7)='0' THEN -- READ IO : REDE,REDD,REDC
             rd_c<=dr;
             rd_maj_c<='1';
@@ -690,7 +691,9 @@ BEGIN
                    BRN  |  -- Branch on register non-zero, Absolute
                    BIDR |  -- Branch on Inc / Dec Register, Absolute
                    BSTF |  -- Branch to sub on condition True/False Relative
-                   BSN  => -- Branch to sub on register non-zero, Relative
+                   BSN  |  -- Branch to sub on register non-zero, Relative
+                   ZBRR |  -- Zero Branch, Relative (indirect; was missing: the core re-read the pointer forever)
+                   ZBSR => -- Zero Branch to Sub, Relative (indirect)
                 state_c<=sOPCODE;
                 iar_c<=rh(6 DOWNTO 0) & dr;
                 ad_c <=rh(6 DOWNTO 0) & dr;

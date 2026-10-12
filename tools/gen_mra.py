@@ -424,7 +424,8 @@ TWIN_FIRE = {"JOYSTICKRIGHT_UP": (1, "Fire Up"), "JOYSTICKRIGHT_DOWN": (2, "Fire
 TRACKBALL = {}
 IGNORED_TYPES = {"UNUSED", "UNKNOWN", "OTHER"}   # OTHER: operator-only buttons (Dambusters Initials Reset)
 
-SERIES_BY_PARENT = {"rockclim": ("Rock Climber", "Platform - Climb")}
+SERIES_BY_PARENT = {"rockclim": ("Rock Climber", "Platform - Climb"), "racknrol": ("Rack + Roll", "Sports - Pool"),
+                    "bullsdrt": ("Bulls Eye Darts", "Sports - Darts")}
 REGION_WORDS = [("US", "US"), ("Japan", "Japan"), ("Spanish", "Spain"), ("Italian", "Italy"), ("French", "France"),
                 ("Brazil", "Brazil"), ("Argentina", "Argentina"), ("Greek", "Greece"), ("Hungarian", "Hungary")]
 
@@ -919,8 +920,7 @@ def hiscore_xml(g):
 """
 
 
-# Parked 2026-09-30: Rack + Roll / Hex Pool / Bulls Eye Darts - the column-bank loop (self-modifying code in RAM at 7C42)
-# writes only port 3F in sim (MAME: 3F..20); not released until fixed
+# Rack + Roll / Hex Pool / Bulls Eye Darts (needs the sgs2650 sIO write-cycle fix: the bank loop runs from RAM)
 SUPPORTED_PARKED = {
     # Rack + Roll board (board flags 13: 0x01 map / INT / banks, 0x02 SN at I/O 1D, 0x04 SN on the data port, 0x08 / 0x10
     # data port protection, 0x20 Bulls Eye Darts gfx patch); S2650 3.072 MHz, code extension 15 (column tile banks)
@@ -931,6 +931,7 @@ SUPPORTED_PARKED = {
     ("galaxold.cpp", "bullsdrtg", "init_bullsdrtg"): (M_GAL, 0, B_NOSTARS, 0, 15, B2_NOWDOG | B2_NODISC, 0, V2_NOSHELLS, 0,
                                                       0, 0, 0, 0, B7_S2650, 0, 0, 0, 0, 0, 0x04, 0x01 | 0x04 | 0x10 | 0x20),
 }
+SUPPORTED.update(SUPPORTED_PARKED)
 
 def board_cfg(g):
     """SUPPORTED entry for a set: (driver, config, init) keys for the other drivers, (config, init) for galaxian.cpp
