@@ -82,7 +82,7 @@ module galaxian_board
     input         [7:0] bflags12,       // [0] Space Battle (Hoei) speech board, sbhoei_map I/O, RGB -> RBG,
                                         // [1] S2650 on a Scramble board (scramble.cpp hunchbks_map; INT and SENSE
                                         // from VBLANK), [3:2] S2650 clock 0 = 1.536, 1 = 3.072, 2 = 0.768 MHz,
-                                        // [4] extended port 00 reads 1 at PC 002B / 0A27 (MAME hncholms_prot_r),
+                                        // [4] extended port 00 reads 1 at MAME PC 002B / 0A27 (hncholms_prot_r),
                                         // [5] Driving Force (drivfrcg_program: 1600 write = pitch, 1700 = DSW1,
                                         // 1704-1707 = LFO; INT from VBLANK, SENSE = !VBLANK), [6] port 00 reads 1 at PC
                                         // 002E / 0297 (drivfrcg_port0_r)
@@ -443,27 +443,7 @@ reg   [2:0] bg_rgb = 3'd0;              // Turtles background colour latches (R,
 reg   [3:0] watchdog = 4'd0;
 wire        watchdog_reset = (watchdog == 4'd8) & ~bflags2[0];
 
-T80sed z80
-(
-    .RESET_n(~(reset | watchdog_reset | s26 | m65)),
-    .CLK_n(clk),
-    .CLKEN(ce6 & hcnt[0] & ~pause),
-    .WAIT_n(wait_n),
-    .INT_n(bflags9[4] ? cpu_nmi_n : cpu_int_n),
-    .NMI_n(cpu_nmi_n | bflags9[4]),
-    .BUSRQ_n(1'b1),
-    .M1_n(z80_m1_n),
-    .MREQ_n(z80_mreq_n),
-    .IORQ_n(z80_iorq_n),
-    .RD_n(z80_rd_n),
-    .WR_n(z80_wr_n),
-    .RFSH_n(z80_rfsh_n),
-    .HALT_n(),
-    .BUSAK_n(),
-    .A(z80_addr),
-    .DI(cpu_din),
-    .DO(z80_dout)
-);
+// main Z80 = z80sed_0 (Shared CPU / sound chip pool, below)
 
 // S2650 plug-in board (MAME hunchbkg): one access per ack (every 12 pixels, 1.536 MHz / 3), replayed on the Z80 bus
 // with its address moved onto the Galaxian map: ROM pages 0000 / 2000 / 4000 / 6000 (4K) -> 0000-3FFF, 1C00 RAM ->
@@ -527,26 +507,7 @@ always @(posedge clk) begin
     else if (s26_new2 && s26_act && s26_io && s26_w && !s26_ene_r && s26_dc_r && bflags7[7]) sbk_latch <= {s26_d[3:0], 4'd0};
 end
 
-s2650_cpu s2650
-(
-    .clk(clk),
-    .reset(reset | watchdog_reset | ~s26),
-    .req(s26_req),
-    .ack(s26_ack),
-    .ad(s26_ad),
-    .wr(s26_wr),
-    .dw(s26_dw),
-    .dr(s26_dr),
-    .mio(s26_mio),
-    .ene(s26_ene),
-    .dc(s26_dc),
-    .ph(s26_ph),
-    .irq(s26_int),
-    .intack(s26_intack),
-    .ivec(8'h03),
-    .sense(s26_vb ? vblank ^ (s26_rk | s26_df) : ~cpu_nmi_n),   // Driving Force: !VBLANK, as the Pacman core's drivfrcp
-    .flag()
-);
+// S2650 = s2650_0 (Shared CPU / sound chip pool, below)
 
 // Scramble board (hunchbks_map, 3000 / 5000 / 7000 = 1000): 1C00 RAM -> 4000, 1800 video -> 4800, 1400 objects -> 5000,
 // 1500 PPI 0 -> 8100, 1210 PPI 1 -> 8200, 1600 latches -> 6800, 1680 / 1780 watchdog -> 7000
@@ -583,41 +544,16 @@ always @(posedge clk) begin
     m65_div  <= m65_div + 5'd1;
     m65_en_d <= m65_en;
 end
-wire [23:0] m65_a;
+wire [15:0] m65_a;
 wire  [7:0] m65_do;
 wire        m65_rw;
 
-T65 t65
-(
-    .Mode(2'b00),
-    .Res_n(~(reset | watchdog_reset | ~m65)),
-    .Enable(m65_en),
-    .Clk(clk),
-    .Rdy(1'b1),
-    .Abort_n(1'b1),
-    .IRQ_n(cpu_nmi_n),
-    .NMI_n(1'b1),
-    .SO_n(1'b1),
-    .R_W_n(m65_rw),
-    .Sync(),
-    .EF(),
-    .MF(),
-    .XF(),
-    .ML_n(),
-    .VP_n(),
-    .VDA(),
-    .VPA(),
-    .A(m65_a),
-    .DI(cpu_din),
-    .DO(m65_do),
-    .Regs(),
-    .NMI_ack()
-);
+// 6502 = t65_0 (Shared CPU / sound chip pool, below)
 
 wire [15:0] m65_zaddr = m65_a[15:14] == 2'b00 ? {2'b01, m65_a[13:0]} :
                         m65_a[15:14] == 2'b11 ? {2'b00, m65_a[13:1], ~m65_a[0]} : m65_a[15:0];
 assign s26_dr = s26_io && !s26_ene_r && s26_dc_r ? {7'd0, s26_dp1} :
-                s26_io ? (s26_ene_r && (s26_a[7:0] == 8'h00 || bflags12[6]) ? (bflags12[4] ? {7'd0, s26_ipc == 15'h002B || s26_ipc == 15'h0A27} :
+                s26_io ? (s26_ene_r && (s26_a[7:0] == 8'h00 || bflags12[6]) ? (bflags12[4] ? {7'd0, s26_ipc == 15'h0029 || s26_ipc == 15'h0A25} :   // MAME PCs 002B / 0A27
                                                                bflags12[6] ? {7'd0, s26_ipc == 15'h002C || s26_ipc == 15'h0295} :   // MAME PCs 002E / 0297, as this core reports them
                                                                              sbk_latch) : 8'h00) :
                 s26_df && s26_a[12] && s26_a[11:7] == 5'b01110 && !s26_a[2] ? in3 : cpu_din;
@@ -1729,6 +1665,175 @@ wire [7:0] ay_a, ay_b, ay_c;
 // sound command: Check Man any OUT, Japan / Dingo a 7800 write; one strobe per CPU cycle
 wire cmd_wr = snd_board & (bflags3[2] ? io_wr & wr_d : wr & io_cs & io_sel == 2'd3);
 
+/////////////////////////////  Shared CPU / sound chip pool  /////////////////////////////
+
+// One instance of each CPU / sound chip type, driven through rtl/chip_pool_pkg.sv buses. Only one sound board runs per
+// set, so they share one sound Z80 and one sound ROM block.
+
+// z80sed_0: main CPU on every Z80 board (not S2650 / 6502 sets: held in reset with the watchdog)
+chip_pool_pkg::z80sed_i_t z80sed_0_i;
+chip_pool_pkg::z80sed_o_t z80sed_0_o;
+assign z80sed_0_i.reset_n = ~(reset | watchdog_reset | s26 | m65);
+assign z80sed_0_i.ce      = ce6 & hcnt[0] & ~pause;
+assign z80sed_0_i.wait_n  = wait_n;
+assign z80sed_0_i.int_n   = bflags9[4] ? cpu_nmi_n : cpu_int_n;
+assign z80sed_0_i.nmi_n   = cpu_nmi_n | bflags9[4];
+assign z80sed_0_i.di      = cpu_din;
+assign z80_addr = z80sed_0_o.a;        assign z80_dout = z80sed_0_o.dout;
+assign z80_m1_n = z80sed_0_o.m1_n;     assign z80_mreq_n = z80sed_0_o.mreq_n; assign z80_iorq_n = z80sed_0_o.iorq_n;
+assign z80_rd_n = z80sed_0_o.rd_n;     assign z80_wr_n = z80sed_0_o.wr_n;     assign z80_rfsh_n = z80sed_0_o.rfsh_n;
+
+wire [15:0] z80sed_0_a;
+wire  [7:0] z80sed_0_do;
+wire        z80sed_0_m1_n, z80sed_0_mreq_n, z80sed_0_iorq_n, z80sed_0_rd_n, z80sed_0_wr_n, z80sed_0_rfsh_n;
+
+T80sed z80sed_0
+(
+    .RESET_n(z80sed_0_i.reset_n), .CLK_n(clk), .CLKEN(z80sed_0_i.ce), .WAIT_n(z80sed_0_i.wait_n), .INT_n(z80sed_0_i.int_n),
+    .NMI_n(z80sed_0_i.nmi_n), .BUSRQ_n(1'b1), .M1_n(z80sed_0_m1_n), .MREQ_n(z80sed_0_mreq_n), .IORQ_n(z80sed_0_iorq_n),
+    .RD_n(z80sed_0_rd_n), .WR_n(z80sed_0_wr_n), .RFSH_n(z80sed_0_rfsh_n), .HALT_n(), .BUSAK_n(), .A(z80sed_0_a),
+    .DI(z80sed_0_i.di), .DO(z80sed_0_do)
+);
+
+assign z80sed_0_o.a = z80sed_0_a;           assign z80sed_0_o.dout = z80sed_0_do;
+assign z80sed_0_o.m1_n = z80sed_0_m1_n;     assign z80sed_0_o.mreq_n = z80sed_0_mreq_n; assign z80sed_0_o.iorq_n = z80sed_0_iorq_n;
+assign z80sed_0_o.rd_n = z80sed_0_rd_n;     assign z80sed_0_o.wr_n = z80sed_0_wr_n;     assign z80sed_0_o.rfsh_n = z80sed_0_rfsh_n;
+
+// z80sed_1: sound CPU - Check Man / Dingo sound board (galaxian_sndcpu), King & Balloon speech board (galaxian_kbsnd),
+// Konami sound board (galaxian_konami_snd). Held in reset on sets with none of them.
+chip_pool_pkg::z80sed_i_t sc_z80sed_1_i, kb_z80sed_1_i, ko_z80sed_1_i, z80sed_1_idle, z80sed_1_i;
+chip_pool_pkg::z80sed_o_t z80sed_1_o;
+assign z80sed_1_idle.reset_n = 1'b0;  assign z80sed_1_idle.ce = 1'b0;     assign z80sed_1_idle.wait_n = 1'b1;
+assign z80sed_1_idle.int_n = 1'b1;    assign z80sed_1_idle.nmi_n = 1'b1;  assign z80sed_1_idle.di = 8'hFF;
+assign z80sed_1_i = bflags5[0] ? ko_z80sed_1_i : kb ? kb_z80sed_1_i : snd_board ? sc_z80sed_1_i : z80sed_1_idle;
+
+wire [15:0] z80sed_1_a;
+wire  [7:0] z80sed_1_do;
+wire        z80sed_1_m1_n, z80sed_1_mreq_n, z80sed_1_iorq_n, z80sed_1_rd_n, z80sed_1_wr_n, z80sed_1_rfsh_n;
+
+T80sed z80sed_1
+(
+    .RESET_n(z80sed_1_i.reset_n), .CLK_n(clk), .CLKEN(z80sed_1_i.ce), .WAIT_n(z80sed_1_i.wait_n), .INT_n(z80sed_1_i.int_n),
+    .NMI_n(z80sed_1_i.nmi_n), .BUSRQ_n(1'b1), .M1_n(z80sed_1_m1_n), .MREQ_n(z80sed_1_mreq_n), .IORQ_n(z80sed_1_iorq_n),
+    .RD_n(z80sed_1_rd_n), .WR_n(z80sed_1_wr_n), .RFSH_n(z80sed_1_rfsh_n), .HALT_n(), .BUSAK_n(), .A(z80sed_1_a),
+    .DI(z80sed_1_i.di), .DO(z80sed_1_do)
+);
+
+assign z80sed_1_o.a = z80sed_1_a;           assign z80sed_1_o.dout = z80sed_1_do;
+assign z80sed_1_o.m1_n = z80sed_1_m1_n;     assign z80sed_1_o.mreq_n = z80sed_1_mreq_n; assign z80sed_1_o.iorq_n = z80sed_1_iorq_n;
+assign z80sed_1_o.rd_n = z80sed_1_rd_n;     assign z80sed_1_o.wr_n = z80sed_1_wr_n;     assign z80sed_1_o.rfsh_n = z80sed_1_rfsh_n;
+
+// s2650_0: S2650 boards (bflags7[6]: Galaxian plug-in board, Scramble board, Driving Force, Rack + Roll)
+chip_pool_pkg::s2650_i_t s2650_0_i;
+chip_pool_pkg::s2650_o_t s2650_0_o;
+assign s2650_0_i.reset = reset | watchdog_reset | ~s26;
+assign s2650_0_i.ack   = s26_ack;
+assign s2650_0_i.dr    = s26_dr;
+assign s2650_0_i.irq   = s26_int;
+assign s2650_0_i.sense = s26_vb ? vblank ^ (s26_rk | s26_df) : ~cpu_nmi_n;   // Driving Force: !VBLANK, as the Pacman core's drivfrcp
+
+wire        s2650_0_req, s2650_0_wr, s2650_0_mio, s2650_0_ene, s2650_0_dc, s2650_0_intack;
+wire [14:0] s2650_0_ad;
+wire  [7:0] s2650_0_dw;
+wire  [1:0] s2650_0_ph;
+
+s2650_cpu s2650_0
+(
+    .clk(clk), .reset(s2650_0_i.reset), .req(s2650_0_req), .ack(s2650_0_i.ack), .ad(s2650_0_ad), .wr(s2650_0_wr),
+    .dw(s2650_0_dw), .dr(s2650_0_i.dr), .mio(s2650_0_mio), .ene(s2650_0_ene), .dc(s2650_0_dc), .ph(s2650_0_ph),
+    .irq(s2650_0_i.irq), .intack(s2650_0_intack), .ivec(8'h03), .sense(s2650_0_i.sense), .flag()
+);
+
+assign s2650_0_o.req = s2650_0_req;  assign s2650_0_o.ad = s2650_0_ad;    assign s2650_0_o.wr = s2650_0_wr;
+assign s2650_0_o.dw = s2650_0_dw;    assign s2650_0_o.mio = s2650_0_mio;  assign s2650_0_o.ene = s2650_0_ene;
+assign s2650_0_o.dc = s2650_0_dc;    assign s2650_0_o.ph = s2650_0_ph;    assign s2650_0_o.intack = s2650_0_intack;
+assign s26_req = s2650_0_o.req;      assign s26_ad = s2650_0_o.ad;        assign s26_wr = s2650_0_o.wr;
+assign s26_dw = s2650_0_o.dw;        assign s26_mio = s2650_0_o.mio;      assign s26_ene = s2650_0_o.ene;
+assign s26_dc = s2650_0_o.dc;        assign s26_ph = s2650_0_o.ph;        assign s26_intack = s2650_0_o.intack;
+
+// t65_0: BMX Stunts (bflags11[7])
+chip_pool_pkg::t65_i_t t65_0_i;
+chip_pool_pkg::t65_o_t t65_0_o;
+assign t65_0_i.res_n  = ~(reset | watchdog_reset | ~m65);
+assign t65_0_i.enable = m65_en;
+assign t65_0_i.irq_n  = cpu_nmi_n;
+assign t65_0_i.di     = cpu_din;
+
+wire [23:0] t65_0_a;
+wire  [7:0] t65_0_do;
+wire        t65_0_rw;
+
+T65 t65_0
+(
+    .Mode(2'b00), .Res_n(t65_0_i.res_n), .Enable(t65_0_i.enable), .Clk(clk), .Rdy(1'b1), .Abort_n(1'b1),
+    .IRQ_n(t65_0_i.irq_n), .NMI_n(1'b1), .SO_n(1'b1), .R_W_n(t65_0_rw), .Sync(), .EF(), .MF(), .XF(), .ML_n(), .VP_n(),
+    .VDA(), .VPA(), .A(t65_0_a), .DI(t65_0_i.di), .DO(t65_0_do), .Regs(), .NMI_ack()
+);
+
+assign t65_0_o.a = t65_0_a[15:0];  assign t65_0_o.dout = t65_0_do;  assign t65_0_o.r_w_n = t65_0_rw;
+assign m65_a = t65_0_o.a;          assign m65_do = t65_0_o.dout;    assign m65_rw = t65_0_o.r_w_n;
+
+// mcs48bus_0: Space Battle (Hoei) speech board (galaxian_sbspeech)
+chip_pool_pkg::mcs48bus_i_t mcs48bus_0_i;
+chip_pool_pkg::mcs48bus_o_t mcs48bus_0_o;
+wire  [7:0] mcu_p1, mcu_p2, mcu_db;
+wire [11:0] mcu_pa;
+wire        mcu_ale, mcu_wr_n, mcu_rd_n;
+
+t8039_notri_extrom #(
+    .gate_port_input_g (0),
+    .ram_addr_width_g  (7)                       // 8039 = 128 bytes internal RAM
+) mcs48bus_0 (
+    .xtal_i(clk), .xtal_en_i(mcs48bus_0_i.xtal_en), .reset_n_i(mcs48bus_0_i.reset_n),
+    .t0_i(1'b0), .t0_o(), .t0_dir_o(), .int_n_i(mcs48bus_0_i.int_n), .ea_i(1'b0),
+    .rd_n_o(mcu_rd_n), .psen_n_o(), .wr_n_o(mcu_wr_n), .ale_o(mcu_ale),
+    .db_i(mcs48bus_0_i.db), .db_o(mcu_db), .db_dir_o(), .t1_i(mcs48bus_0_i.t1),
+    .p2_i(8'hFF), .p2_o(mcu_p2), .p2l_low_imp_o(), .p2h_low_imp_o(),
+    .p1_i(mcs48bus_0_i.p1), .p1_o(mcu_p1), .p1_low_imp_o(), .prog_n_o(),
+    .pmem_addr_o(mcu_pa), .pmem_data_i(mcs48bus_0_i.pmem_d)
+);
+
+assign mcs48bus_0_o.p1 = mcu_p1;     assign mcs48bus_0_o.p2 = mcu_p2;      assign mcs48bus_0_o.db = mcu_db;
+assign mcs48bus_0_o.ale = mcu_ale;   assign mcs48bus_0_o.wr_n = mcu_wr_n;  assign mcs48bus_0_o.rd_n = mcu_rd_n;
+assign mcs48bus_0_o.pmem_a = mcu_pa;
+
+// sn76489_0: BMX Stunts SN76489A at 3.072 MHz, written with the data bits reversed (MAME snsnd_w); Rack + Roll group
+// SN76489 / SN76496 written by the S2650 (extended I/O 1D or the data port)
+reg  [3:0] sn_div = 4'd0;
+always @(posedge clk) sn_div <= sn_div + 4'd1;
+chip_pool_pkg::sn76489_i_t sn76489_0_i;
+chip_pool_pkg::sn76489_o_t sn76489_0_o;
+assign sn76489_0_i.rst  = reset | ~(m65 | bflags13[1] | bflags13[2]);
+assign sn76489_0_i.ce   = sn_div == 4'd0 && !pause;
+assign sn76489_0_i.wr_n = ~((wr && m65 && cpu_addr == 16'h8000) || rk_sn_we);
+assign sn76489_0_i.cs_n = 1'b0;
+assign sn76489_0_i.din  = m65 ? {cpu_dout[0], cpu_dout[1], cpu_dout[2], cpu_dout[3], cpu_dout[4], cpu_dout[5], cpu_dout[6], cpu_dout[7]} : s26_d;
+
+wire [10:0] sn76489_0_sound;
+wire        sn76489_0_ready;
+
+jt89 sn76489_0
+(
+    .rst(sn76489_0_i.rst), .clk(clk), .clk_en(sn76489_0_i.ce), .wr_n(sn76489_0_i.wr_n), .cs_n(sn76489_0_i.cs_n),
+    .din(sn76489_0_i.din), .sound(sn76489_0_sound), .ready(sn76489_0_ready)
+);
+
+assign sn76489_0_o.sound = sn76489_0_sound;  assign sn76489_0_o.ready = sn76489_0_ready;
+wire signed [10:0] sn_out = sn76489_0_o.sound;
+
+/////////////////////////////  Shared ROM blocks  /////////////////////////////
+
+// rom0: sound CPU ROM, ioctl 0x18000-0x1BFFF (snd_cs, 16K); each sound board reads it from 0 (Check Man 4K,
+// King & Balloon 8K, Konami 16K)
+wire [13:0] sc_r0a, kb_r0a, ko_r0a;
+wire  [7:0] rom0_d;
+
+dpram_dc #(.widthad_a(14)) rom0
+(
+    .clock_a(clk), .address_a(ioctl_addr[13:0]), .data_a(ioctl_dout), .wren_a(ioctl_wr0 & snd_cs),
+    .clock_b(clk), .address_b(bflags5[0] ? ko_r0a : kb ? kb_r0a : sc_r0a), .q_b(rom0_d)
+);
+
 galaxian_sndcpu sndcpu
 (
     .clk(clk),
@@ -1739,9 +1844,10 @@ galaxian_sndcpu sndcpu
     .cmd(cpu_dout),
     .vblank_irq(ce6 & rising_vblank),
     .line8_irq(ce6 & vcnt_step & vcnt[2:0] == 3'd7),
-    .rom_addr(ioctl_addr[11:0]),
-    .rom_data(ioctl_dout),
-    .rom_we(ioctl_wr0 & snd_cs),
+    .z80sed_1_i(sc_z80sed_1_i),
+    .z80sed_1_o(z80sed_1_o),
+    .rom0_a(sc_r0a),
+    .rom0_d(rom0_d),
     .ay_bdir(s_bdir),
     .ay_bc1(s_bc1),
     .ay_din(s_din),
@@ -1822,9 +1928,10 @@ galaxian_kbsnd kbsnd
     .reset(reset | ~kb),
     .pause(pause),
     .latch(kb_latch),
-    .rom_addr(ioctl_addr[12:0]),
-    .rom_data(ioctl_dout),
-    .rom_we(ioctl_wr0 & snd_cs),
+    .z80sed_1_i(kb_z80sed_1_i),
+    .z80sed_1_o(z80sed_1_o),
+    .rom0_a(kb_r0a),
+    .rom0_d(rom0_d),
     .dac(kb_dac)
 );
 
@@ -1884,9 +1991,12 @@ galaxian_konami_snd konami_snd
     .latch_we(snd_cmd_we),
     .latch_d(ppi_din),
     .control(snd_ctl),
+    .z80sed_1_i(ko_z80sed_1_i),
+    .z80sed_1_o(z80sed_1_o),
+    .rom0_a(ko_r0a),
+    .rom0_d(rom0_d),
     .rom_addr(ioctl_addr[13:0]),
     .rom_data(ioctl_dout),
-    .rom_we(ioctl_wr0 & snd_cs),
     .rom_swap01(bflags5[2]),
     .swap4k(fmc),
     .scorpion(scp | hm),
@@ -1913,24 +2023,11 @@ galaxian_sbspeech sbspeech
     .rom_data(ioctl_dout),
     .prog_we(ioctl_wr0 & sbp_cs),
     .data_we(ioctl_wr0 & sbd_cs),
+    .mcs48bus_0_i(mcs48bus_0_i),
+    .mcs48bus_0_o(mcs48bus_0_o),
     .audio(sb_audio)
 );
 
-// BMX Stunts SN76489A at 3.072 MHz, written with the data bits reversed (MAME snsnd_w)
-reg  [3:0] sn_div = 4'd0;
-always @(posedge clk) sn_div <= sn_div + 4'd1;
-wire signed [10:0] sn_out;
-jt89 sn
-(
-    .rst(reset | ~(m65 | bflags13[1] | bflags13[2])),
-    .clk(clk),
-    .clk_en(sn_div == 4'd0 && !pause),
-    .wr_n(~((wr && m65 && cpu_addr == 16'h8000) || rk_sn_we)),
-    .cs_n(1'b0),
-    .din(m65 ? {cpu_dout[0], cpu_dout[1], cpu_dout[2], cpu_dout[3], cpu_dout[4], cpu_dout[5], cpu_dout[6], cpu_dout[7]} : s26_d),
-    .sound(sn_out),
-    .ready()
-);
 
 // discrete (unless cut) plus AY plus the Konami board; a sound source that is idle stays at 0
 wire signed [17:0] mix = (bflags2[1] ? 18'sd0 : {{2{disc_audio[15]}}, disc_audio}) + {{2{ay_audio[15]}}, ay_audio} +

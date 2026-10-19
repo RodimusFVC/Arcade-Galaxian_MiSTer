@@ -20,9 +20,10 @@ module galaxian_sndcpu
     input               vblank_irq,     // one clock at the start of VBLANK
     input               line8_irq,      // one clock at the start of every 8th line
 
-    input        [11:0] rom_addr,       // ROM load
-    input         [7:0] rom_data,
-    input               rom_we,
+    output chip_pool_pkg::z80sed_i_t z80sed_1_i,  // the shared sound Z80 (rtl/galaxian_board.sv)
+    input  chip_pool_pkg::z80sed_o_t z80sed_1_o,
+    output       [13:0] rom0_a,         // the shared sound ROM block (rtl/galaxian_board.sv)
+    input         [7:0] rom0_d,
 
     output              ay_bdir,
     output              ay_bc1,
@@ -47,27 +48,22 @@ reg         int_n = 1'b1;
 reg         nmi_n = 1'b1;
 reg   [6:0] nmi_hold = 7'd0;
 
-T80sed cpu
-(
-    .RESET_n(~reset),
-    .CLK_n(clk),
-    .CLKEN(cen & ~pause),
-    .WAIT_n(1'b1),
-    .INT_n(int_n),
-    .NMI_n(nmi_n),
-    .BUSRQ_n(1'b1),
-    .M1_n(m1_n),
-    .MREQ_n(mreq_n),
-    .IORQ_n(iorq_n),
-    .RD_n(rd_n),
-    .WR_n(wr_n),
-    .RFSH_n(rfsh_n),
-    .HALT_n(),
-    .BUSAK_n(),
-    .A(addr),
-    .DI(din),
-    .DO(dout)
-);
+// the shared T80sed, held in reset with this board; the strobes this board sees are idle while it is in reset
+// (another board may be running the CPU)
+assign z80sed_1_i.reset_n = ~reset;
+assign z80sed_1_i.wait_n  = 1'b1;
+assign z80sed_1_i.ce      = cen & ~pause;
+assign z80sed_1_i.int_n   = int_n;
+assign z80sed_1_i.nmi_n   = nmi_n;
+assign z80sed_1_i.di      = din;
+assign addr   = z80sed_1_o.a;
+assign dout   = z80sed_1_o.dout;
+assign m1_n   = z80sed_1_o.m1_n   | reset;
+assign mreq_n = z80sed_1_o.mreq_n | reset;
+assign iorq_n = z80sed_1_o.iorq_n | reset;
+assign rd_n   = z80sed_1_o.rd_n   | reset;
+assign wr_n   = z80sed_1_o.wr_n   | reset;
+assign rfsh_n = z80sed_1_o.rfsh_n | reset;
 
 // command: latch, then NMI held low for 128 clocks (a few CPU cycles); IRQ held until acknowledged
 always @(posedge clk) begin
@@ -92,11 +88,9 @@ wire ay_mem = mode && mem && addr[15:2] == 14'h2800;            // A000-A003
 
 wire [7:0] rom_q, ram_q;
 
-dpram_dc #(.widthad_a(12)) rom
-(
-    .clock_a(clk), .address_a(rom_addr), .data_a(rom_data), .wren_a(rom_we),
-    .clock_b(clk), .address_b(addr[11:0]), .q_b(rom_q)
-);
+// 4K ROM: the first 4K of the shared sound ROM block
+assign rom0_a = {2'b00, addr[11:0]};
+assign rom_q  = rom0_d;
 
 dpram_dc #(.widthad_a(10)) ram
 (

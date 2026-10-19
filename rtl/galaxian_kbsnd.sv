@@ -15,9 +15,10 @@ module galaxian_kbsnd
 
     input         [7:0] latch,
 
-    input        [12:0] rom_addr,
-    input         [7:0] rom_data,
-    input               rom_we,
+    output chip_pool_pkg::z80sed_i_t z80sed_1_i,  // the shared sound Z80 (rtl/galaxian_board.sv)
+    input  chip_pool_pkg::z80sed_o_t z80sed_1_o,
+    output       [13:0] rom0_a,         // the shared sound ROM block (rtl/galaxian_board.sv)
+    input         [7:0] rom0_d,
 
     output reg    [3:0] dac = 4'd0
 );
@@ -34,35 +35,27 @@ wire        m1_n, mreq_n, iorq_n, rd_n, wr_n;
 wire [15:0] addr;
 wire  [7:0] dout, rom_q;
 
-dpram_dc #(.widthad_a(13)) rom
-(
-    .clock_a(clk), .address_a(rom_addr), .data_a(rom_data), .wren_a(rom_we),
-    .clock_b(clk), .address_b(addr[12:0]), .q_b(rom_q)
-);
+// 8K ROM: the first 8K of the shared sound ROM block
+assign rom0_a = {1'b0, addr[12:0]};
+assign rom_q  = rom0_d;
 
 wire [7:0] din = ~iorq_n ? latch : !addr[13] ? rom_q : 8'hFF;
 
-T80sed cpu
-(
-    .RESET_n(~reset),
-    .CLK_n(clk),
-    .CLKEN(cen),
-    .WAIT_n(1'b1),
-    .INT_n(1'b1),
-    .NMI_n(1'b1),
-    .BUSRQ_n(1'b1),
-    .M1_n(m1_n),
-    .MREQ_n(mreq_n),
-    .IORQ_n(iorq_n),
-    .RD_n(rd_n),
-    .WR_n(wr_n),
-    .RFSH_n(),
-    .HALT_n(),
-    .BUSAK_n(),
-    .A(addr),
-    .DI(din),
-    .DO(dout)
-);
+// the shared T80sed, held in reset with this board; the strobes this board sees are idle while it is in reset
+// (another board may be running the CPU)
+assign z80sed_1_i.reset_n = ~reset;
+assign z80sed_1_i.wait_n  = 1'b1;
+assign z80sed_1_i.ce      = cen;
+assign z80sed_1_i.int_n   = 1'b1;
+assign z80sed_1_i.nmi_n   = 1'b1;
+assign z80sed_1_i.di      = din;
+assign addr   = z80sed_1_o.a;
+assign dout   = z80sed_1_o.dout;
+assign m1_n   = z80sed_1_o.m1_n   | reset;
+assign mreq_n = z80sed_1_o.mreq_n | reset;
+assign iorq_n = z80sed_1_o.iorq_n | reset;
+assign rd_n   = z80sed_1_o.rd_n   | reset;
+assign wr_n   = z80sed_1_o.wr_n   | reset;
 
 always @(posedge clk) if (~iorq_n & m1_n & ~wr_n) dac <= dout[7:4];
 

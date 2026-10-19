@@ -56,7 +56,11 @@ HISCORE_INIT_FRAME = {"galaxian": 132, "starfght": 127, "exodus": 133, "warofbug
                       "guttangts3": 116, "hunchbkg": 263, "hunchbgb": 263, "hunchbks": 263, "hunchbks2": 263,
                       "kingball": 419, "moonwar": 50, "moonwara": 50, "mshuttle": 137, "mshuttle2": 137,
                       "mshuttlea": 137, "mshuttlej": 137, "mshuttlej2": 137, "ozon1": 4, "rockclim": 283,
-                      "sbhoei": 14, "sbhoeia": 14}
+                      "sbhoei": 14, "sbhoeia": 14,
+                      # core-measured 2026-10-16 (hsmeasure, obj17, 400 frames): Rack + Roll board, clear then fill
+                      "racknrol": 28, "hexpool": 24, "hexpoola": 50, "bullsdrtg": 24,
+                      # hncholms (0.768 MHz S2650): f65 clear, f203 table (MAME f64 / f202), measured after the port 00 fix
+                      "hncholms": 203}
 # colour PROMs never dumped: stand-in from a related set, (zip, file, crc). Kong (Taito do Brasil) takes Crazy Kong's
 # first palette PROM (user, 2026-09-29) - same byte layout; which colour group goes where is a guess
 PROM_STANDIN = {"kong": ("ckong.zip", "ck6v.bin", "751c3325"),

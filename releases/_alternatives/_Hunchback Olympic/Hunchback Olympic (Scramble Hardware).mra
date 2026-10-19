@@ -66,6 +66,16 @@
         </part>
     </rom>
 
+    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <rom index="3" md5="none">
+        <part>
+            09 E8 B5 CA 00 FF 00 02 00 02 00 01 11 11 00 00
+            00 00 40 08 00 12 00 30
+        </part>
+    </rom>
+    <rom index="4"></rom>
+    <nvram index="4" size="18"></nvram>
+
     <remark>Hunchback Olympic (Scramble Hardware) (Seatongrove UK, Ltd.)</remark>
     <mratimestamp>20260928000000</mratimestamp>
 </misterromdescription>

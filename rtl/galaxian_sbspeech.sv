@@ -29,6 +29,9 @@ module galaxian_sbspeech
     input                prog_we,       // 2K program ROM
     input                data_we,       // 4K data ROM
 
+    output chip_pool_pkg::mcs48bus_i_t mcs48bus_0_i,    // the shared 8039 (rtl/galaxian_board.sv)
+    input  chip_pool_pkg::mcs48bus_o_t mcs48bus_0_o,
+
     output signed [15:0] audio
 );
 
@@ -85,37 +88,21 @@ dpram_dc #(.widthad_a(12)) data
     .clock_b(clk), .address_b({p2_o[5], p2_o[2:0], bus_a}), .q_b(data_q)
 );
 
-t8039_notri_extrom #(
-    .gate_port_input_g (0),
-    .ram_addr_width_g  (7)                  // 8039 = 128 bytes internal RAM
-) cpu (
-    .xtal_i        (clk),
-    .xtal_en_i     (ce_4m),
-    .reset_n_i     (~reset),
-    .t0_i          (1'b0),
-    .t0_o          (),
-    .t0_dir_o      (),
-    .int_n_i       (~latch[7]),
-    .ea_i          (1'b0),
-    .rd_n_o        (rd_n),
-    .psen_n_o      (),
-    .wr_n_o        (wr_n),
-    .ale_o         (ale),
-    .db_i          (data_q),
-    .db_o          (db_o),
-    .db_dir_o      (),
-    .t1_i          (drq),
-    .p2_i          (8'hFF),
-    .p2_o          (p2_o),
-    .p2l_low_imp_o (),
-    .p2h_low_imp_o (),
-    .p1_i          ({p1_o[7], latch[6:0]}),
-    .p1_o          (p1_o),
-    .p1_low_imp_o  (),
-    .prog_n_o      (),
-    .pmem_addr_o   (pmem_addr),
-    .pmem_data_i   (prog_q)
-);
+// the shared 8039, held in reset with this board
+assign mcs48bus_0_i.reset_n = ~reset;
+assign mcs48bus_0_i.xtal_en = ce_4m;
+assign mcs48bus_0_i.int_n   = ~latch[7];
+assign mcs48bus_0_i.t1      = drq;
+assign mcs48bus_0_i.db      = data_q;
+assign mcs48bus_0_i.p1      = {p1_o[7], latch[6:0]};
+assign mcs48bus_0_i.pmem_d  = prog_q;
+assign rd_n      = mcs48bus_0_o.rd_n;
+assign wr_n      = mcs48bus_0_o.wr_n;
+assign ale       = mcs48bus_0_o.ale;
+assign db_o      = mcs48bus_0_o.db;
+assign p1_o      = mcs48bus_0_o.p1;
+assign p2_o      = mcs48bus_0_o.p2;
+assign pmem_addr = mcs48bus_0_o.pmem_a;
 
 wire signed [13:0] sp_audio;
 
