@@ -1088,8 +1088,9 @@ def foreign_parent(name):
 
 
 # MRA file names Main_MiSTer would mis-title: its names.txt lookup is a plain substring search for "<file name>:",
-# so a bare "Scramble" matches another core's line and is listed as that game (user, 2026-09-29)
-FILE_NAME_OVERRIDE = {"scramble": "Scramble (Konami)"}
+# so a bare "Scramble" matches another core's line and is listed as that game (user, 2026-09-29).
+# "Victory" would clash with Exidy's Victory.mra in the shared _RodimusCores/_Arcade/ (2026-10-22)
+FILE_NAME_OVERRIDE = {"scramble": "Scramble (Konami)", "victoryc": "Victory (Comsoft)"}
 
 
 def out_path(root, g, games):
