@@ -25,7 +25,7 @@
     <joystick>8-way</joystick>
     <special_controls></special_controls>
     <num_buttons>2</num_buttons>
-    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,B,X,Y,Select,Start,R,L"/>
+    <buttons names="Fire,Button 2,-,-,Coin,Start 1P,Start 2P,Pause,-,-,-" default="A,B,Select,Start,R,L"/>
 
     <switches default="00,00,00,10">
         <dip name="Coin A" bits="16,19" ids="2C/1C,2C/2C,1C/1C,2C/3C,2C/4C,1C/2C,2C/5C,2C/6C,1C/3C,2C/7C,2C/8C,1C/4C,1C/5C,1C/6C,1C/7C,1C/8C" values="8,9,0,10,11,1,12,13,2,14,15,3,4,5,6,7"/>
@@ -38,7 +38,7 @@
         <dip name="Demo Sounds" bits="31" ids="Off,On" values="1,0"/>
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: ROM -->
     <rom index="0" md5="none" zip="ad2083.zip">
         <part crc="4d34325a" name="ad0.10o"/>
         <part crc="0f37134b" name="ad1.9o"/>
@@ -58,17 +58,19 @@
         <part crc="c58a4f6a" name="prom-sn74s188.8a"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: Config -->
     <rom index="1">
         <part>
-            10 90 11 00 00 0B 02 00 00 00 80 03 00 00 04 00
+            10 90 00 00 00 00 00 10 FF FF 80 80 02 03 80 80
             01 06 02 05 04 03 00 00 00 00 12 11 16 00 14 13
             00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-            00 00 00 00 00 80
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            11 00 00 0B 02 00 00 00 80 03 00 00 04 00 00 00
+            00 00 00 80
         </part>
     </rom>
 
-    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <!-- Index 3: Hiscore -->
     <rom index="3" md5="none">
         <part>
             07 E0 FE 70 00 FF 00 02 00 02 00 01 11 11 00 00
@@ -76,6 +78,7 @@
             00 00 40 A8 00 03 00 06
         </part>
     </rom>
+    <!-- Index 4: NVRAM -->
     <rom index="4"></rom>
     <nvram index="4" size="103"></nvram>
 

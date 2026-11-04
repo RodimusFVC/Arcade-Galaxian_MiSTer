@@ -25,14 +25,14 @@
     <joystick>4-way</joystick>
     <special_controls></special_controls>
     <num_buttons>1</num_buttons>
-    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,B,X,Y,Select,Start,R,L"/>
+    <buttons names="Fire,-,-,-,Coin,Start 1P,Start 2P,Pause,-,-,-" default="A,Select,Start,R,L"/>
 
-    <switches default="00,00,08,FF">
+    <switches default="00,00,08">
         <dip name="Lives" bits="17,18" ids="3,4,5,6"/>
         <dip name="Cabinet" bits="19" ids="Upright,Cocktail" values="1,0"/>
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: ROM -->
     <rom index="0" md5="none" zip="ckongmc.zip|ckong.zip">
         <part crc="a87fc828" name="kc1.bin" offset="0x0" length="0x800"/>
         <part crc="94a13dec" name="kc2.bin" offset="0x0" length="0x800"/>
@@ -53,17 +53,19 @@
         <part crc="7e0b79cb" name="ck_cp.bin"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: Config -->
     <rom index="1">
         <part>
-            03 91 01 44 60 06 00 00 00 00 00 00 00 00 00 00
+            03 91 00 00 00 00 08 FF 3E FF 80 80 02 80 80 80
             11 12 03 04 01 00 0A 02 05 14 0B 0C 09 0D 00 00
             00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-            00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            01 44 60 06 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00
         </part>
     </rom>
 
-    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <!-- Index 3: Hiscore -->
     <rom index="3" md5="none">
         <part>
             00 7B BD F1 00 FF 00 02 00 02 00 01 11 11 00 00
@@ -71,6 +73,7 @@
             00 00 60 B8 00 03 50 00
         </part>
     </rom>
+    <!-- Index 4: NVRAM -->
     <rom index="4"></rom>
     <nvram index="4" size="173"></nvram>
 

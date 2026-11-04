@@ -25,7 +25,7 @@
     <joystick>8-way</joystick>
     <special_controls></special_controls>
     <num_buttons>2</num_buttons>
-    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,B,X,Y,Select,Start,R,L"/>
+    <buttons names="Fire,Button 2,-,-,Coin,Start 1P,Start 2P,Pause,-,-,-" default="A,B,Select,Start,R,L"/>
 
     <switches default="FF,FF,5B,00,03">
         <dip name="Lives" bits="8,9" ids="3,4,5,255" values="3,2,1,0"/>
@@ -35,7 +35,7 @@
         <dip name="Difficulty" bits="32,33" ids="Normal,Medium,Hard,Very Hard" values="3,2,1,0"/>
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: ROM -->
     <rom index="0" md5="none" zip="scorpion.zip">
         <part crc="ba1219b4" name="1.2d"/>
         <part crc="c3909ab6" name="2.2f"/>
@@ -59,17 +59,19 @@
         <part crc="3bf2452d" name="igr_scorpion_32_a1.ic23"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: Config -->
     <rom index="1">
         <part>
-            06 90 01 00 00 05 02 00 00 00 30 03 00 00 00 00
+            06 90 00 00 FF FF 5B 00 03 FF 80 01 02 80 04 80
             09 06 00 05 04 03 12 11 00 00 0E 0D 0C 0B 14 13
-            0A 00 00 00 01 30 02 31 00 00 00 00 00 00 00 00
-            00 00 00 40
+            0A 00 00 00 01 18 02 19 00 00 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            01 00 00 05 02 00 00 00 30 03 00 00 00 00 00 00
+            00 40 00 00
         </part>
     </rom>
 
-    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <!-- Index 3: Hiscore -->
     <rom index="3" md5="none">
         <part>
             05 44 C9 8E 00 FF 00 02 00 02 00 01 11 11 00 00
@@ -77,6 +79,7 @@
             00 00 42 AD 00 0F 10 10
         </part>
     </rom>
+    <!-- Index 4: NVRAM -->
     <rom index="4"></rom>
     <nvram index="4" size="30"></nvram>
 

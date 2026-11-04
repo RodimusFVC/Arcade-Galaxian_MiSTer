@@ -46,7 +46,7 @@ wire  [7:0] ioctl_index;
 wire [24:0] ioctl_addr;
 wire  [7:0] ioctl_dout;
 wire [15:0] joystick_0, joystick_1;
-wire [15:0] joy_la0, joy_la1, joy_ra0, joy_ra1;   // analog sticks {Y, X}, signed, -Y = up
+wire [15:0] joy_la0, joy_la1, joy_ra0, joy_ra1;
 wire  [8:0] spinner_0;
 wire [24:0] ps2_mouse;
 wire [21:0] gamma_bus;
@@ -70,9 +70,24 @@ assign HDMI_BLACKOUT = 0;
 assign HDMI_BOB_DEINT = 0;
 
 wire signed [15:0] audio;
-assign AUDIO_L = pause_cpu ? 16'd0 : audio;
-assign AUDIO_R = pause_cpu ? 16'd0 : audio;
-assign AUDIO_S = 1;   // signed
+wire signed [26:0] mv_a   = {{11{audio[15]}}, audio};
+wire signed [26:0] mv_181 = (mv_a <<< 7) + (mv_a <<< 5) + (mv_a <<< 4) + (mv_a <<< 2) + mv_a;
+reg  signed [26:0] mv_p;
+always @(*) begin
+	case (status[48:46])
+		3'd1:    mv_p = mv_181;
+		3'd2:    mv_p = mv_a <<< 7;
+		3'd3:    mv_p = mv_a <<< 6;
+		3'd4:    mv_p = mv_181 <<< 1;
+		3'd5:    mv_p = mv_a <<< 9;
+		default: mv_p = mv_a <<< 8;
+	endcase
+end
+wire signed [26:0] mv_s   = mv_p >>> 8;
+wire signed [15:0] audio_mv = mv_s > 27'sd32767 ? 16'sd32767 : mv_s < -27'sd32768 ? -16'sd32768 : mv_s[15:0];
+assign AUDIO_L = pause_cpu ? 16'd0 : audio_mv;
+assign AUDIO_R = pause_cpu ? 16'd0 : audio_mv;
+assign AUDIO_S = 1;
 assign AUDIO_MIX = 0;
 
 assign LED_DISK  = 0;
@@ -80,24 +95,9 @@ assign LED_POWER = 0;
 assign LED_USER  = ioctl_download;
 assign BUTTONS = 0;
 
-///////////////////////////////////////////////////
-
-// MRA index 1:
-//   byte 0      memory map (see rtl/galaxian_board.sv)
-//   byte 1      flags: [0] 4-way joystick, [2] coins are 2-frame pulses, [3] twin sticks (right analog stick = fire
-//               directions on buttons 1-4), [4] vertical, [5] mouse / trackball option (War of the Bugs),
-//               [6] ROT180 (Rock Climber: shown through the board's CRT flip), [7] vertical is ROT90
-//   byte 2      video flags (see rtl/galaxian_board.sv)
-//   byte 3      board flags, byte 4 program ROM top >> 8, byte 5 tile/sprite code extension, byte 6 board flags 2,
-//               byte 7 board flags 3, byte 8 video flags 2, byte 9 board flags 4, byte 10 video flags 3,
-//               byte 11 board flags 5, byte 12 video flags 4, byte 13 board flags 6, byte 14 board flags 7,
-//               byte 15 board flags 8
-//   bytes 48-53 board flags 9, video flags 5, board flags 10, 11, 12, 13 (after the input map; 51-53 optional)
-//               (rtl/galaxian_board.sv)
-//   bytes 16-47 input map, one byte per port bit (IN0, IN1, IN2, IN3; bit 0 first): control id, 0 = none
-// DIP switch bytes 0-3 hold the idle level of every bit of IN0-IN3; a pressed control inverts its bit
-reg [7:0] game_var   = 8'd0;
-reg [7:0] game_flags = 8'h90;
+reg [7:0] game_var    = 8'd0;
+reg [7:0] game_flags  = 8'h90;
+reg [7:0] game_flags2 = 8'd0;
 reg [7:0] vid_flags  = 8'd0;
 reg [7:0] brd_flags  = 8'd0;
 reg [7:0] rom_top    = 8'd0;
@@ -119,33 +119,39 @@ reg [7:0] brd_flags11 = 8'd0;
 reg [7:0] brd_flags12 = 8'd0;
 reg [7:0] brd_flags13 = 8'd0;
 reg [5:0] in_map[32];
+reg [7:0] port_idle[4] = '{8'hFF,8'hFF,8'hFF,8'hFF};
+reg [7:0] port_dip[4]  = '{8'h80,8'h80,8'h80,8'h80};
+wire [5:0] map_idx  = ioctl_addr[5:0] - 6'd16;
+wire [3:0] dip_idx4 = ioctl_addr[3:0] - 4'd10;
 
 always @(posedge CLK_49M) begin
     if (ioctl_wr && ioctl_index == 8'd1) begin
-        if (ioctl_addr == 25'd0) begin game_var <= ioctl_dout; brd_flags9 <= 8'd0; vid_flags5 <= 8'd0; brd_flags10 <= 8'd0; brd_flags11 <= 8'd0; brd_flags12 <= 8'd0; brd_flags13 <= 8'd0; end   // bytes 48+ may be absent
-        if (ioctl_addr == 25'd1) game_flags <= ioctl_dout;
-        if (ioctl_addr == 25'd2) vid_flags  <= ioctl_dout;
-        if (ioctl_addr == 25'd3) brd_flags  <= ioctl_dout;
-        if (ioctl_addr == 25'd4) rom_top    <= ioctl_dout;
-        if (ioctl_addr == 25'd5) ext_mode   <= ioctl_dout;
-        if (ioctl_addr == 25'd6) brd_flags2 <= ioctl_dout;
-        if (ioctl_addr == 25'd7) brd_flags3 <= ioctl_dout;
-        if (ioctl_addr == 25'd8) vid_flags2 <= ioctl_dout;
-        if (ioctl_addr == 25'd9) brd_flags4 <= ioctl_dout;
-        if (ioctl_addr == 25'd10) vid_flags3 <= ioctl_dout;
-        if (ioctl_addr == 25'd11) brd_flags5 <= ioctl_dout;
-        if (ioctl_addr == 25'd12) vid_flags4 <= ioctl_dout;
-        if (ioctl_addr == 25'd13) brd_flags6 <= ioctl_dout;
-        if (ioctl_addr == 25'd14) brd_flags7 <= ioctl_dout;
-        if (ioctl_addr == 25'd15) brd_flags8 <= ioctl_dout;
-        if (ioctl_addr == 25'd48) brd_flags9 <= ioctl_dout;
-        if (ioctl_addr == 25'd49) vid_flags5 <= ioctl_dout;
-        if (ioctl_addr == 25'd50) brd_flags10 <= ioctl_dout;
-        if (ioctl_addr == 25'd51) brd_flags11 <= ioctl_dout;
-        if (ioctl_addr == 25'd52) brd_flags12 <= ioctl_dout;
-        if (ioctl_addr == 25'd53) brd_flags13 <= ioctl_dout;
-        if (ioctl_addr[24:5] == 20'd0 && ioctl_addr[4]) in_map[{1'b0, ioctl_addr[3:0]}] <= ioctl_dout[5:0];
-        if (ioctl_addr[24:5] == 20'd1 && ioctl_addr[4] == 1'b0) in_map[{1'b1, ioctl_addr[3:0]}] <= ioctl_dout[5:0];
+        if (ioctl_addr == 25'd0) game_var    <= ioctl_dout;
+        if (ioctl_addr == 25'd1) game_flags  <= ioctl_dout;
+        if (ioctl_addr == 25'd3) game_flags2 <= ioctl_dout;
+        if (ioctl_addr >= 25'd4  && ioctl_addr < 25'd8)  port_idle[ioctl_addr[1:0]] <= ioctl_dout;
+        if (ioctl_addr >= 25'd10 && ioctl_addr < 25'd14) port_dip[dip_idx4[1:0]] <= ioctl_dout;
+        if (ioctl_addr >= 25'd16 && ioctl_addr < 25'd48) in_map[map_idx[4:0]] <= ioctl_dout[5:0];
+        if (ioctl_addr == 25'd64) vid_flags   <= ioctl_dout;
+        if (ioctl_addr == 25'd65) brd_flags   <= ioctl_dout;
+        if (ioctl_addr == 25'd66) rom_top     <= ioctl_dout;
+        if (ioctl_addr == 25'd67) ext_mode    <= ioctl_dout;
+        if (ioctl_addr == 25'd68) brd_flags2  <= ioctl_dout;
+        if (ioctl_addr == 25'd69) brd_flags3  <= ioctl_dout;
+        if (ioctl_addr == 25'd70) vid_flags2  <= ioctl_dout;
+        if (ioctl_addr == 25'd71) brd_flags4  <= ioctl_dout;
+        if (ioctl_addr == 25'd72) vid_flags3  <= ioctl_dout;
+        if (ioctl_addr == 25'd73) brd_flags5  <= ioctl_dout;
+        if (ioctl_addr == 25'd74) vid_flags4  <= ioctl_dout;
+        if (ioctl_addr == 25'd75) brd_flags6  <= ioctl_dout;
+        if (ioctl_addr == 25'd76) brd_flags7  <= ioctl_dout;
+        if (ioctl_addr == 25'd77) brd_flags8  <= ioctl_dout;
+        if (ioctl_addr == 25'd78) brd_flags9  <= ioctl_dout;
+        if (ioctl_addr == 25'd79) vid_flags5  <= ioctl_dout;
+        if (ioctl_addr == 25'd80) brd_flags10 <= ioctl_dout;
+        if (ioctl_addr == 25'd81) brd_flags11 <= ioctl_dout;
+        if (ioctl_addr == 25'd82) brd_flags12 <= ioctl_dout;
+        if (ioctl_addr == 25'd83) brd_flags13 <= ioctl_dout;
     end
 end
 
@@ -157,21 +163,22 @@ wire [1:0] ar = status[9:8];
 assign VIDEO_ARX = (!ar) ? (vert_view ? 12'd3 : 12'd4) : (ar - 1'd1);
 assign VIDEO_ARY = (!ar) ? (vert_view ? 12'd4 : 12'd3) : 12'd0;
 
-// Status bits: the old Galaxian core was "A.GALAXN", so none of its saved settings load here
 `include "build_id.v"
 localparam CONF_STR = {
 	"GALAXIAN;;",
 	"P1,Video Options;",
 	"P1O89,Aspect Ratio,Original,Full screen,[ARC1],[ARC2];",
 	"P1OC,Orientation,Vert,Horz;",
-	"P1OB,HDMI Flip,Off,On;",
-	"P1OM,CRT Flip,Off,On;",
+	"P1OM,Flip Screen,Off,On;",
 	"P1O[40:37],H Position (CRT),0,+1,+2,+3,+4,+5,+6,+7,-8,-7,-6,-5,-4,-3,-2,-1;",
 	"P1O[44:41],V Position (CRT),0,+1,+2,+3,+4,+5,+6,+7,-8,-7,-6,-5,-4,-3,-2,-1;",
 	"P1OGI,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%,CRT 75%;",
 	"H1-;",
 	"H1P2,Game Options;",
 	"P2O[45],Mouse/Trackball,Off,On;",
+	"-;",
+	"P5,Game Audio;",
+	"P5O[48:46],Master Volume,Factory,-3dB,-6dB,-12dB,+3dB,+6dB;",
 	"-;",
 	"P3,Pause Options;",
 	"P3OJ,Pause when OSD is open,On,Off;",
@@ -183,7 +190,7 @@ localparam CONF_STR = {
 	"DIP;",
 	"-;",
 	"R0,Reset;",
-	"J1,Btn 1,Btn 2,Btn 3,Btn 4,Coin,Start 1P,Start 2P,Pause,Btn 5,Btn 6;",
+	"J1,Button 1,Button 2,Button 3,Button 4,Coin,Start 1P,Start 2P,Pause,Button 5,Button 6,Rack Test;",
 	"jn,A,B,X,Y,Select,Start,R,L;",
 	"V,v",`BUILD_DATE
 };
@@ -201,7 +208,7 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 
 	.buttons(buttons),
 	.status(status),
-	.status_menumask({~game_flags[5], direct_video}),
+	.status_menumask({~game_flags2[0], direct_video}),
 
 	.ioctl_download(ioctl_download),
 	.ioctl_upload(ioctl_upload),
@@ -223,7 +230,9 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
 	.ps2_key(ps2_key)
 );
 
-////////////////////   CLOCKS   ///////////////////
+wire [63:0] reconfig_to_pll;
+wire [63:0] reconfig_from_pll;
+wire        cfg_waitrequest;
 
 pll pll
 (
@@ -234,10 +243,6 @@ pll pll
 	.reconfig_from_pll(reconfig_from_pll),
 	.locked(locked)
 );
-
-wire [63:0] reconfig_to_pll;
-wire [63:0] reconfig_from_pll;
-wire        cfg_waitrequest;
 
 pll_cfg pll_cfg
 (
@@ -253,83 +258,29 @@ pll_cfg pll_cfg
 	.reconfig_from_pll(reconfig_from_pll)
 );
 
-// 6.144 MHz pixel clock (18.432 MHz / 3): 8 phases of the 49.152 MHz clock
 reg [2:0] ce_div = 3'd0;
 always @(posedge CLK_49M) ce_div <= ce_div + 3'd1;
 wire ce6 = (ce_div == 3'd0);
 
-// Hold the Z80 in reset until the PLL is locked and the ROM download has finished
 wire reset = RESET | status[0] | buttons[1] | ioctl_download | ~locked;
 
-///////////////////         Keyboard           //////////////////
-
-// CTL-2026-10-24: original keyboard block commented out below (now controllers.sv ctl_keyboard; keys act on press)
-// reg kb_up = 0, kb_down = 0, kb_left = 0, kb_right = 0;
-// reg kb_b1 = 0, kb_b2 = 0;
-// reg kb_coin1 = 0, kb_coin2 = 0, kb_start1 = 0, kb_start2 = 0, kb_pause = 0, kb_service = 0, kb_tilt = 0;
-//
-// wire       pressed = ~ps2_key[9];
-// wire [7:0] code    = ps2_key[7:0];
-//
-// always @(posedge CLK_49M) begin
-// 	reg old_state;
-// 	old_state <= ps2_key[10];
-// 	if (old_state != ps2_key[10]) begin
-// 		case (code)
-// 			'h16: kb_start1  <= pressed; // 1
-// 			'h1E: kb_start2  <= pressed; // 2
-// 			'h2E: kb_coin1   <= pressed; // 5
-// 			'h36: kb_coin2   <= pressed; // 6
-// 			'h46: kb_service <= pressed; // 9
-// 			'h2C: kb_tilt    <= pressed; // T
-// 			'h4D: kb_pause   <= pressed; // P
-//
-// 			'h75: kb_up      <= pressed; // up
-// 			'h72: kb_down    <= pressed; // down
-// 			'h6B: kb_left    <= pressed; // left
-// 			'h74: kb_right   <= pressed; // right
-// 			'h14: kb_b1      <= pressed; // ctrl
-// 			'h11: kb_b2      <= pressed; // alt
-// 		endcase
-// 	end
-// end
-
-// MAME default keys (controllers.sv): kb [0] up [1] down [2] left [3] right [4] ctrl [5] alt [6] 1 [7] 2 [8] 5 [9] 6
-// [10] 9 [11] T [12] P (ps2_key[9] = 1 while the key is down)
 wire [12:0] kb;
-// CTL2-2026-10-25: controllers.sv v2: ctl_keyboard pause wired (no toggle keys here, so no behaviour change). v1 commented out below.
-// ctl_keyboard u_kb(.clk(CLK_49M), .ps2_key(ps2_key), .kb(kb));
 /* verilator lint_off PINCONNECTEMPTY */
 ctl_keyboard u_kb(.clk(CLK_49M), .ps2_key(ps2_key), .pause(pause_cpu), .kb(kb), .kbx());
 /* verilator lint_on PINCONNECTEMPTY */
 
-//////////////////  Arcade Buttons/Interfaces   ///////////////////////////
-
-// Joystick bits: 0 R, 1 L, 2 D, 3 U, 4-7 Btn 1-4, 8 Coin, 9 Start 1P, 10 Start 2P, 11 Pause, 12-13 Btn 5-6
-// analog sticks as 4 directions {U, D, L, R} (threshold +/-40 of 127): left sticks steer every game, right sticks
-// fire in the twin-stick games (Rescue, Minefield) alongside the D-pad / buttons
-// CTL-2026-10-24: original stick function commented out below (now controllers.sv ctl_stick_dirs, same thresholds)
-// function [3:0] stick(input [15:0] a);
-//     stick = {$signed(a[15:8]) < -8'sd40, $signed(a[15:8]) > 8'sd40, $signed(a[7:0]) < -8'sd40, $signed(a[7:0]) > 8'sd40};
-// endfunction
-// wire [3:0] al1 = stick(joy_la0), al2 = stick(joy_la1);
-// wire [3:0] ar1 = game_flags[3] ? stick(joy_ra0) : 4'd0, ar2 = game_flags[3] ? stick(joy_ra1) : 4'd0;
-
-wire [3:0] al1, al2, ar1_s, ar2_s;   // {U, D, L, R}, controllers.sv ctl_stick_dirs (+-40 per axis)
+wire [3:0] al1, al2, ar1_s, ar2_s;
 ctl_stick_dirs #(.MODE(0), .THRESH(7'd40)) u_al1(.stick(joy_la0), .dir(al1));
 ctl_stick_dirs #(.MODE(0), .THRESH(7'd40)) u_al2(.stick(joy_la1), .dir(al2));
 ctl_stick_dirs #(.MODE(0), .THRESH(7'd40)) u_ar1(.stick(joy_ra0), .dir(ar1_s));
 ctl_stick_dirs #(.MODE(0), .THRESH(7'd40)) u_ar2(.stick(joy_ra1), .dir(ar2_s));
-wire [3:0] ar1 = game_flags[3] ? ar1_s : 4'd0, ar2 = game_flags[3] ? ar2_s : 4'd0;
 
-// Mouse / trackball as player 1 joystick (War of the Bugs, Game Options): each count of movement queues ~5.3 ms of
-// that direction, so the stick stays pressed while the mouse moves and lets go within ~1/4 s of it stopping
 reg         mouse_seen = 1'b0;
 reg  [17:0] mj_div = 18'd0;
-reg  signed [7:0] mj_x = 8'sd0, mj_y = 8'sd0;   // pending counts, + = right / up
-wire        mouse_on = game_flags[5] & status[45];
+reg  signed [7:0] mj_x = 8'sd0, mj_y = 8'sd0;
+wire        mouse_on = game_flags2[0] & status[45];
 wire signed [8:0] mouse_dx = {ps2_mouse[4], ps2_mouse[15:8]};
-wire signed [8:0] mouse_dy = {ps2_mouse[5], ps2_mouse[23:16]};   // PS/2 Y is positive upward
+wire signed [8:0] mouse_dy = {ps2_mouse[5], ps2_mouse[23:16]};
 
 function signed [7:0] mj_step(input signed [7:0] p, input signed [8:0] d, input ev, input tick);
     reg signed [10:0] n;
@@ -352,123 +303,36 @@ always @(posedge CLK_49M) begin
         mj_y <= mj_step(mj_y, mouse_dy, mouse_seen != ps2_mouse[24], mj_div == 18'd0);
     end
 end
-wire [3:0] mouse_dir = {mj_y > 8'sd0, mj_y < 8'sd0, mj_x < 8'sd0, mj_x > 8'sd0};   // {U, D, L, R}
-
-// CTL-2026-10-24: original directions / 4-way commented out below (now controllers.sv)
-// wire [3:0] dir1_raw = {joystick_0[3] | kb_up, joystick_0[2] | kb_down, joystick_0[1] | kb_left, joystick_0[0] | kb_right} |
-//                       al1 | mouse_dir;
-// wire [3:0] dir2_raw = joystick_1[3:0] | al2;
-// wire [3:0] dir1, dir2;   // {U, D, L, R}
-//
-// joy4way joy4way_1(.clk(CLK_49M), .en(game_flags[0]), .in(dir1_raw), .out(dir1));
-// joy4way joy4way_2(.clk(CLK_49M), .en(game_flags[0]), .in(dir2_raw), .out(dir2));
-//
-// wire m_pause = joystick_0[11] | kb_pause;
+wire [3:0] mouse_dir = {mj_y > 8'sd0, mj_y < 8'sd0, mj_x < 8'sd0, mj_x > 8'sd0};
 
 wire [3:0] dir1_raw = {joystick_0[3] | kb[0], joystick_0[2] | kb[1], joystick_0[1] | kb[2], joystick_0[0] | kb[3]} |
                       al1 | mouse_dir;
 wire [3:0] dir2_raw = joystick_1[3:0] | al2;
-wire [3:0] dir1, dir2;   // {U, D, L, R}
+wire [3:0] dir1, dir2;
 
 ctl_joy4way u_j4w1(.clk(CLK_49M), .en(game_flags[0]), .in(dir1_raw), .out(dir1));
 ctl_joy4way u_j4w2(.clk(CLK_49M), .en(game_flags[0]), .in(dir2_raw), .out(dir2));
 
 wire m_pause = joystick_0[11] | kb[12];
 
-// Moon War dials: spinner / mouse / D-pad left-right (player 1), D-pad (player 2)
-wire [1:0] dial_step, dial_dir;
-galaxian_dial galaxian_dial
-(
-	.clk(CLK_49M),
-	.reset(reset),
-	.spinner(spinner_0),
-	.mouse(ps2_mouse),
-	.pad1({dir1_raw[1], dir1_raw[0]}),
-	.pad2({dir2_raw[1], dir2_raw[0]}),
-	.step(dial_step),
-	.dir(dial_dir)
-);
-
-// MAME PORT_IMPULSE(2): a coin press is latched, then held for exactly two frames from the next vblank
-// CTL-2026-10-24: original coin impulse commented out below (now controllers.sv ctl_coin_impulse, same logic)
-// wire       coin1_raw = joystick_0[8] | kb_coin1;
-// wire       coin2_raw = joystick_1[8] | kb_coin2;
-// reg        coin1_d = 1'b0, coin2_d = 1'b0, coin1_pend = 1'b0, coin2_pend = 1'b0, imp_vbl = 1'b0;
-// reg  [1:0] coin1_frames = 2'd0, coin2_frames = 2'd0;
-// always @(posedge CLK_49M) begin
-// 	coin1_d <= coin1_raw;
-// 	coin2_d <= coin2_raw;
-// 	imp_vbl <= vblank;
-// 	if (coin1_raw & ~coin1_d) coin1_pend <= 1'b1;
-// 	if (coin2_raw & ~coin2_d) coin2_pend <= 1'b1;
-// 	if (vblank & ~imp_vbl) begin
-// 		if (coin1_pend)                begin coin1_frames <= 2'd2; coin1_pend <= 1'b0; end
-// 		else if (coin1_frames != 2'd0) coin1_frames <= coin1_frames - 2'd1;
-// 		if (coin2_pend)                begin coin2_frames <= 2'd2; coin2_pend <= 1'b0; end
-// 		else if (coin2_frames != 2'd0) coin2_frames <= coin2_frames - 2'd1;
-// 	end
-// end
-// wire coin1 = game_flags[2] ? |coin1_frames : coin1_raw;
-// wire coin2 = game_flags[2] ? |coin2_frames : coin2_raw;
-
-// CTL2-2026-10-25: coin impulse paused with the CPU (PAUSE_MODE 1: frame count holds, a press while paused is discarded). v1 commented out below.
-// // (controllers.sv ctl_coin_impulse; pause 0 = counts every vblank, as before)
-// wire coin1, coin2;
-// ctl_coin_impulse #(.FRAMES(4'd2)) u_coin1(.clk(CLK_49M), .pause(1'b0), .vblank(vblank), .en(game_flags[2]),
-//                                           .coin_raw(joystick_0[8] | kb[8]), .coin(coin1));
-// ctl_coin_impulse #(.FRAMES(4'd2)) u_coin2(.clk(CLK_49M), .pause(1'b0), .vblank(vblank), .en(game_flags[2]),
-//                                           .coin_raw(joystick_1[8] | kb[9]), .coin(coin2));
 wire coin1, coin2;
 ctl_coin_impulse #(.FRAMES(4'd2), .PAUSE_MODE(1)) u_coin1(.clk(CLK_49M), .pause(pause_cpu), .vblank(vblank), .en(game_flags[2]),
                                           .coin_raw(joystick_0[8] | kb[8]), .coin(coin1));
 ctl_coin_impulse #(.FRAMES(4'd2), .PAUSE_MODE(1)) u_coin2(.clk(CLK_49M), .pause(pause_cpu), .vblank(vblank), .en(game_flags[2]),
                                           .coin_raw(joystick_1[8] | kb[9]), .coin(coin2));
 
-// DIP switches arrive from the OSD via ioctl index 254
+wire rack_btn = joystick_0[14] | joystick_1[14];
+wire rack_tog;
+ctl_toggle u_rack(.clk(CLK_49M), .clear(ioctl_download), .btn(rack_btn), .pause(pause_cpu), .q(rack_tog));
+
 reg [7:0] dip_sw[8] = '{8'hFF,8'hFF,8'hFF,8'hFF,8'h00,8'h00,8'h00,8'h00};
 always @(posedge CLK_49M) begin
 	if (ioctl_wr && (ioctl_index == 8'd254) && !ioctl_addr[24:3])
 		dip_sw[ioctl_addr[2:0]] <= ioctl_dout;
 end
 
-// control ids used by the MRA input map
-// CTL-2026-10-24: original control ids / port builder commented out below (now controllers.sv ctl_ids / ctl_port_map;
-// pad 2's Start no longer presses Start 1)
-// wire [63:0] ctl =
-// {
-// 	8'd0,
-// 	dip_sw[4],                                      // 55-48 DIP byte 4 (MAME fake IN4 lines, Strategy X coinage)
-// 	dip_sw[3],                                      // 47-40 DIP byte 3 (MAME FAKE port lines)
-// 	4'd0,
-// 	joystick_1[13:12],                              // 35-34 P2 Btn 6-5
-// 	joystick_0[13:12],                              // 33-32 P1 Btn 6-5
-// 	8'd0,                                           // 31-24 unused
-// 	1'b0,                                           // 23 coin 3
-// 	kb_service,                                     // 22 service
-// 	kb_tilt,                                        // 21 tilt
-// 	joystick_0[10] | joystick_1[10] | kb_start2,    // 20 start 2
-// 	joystick_0[9]  | joystick_1[9]  | kb_start1,    // 19 start 1
-// 	coin2,                                          // 18 coin 2
-// 	coin1,                                          // 17 coin 1
-// 	joystick_1[7:4] | {ar2[0], ar2[1], ar2[2], ar2[3]},   // 16-13 P2 Btn 4-1 (twin: fire R, L, D, U)
-// 	dir2[0], dir2[1], dir2[2], dir2[3],             // 12 R, 11 L, 10 D, 9 U
-// 	joystick_0[7] | ar1[0], joystick_0[6] | ar1[1], joystick_0[5] | kb_b2 | ar1[2], joystick_0[4] | kb_b1 | ar1[3],
-// 	                                                // 8-5 P1 Btn 4-1 (twin: fire R, L, D, U)
-// 	dir1[0], dir1[1], dir1[2], dir1[3],             // 4 R, 3 L, 2 D, 1 U
-// 	1'b0                                            // 0 none
-// };
-//
-// reg [7:0] in_port[4];
-// always @(posedge CLK_49M) begin
-// 	for (int p = 0; p < 4; p++)
-// 		for (int b = 0; b < 8; b++)
-// 			in_port[p][b] <= dip_sw[p][b] ^ ctl[in_map[p*8 + b]];
-// end
-
-// control ids used by the MRA input map: 0-23 and 32-35 shared (controllers.sv ctl_ids; pad 2's Start is Start 2P),
-// twin-stick fire ORed into Btn 1-4, 40-55 DIP lines
 /* verilator lint_off UNUSED */
-wire [35:0] ids;                                   // 31-24 unused (0 in ctl_ids, 0 here)
+wire [35:0] ids;
 /* verilator lint_on UNUSED */
 ctl_ids u_ids
 (
@@ -477,36 +341,48 @@ ctl_ids u_ids
 );
 wire [63:0] ctl =
 {
-	8'd0,
-	dip_sw[4],                                      // 55-48 DIP byte 4 (MAME fake IN4 lines, Strategy X coinage)
-	dip_sw[3],                                      // 47-40 DIP byte 3 (MAME FAKE port lines)
-	4'd0,
-	ids[35:32],                                     // 35-32 P2 / P1 Btn 6-5
-	8'd0,                                           // 31-24 unused
-	ids[23:17],                                     // 23-17 coin 3, service, tilt, start 2, start 1, coin 2, coin 1
-	ids[16:13] | {ar2[0], ar2[1], ar2[2], ar2[3]},  // 16-13 P2 Btn 4-1 (twin: fire R, L, D, U)
-	ids[12:9],                                      // 12-9 P2 R, L, D, U
-	ids[8:5] | {ar1[0], ar1[1], ar1[2], ar1[3]},    // 8-5 P1 Btn 4-1 (twin: fire R, L, D, U)
-	ids[4:0]                                        // 4-1 P1 R, L, D, U, 0 none
+	dip_sw[3],
+	6'd0,
+	joystick_1[5]  | ar2_s[1],
+	joystick_1[4]  | ar2_s[0],
+	joystick_0[5]  | ar1_s[1],
+	joystick_0[4]  | ar1_s[0],
+	joystick_1[13] | ar2_s[3],
+	joystick_1[12] | ar2_s[2],
+	joystick_1[7]  | ar2_s[1],
+	joystick_1[6]  | ar2_s[0],
+	joystick_0[13] | ar1_s[3],
+	joystick_0[12] | ar1_s[2],
+	joystick_0[7]  | ar1_s[1],
+	joystick_0[6]  | ar1_s[0],
+	rack_tog,
+	rack_btn,
+	ids[35:32],
+	dip_sw[4],
+	ids[23:0]
 };
 
-// game ports: DIP byte p = idle level of port p, a pressed control inverts its bit (controllers.sv ctl_port_map)
 wire [255:0] in_map_flat;
+wire [31:0]  port_idle_flat, port_sel_flat;
+wire [63:0]  dip_bytes_flat;
 genvar mi;
 generate
 	for (mi = 0; mi < 32; mi = mi + 1) begin : g_map
 		assign in_map_flat[mi*8 +: 8] = {2'b00, in_map[mi]};
 	end
+	for (mi = 0; mi < 4; mi = mi + 1) begin : g_idle
+		assign port_idle_flat[mi*8 +: 8] = port_idle[mi];
+		assign port_sel_flat[mi*8 +: 8]  = port_dip[mi];
+	end
+	for (mi = 0; mi < 8; mi = mi + 1) begin : g_dip
+		assign dip_bytes_flat[mi*8 +: 8] = dip_sw[mi];
+	end
 endgenerate
 wire [31:0] ports;
-ctl_port_map #(.NP(4), .IDW(6), .DIP_MODE(0)) u_ports
+ctl_port_map #(.NP(4), .IDW(6), .BASE_MODE(1)) u_ports
 (
-// CTL2-2026-10-25: controllers.sv v2: port_sel / dip_bytes / dip_bit tied 0 (unused in BASE_MODE 0). v1 commented out below.
-// 	.clk(CLK_49M), .idle({dip_sw[3], dip_sw[2], dip_sw[1], dip_sw[0]}), .in_map(in_map_flat), .dips(32'd0),
-// 	.ctl(ctl), .ovr_mask(32'd0), .ovr_val(32'd0), .ports(ports)
-	.clk(CLK_49M), .idle({dip_sw[3], dip_sw[2], dip_sw[1], dip_sw[0]}), .in_map(in_map_flat), .dips(32'd0),
-	.port_sel(32'd0), .dip_bytes(64'd0), .dip_bit(96'd0),
-	.ctl(ctl), .ovr_mask(32'd0), .ovr_val(32'd0), .ports(ports)
+	.clk(CLK_49M), .idle(port_idle_flat), .in_map(in_map_flat), .dips(32'd0), .port_sel(port_sel_flat),
+	.dip_bytes(dip_bytes_flat), .dip_bit(96'd0), .ctl(ctl), .ovr_mask(32'd0), .ovr_val(32'd0), .ports(ports)
 );
 wire [7:0] in_port[4];
 genvar pi;
@@ -516,7 +392,33 @@ generate
 	end
 endgenerate
 
-// PAUSE SYSTEM
+// Moon War dials: player 1 reversed in cocktail (IN2 bit 3), player 2 always reversed
+reg        dial_vbl = 1'b0;
+always @(posedge CLK_49M) dial_vbl <= vblank;
+wire [7:0] dial1, dial2;
+ctl_dial_mame u_dial1
+(
+	.clk(CLK_49M), .reset(reset), .pause(pause_cpu), .frame(vblank & ~dial_vbl), .sens(8'd32), .keyd(8'd4),
+	.reverse(in_port[2][3]), .osd_sens(3'd0), .wheel(1'b0), .spinner(spinner_0), .mouse_ev(mouse_seen != ps2_mouse[24]),
+	.mouse_d(mouse_dx), .stick(8'd0), .paddle(8'd0), .use_paddle(1'b0), .dec(dir1_raw[1]), .inc(dir1_raw[0]),
+	.pos(dial1)
+);
+ctl_dial_mame u_dial2
+(
+	.clk(CLK_49M), .reset(reset), .pause(pause_cpu), .frame(vblank & ~dial_vbl), .sens(8'd32), .keyd(8'd4),
+	.reverse(1'b1), .osd_sens(3'd0), .wheel(1'b0), .spinner(9'd0), .mouse_ev(1'b0), .mouse_d(9'd0), .stick(8'd0),
+	.paddle(8'd0), .use_paddle(1'b0), .dec(dir2_raw[1]), .inc(dir2_raw[0]), .pos(dial2)
+);
+
+wire [15:0] hs_address;
+wire  [7:0] hs_data_in;
+wire  [7:0] hs_data_out;
+wire        hs_write_enable;
+wire        hs_access_read;
+wire        hs_access_write;
+wire        hs_pause;
+wire        hs_configured;
+
 wire [23:0] rgb_out;
 pause #(8,8,8,49) pause
 (
@@ -527,15 +429,13 @@ pause #(8,8,8,49) pause
 	.options(~status[20:19])
 );
 
-///////////////                 Video                  ////////////////
-
 wire hs, vs;
 wire [7:0] r, g, b;
 wire ce_pix = ce6;
 
-wire rotate_ccw = ~game_flags[7];  // ROT270 sets rotate CCW, ROT90 sets CW
+wire rotate_ccw = ~game_flags[7];
 wire no_rotate  = ~game_vert | status[12] | direct_video;
-wire flip       = status[11];
+wire flip       = 1'b0;
 screen_rotate screen_rotate(.*);
 
 arcade_video #(256,24) arcade_video
@@ -553,9 +453,7 @@ arcade_video #(256,24) arcade_video
 	.fx(status[18:16])
 );
 
-///////////////                 Board                  ////////////////
-
-galaxian_board board
+galaxian_dispatcher dispatcher
 (
 	.clk(CLK_49M),
 	.reset(reset),
@@ -584,8 +482,8 @@ galaxian_board board
 	.ext_mode(ext_mode),
 
 	.in0(in_port[0]),
-	.dial_step(dial_step),
-	.dial_dir(dial_dir),
+	.dial1(dial1),
+	.dial2(dial2),
 	.in1(in_port[1]),
 	.in2(in_port[2]),
 	.in3(in_port[3]),
@@ -595,7 +493,7 @@ galaxian_board board
 	.ioctl_dout(ioctl_dout),
 	.ioctl_wr0(ioctl_wr & (ioctl_index == 8'd0)),
 
-	.crt_flip(status[22] ^ game_flags[6]),
+	.crt_flip(status[22] ^ game_flags2[1]),
 	.h_adj(status[40:37]),
 	.v_adj(status[44:41]),
 
@@ -614,16 +512,6 @@ galaxian_board board
 	.hs_data_out(hs_data_out),
 	.hs_write(hs_write_enable & hs_configured)
 );
-
-// Hiscore: config = MRA index 3, dump = index 4; RAM via the board's second port while the CPU is paused
-wire [15:0] hs_address;
-wire  [7:0] hs_data_in;
-wire  [7:0] hs_data_out;
-wire        hs_write_enable;
-wire        hs_access_read;
-wire        hs_access_write;
-wire        hs_pause;
-wire        hs_configured;
 
 hiscore #(
 	.HS_ADDRESSWIDTH(16),
@@ -647,33 +535,3 @@ hiscore #(
 );
 
 endmodule
-
-// CTL-2026-10-24: original 4-way module commented out below (now controllers.sv ctl_joy4way, same logic)
-// // 4-way joystick: the most recently pressed direction wins (from the MiSTer Pac-Man port)
-// module joy4way
-// (
-// 	input        clk,
-// 	input        en,
-// 	input  [3:0] in,
-// 	output [3:0] out
-// );
-//
-// reg  [3:0] mask = 4'hF;
-// reg  [3:0] in1 = 0, in2 = 0;
-// wire [3:0] innew = in1 & ~in2;
-//
-// assign out = in1 & mask;
-//
-// always @(posedge clk) begin
-// 	in1 <= in;
-// 	in2 <= in1;
-//
-// 	if (innew[0]) mask <= 4'b0001;
-// 	if (innew[1]) mask <= 4'b0010;
-// 	if (innew[2]) mask <= 4'b0100;
-// 	if (innew[3]) mask <= 4'b1000;
-//
-// 	if (!(in & mask) || !en) mask <= 4'hF;
-// end
-//
-// endmodule

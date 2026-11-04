@@ -1,0 +1,92 @@
+<misterromdescription>
+    <name>Aracnis (Bootleg Of Scorpion On Moon Cresta Hardware, Set 2)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Scorpion</series>
+    <year>19??</year>
+    <manufacturer>bootleg</manufacturer>
+    <category>Shooter</category>
+
+    <setname>aracnisa</setname>
+    <parent>scorpion</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="Fire,Button 2,-,-,Coin,Start 1P,Start 2P,Pause,-,-,-" default="A,B,Select,Start,R,L"/>
+
+    <switches default="20,F8,F5,FF">
+        <dip name="Unknown" bits="5" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="11" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="12" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="13" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="14" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="15" ids="Off,On" values="1,0"/>
+        <dip name="Coinage" bits="16,17" ids="2C/1C,1C/1C,1C/2C,1C/3C"/>
+        <dip name="Lives" bits="18,19" ids="2,3,4,5"/>
+        <dip name="Unknown" bits="20" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="21" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="22" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="23" ids="Off,On" values="1,0"/>
+        <dip name="0xb002" bits="24" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="25" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="26" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="27" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="28" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="29" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="30" ids="Off,On" values="1,0"/>
+        <dip name="Unknown" bits="31" ids="Off,On" values="1,0"/>
+    </switches>
+
+    <!-- Index 0: ROM -->
+    <rom index="0" md5="none" zip="aracnisa.zip|scorpion.zip">
+        <part crc="76eaae54" name="scorpio-4-2732.bin" offset="0x0" length="0x200"/>
+        <part crc="8ff99c15" name="scorpio-1-2732.bin" offset="0x200" length="0xE00"/>
+        <part crc="915223b2" name="scorpio-3-2732.bin" offset="0x0" length="0x200"/>
+        <part crc="8682b604" name="scorpio-2-2732.bin" offset="0x200" length="0xE00"/>
+        <part crc="8ff99c15" name="scorpio-1-2732.bin" offset="0x0" length="0x200"/>
+        <part crc="915223b2" name="scorpio-3-2732.bin" offset="0x200" length="0x400"/>
+        <part crc="76eaae54" name="scorpio-4-2732.bin" offset="0x600" length="0x200"/>
+        <part crc="915223b2" name="scorpio-3-2732.bin" offset="0x800" length="0x800"/>
+        <part crc="8682b604" name="scorpio-2-2732.bin" offset="0x0" length="0x200"/>
+        <part crc="76eaae54" name="scorpio-4-2732.bin" offset="0x200" length="0x400"/>
+        <part crc="915223b2" name="scorpio-3-2732.bin" offset="0x600" length="0x200"/>
+        <part crc="76eaae54" name="scorpio-4-2732.bin" offset="0x800" length="0x800"/>
+        <part repeat="0x1000">00</part>
+        <part crc="f27ee3e4" name="scorpio-5-2732.bin"/>
+        <part crc="fdfc2c82" name="scorpio-6-2716.bin"/>
+        <part repeat="0x9800">00</part>
+        <part crc="1e5da9d6" name="scorpio-c2-2732.bin"/>
+        <part repeat="0x1000">00</part>
+        <part crc="a57adb0a" name="scorpio-c1-2732.bin"/>
+        <part repeat="0x1000">00</part>
+        <part crc="4e3caeab" name="82s123.bin"/>
+    </rom>
+
+    <!-- Index 1: Config -->
+    <rom index="1">
+        <part>
+            02 90 00 00 20 F8 F5 FF FF FF 00 01 02 03 80 80
+            16 11 03 04 05 00 06 01 13 14 02 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 40 00 05 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Aracnis (Bootleg Of Scorpion On Moon Cresta Hardware, Set 2)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

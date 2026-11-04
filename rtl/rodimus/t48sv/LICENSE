@@ -1,0 +1,55 @@
+Copyright (C) 2026 Rodimus
+
+t48sv: SystemVerilog translation of the T48 MCS-48 / UPI-41 / MCS-21/22 core and the 8243 expander
+(SystemVerilog translation by Rodimus).
+
+Upstream attribution
+--------------------
+  T48 uController core (VHDL): Copyright (c) 2004, 2005 Arnim Laeuger (arniml@opencores.org);
+  opencores.org / github.com/devsaurus/t48 (r295 2009 and the 2023+ release with UPI-41 / 8021 / 8022 / 8243).
+  Fleet top t8039_notri_extrom: MiSTer-fleet derivation of Laeuger's t8039_notri.
+  DECOCassette's upi41 sts_o / IBF-INT-ACK changes are reproduced (UPI_IBF_ACK).
+  License: the T48 BSD-style license, reproduced below.
+
+The Rodimus translation is distributed under the same terms. The notice and disclaimer must stay in the source
+files (they do) and be reproduced in the documentation of synthesized-form redistributions.
+
+T48 license (verbatim from T48 t48_core.vhd, comment markers removed)
+=====================================================================
+
+Copyright (c) 2004, 2005, Arnim Laeuger (arniml@opencores.org)
+
+All rights reserved
+
+Redistribution and use in source and synthezised forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer.
+
+Redistributions in synthesized form must reproduce the above copyright
+notice, this list of conditions and the following disclaimer in the
+documentation and/or other materials provided with the distribution.
+
+Neither the name of the author nor the names of other contributors may
+be used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE
+LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+Attribution / licence notice
+----------------------------
+The attribution and licence terms in this file are our best reading of the upstream sources. Where an upstream gives
+no licence (or its terms are unclear), the code is offered under whatever terms that upstream carries. If anything
+here is wrong, incomplete or not what an author intended, please contact the maintainer (open an issue on this
+repository) and it will be corrected promptly.

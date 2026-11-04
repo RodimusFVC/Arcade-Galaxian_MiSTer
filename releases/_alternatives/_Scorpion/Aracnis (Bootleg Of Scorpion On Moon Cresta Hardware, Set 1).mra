@@ -25,7 +25,7 @@
     <joystick>8-way</joystick>
     <special_controls></special_controls>
     <num_buttons>2</num_buttons>
-    <buttons names="Fire,Button 2,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,B,X,Y,Select,Start,R,L"/>
+    <buttons names="Fire,Button 2,-,-,Coin,Start 1P,Start 2P,Pause,-,-,-" default="A,B,Select,Start,R,L"/>
 
     <switches default="20,F8,F5,FF">
         <dip name="Unknown" bits="5" ids="Off,On" values="1,0"/>
@@ -50,7 +50,7 @@
         <dip name="Unknown" bits="31" ids="Off,On" values="1,0"/>
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: ROM -->
     <rom index="0" md5="none" zip="aracnis.zip|scorpion.zip">
         <part crc="c7e0d6b9" name="00sc.bin"/>
         <part crc="03eb27dc" name="01sc.bin"/>
@@ -67,17 +67,19 @@
         <part crc="24652bc4" name="mmi6331-1.6l"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: Config -->
     <rom index="1">
         <part>
-            02 90 00 40 00 05 00 00 00 00 00 00 00 00 00 00
+            02 90 00 00 20 F8 F5 FF FF FF 00 01 02 03 80 80
             16 11 03 04 05 00 06 01 13 14 02 00 00 00 00 00
             00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-            00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 40 00 05 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00
         </part>
     </rom>
 
-    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <!-- Index 3: Hiscore -->
     <rom index="3" md5="none">
         <part>
             05 44 C9 8E 00 FF 00 02 00 02 00 01 11 11 00 00
@@ -85,6 +87,7 @@
             00 00 42 AD 00 0F 10 10
         </part>
     </rom>
+    <!-- Index 4: NVRAM -->
     <rom index="4"></rom>
     <nvram index="4" size="30"></nvram>
 

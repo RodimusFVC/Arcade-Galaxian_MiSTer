@@ -23,11 +23,11 @@
 
     <players>2 (alternating)</players>
     <joystick>8-way</joystick>
-    <special_controls>twin joysticks (right stick = fire directions)</special_controls>
-    <num_buttons>4</num_buttons>
-    <buttons names="Fire Up,Fire Down,Fire Left,Fire Right,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,B,X,Y,Select,Start,R,L"/>
+    <special_controls>twin stick</special_controls>
+    <num_buttons>6</num_buttons>
+    <buttons names="-,-,R Right,R Left,Coin,Start 1P,Start 2P,Pause,R Down,R Up,-" default="A,Y,Select,Start,R,L,B,X"/>
 
-    <switches default="FF,FC,F9,FF">
+    <switches default="FF,FC,F9">
         <dip name="Coin B" bits="8" ids="1C/3C,1C/5C"/>
         <dip name="Coin A" bits="9" ids="2C/1C,1C/1C" values="1,0"/>
         <dip name="Cabinet" bits="17" ids="Upright,Cocktail"/>
@@ -35,7 +35,7 @@
         <dip name="Lives" bits="19" ids="3,255 (Cheat)" values="1,0"/>
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: ROM -->
     <rom index="0" md5="none" zip="mars.zip">
         <part crc="2f88892c" name="u26.3"/>
         <part crc="9e6bcbf7" name="u56.4"/>
@@ -55,17 +55,19 @@
         <part crc="72a492da" name="u78.11"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: Config -->
     <rom index="1">
         <part>
-            0F 98 01 00 00 00 02 00 00 00 20 03 00 00 04 01
-            09 16 08 07 04 03 12 11 00 00 10 0F 0C 0B 14 13
-            0A 00 00 00 01 06 02 05 00 00 00 00 00 0E 00 0D
-            00 00 00
+            0F 90 00 00 FF FC F9 FF FF FF 80 01 02 80 80 80
+            09 16 26 27 04 03 12 11 00 00 2A 2B 0C 0B 14 13
+            0A 00 00 00 01 28 02 29 00 00 00 00 00 2C 00 2D
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            01 00 00 00 02 00 00 00 20 03 00 00 04 01 00 00
+            00 00 00 00
         </part>
     </rom>
 
-    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <!-- Index 3: Hiscore -->
     <rom index="3" md5="none">
         <part>
             01 10 3B 78 00 FF 00 02 00 02 00 01 11 11 00 00
@@ -79,6 +81,7 @@
             00 00 49 A1 00 01 00 00
         </part>
     </rom>
+    <!-- Index 4: NVRAM -->
     <rom index="4"></rom>
     <nvram index="4" size="27"></nvram>
 

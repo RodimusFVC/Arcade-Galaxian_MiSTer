@@ -25,16 +25,16 @@
     <joystick>4-way</joystick>
     <special_controls></special_controls>
     <num_buttons>1</num_buttons>
-    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,B,X,Y,Select,Start,R,L"/>
+    <buttons names="Fire,-,-,-,Coin,Start 1P,Start 2P,Pause,-,-,-" default="A,Select,Start,R,L"/>
 
-    <switches default="00,00,02,FF">
+    <switches default="00,00,02">
         <dip name="Coinage" bits="14,15" ids="2C/1C,1C/1C,1C/2C,Free Play" values="1,0,2,3"/>
         <dip name="Lives" bits="16" ids="3,4"/>
         <dip name="Cabinet" bits="17" ids="Upright,Cocktail" values="1,0"/>
         <dip name="Bonus Life" bits="18,19" ids="10000 60000,20000 60000,30000 60000,40000 60000"/>
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: ROM -->
     <rom index="0" md5="none" zip="zigzagb.zip">
         <part crc="8cc08d81" name="zz_d1.7l"/>
         <part crc="326d8d45" name="zz_d2.7k"/>
@@ -52,17 +52,19 @@
         <part crc="aa486dd0" name="zzbpr_e9.bin"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: Config -->
     <rom index="1">
         <part>
-            00 91 00 02 00 08 02 00 05 32 00 00 00 00 00 00
+            00 91 00 00 00 00 02 FF FF FF 80 01 02 80 80 80
             11 00 03 04 05 01 02 0A 13 14 0B 0C 0D 09 00 00
             00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-            00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 02 00 08 02 00 05 32 00 00 00 00 00 00 00 00
+            00 00 00 00
         </part>
     </rom>
 
-    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <!-- Index 3: Hiscore -->
     <rom index="3" md5="none">
         <part>
             00 EB 1C 16 00 FF 00 02 00 02 00 01 11 11 00 00
@@ -75,6 +77,7 @@
             00 00 51 A2 00 01 00 00
         </part>
     </rom>
+    <!-- Index 4: NVRAM -->
     <rom index="4"></rom>
     <nvram index="4" size="9"></nvram>
 

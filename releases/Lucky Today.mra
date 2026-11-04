@@ -22,16 +22,16 @@
     <flip>yes</flip>
 
     <players>2 (alternating)</players>
-    <joystick>2-way horizontal</joystick>
+    <joystick>2-way</joystick>
     <special_controls></special_controls>
     <num_buttons>1</num_buttons>
-    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,B,X,Y,Select,Start,R,L"/>
+    <buttons names="Fire,-,-,-,Coin,Start 1P,Start 2P,Pause,-,-,-" default="A,Select,Start,R,L"/>
 
-    <switches default="00,00,F0,FF">
+    <switches default="">
 
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: ROM -->
     <rom index="0" md5="none" zip="luctoday.zip">
         <part crc="59c389b9" name="ltprog1.bin"/>
         <part repeat="0x1800">00</part>
@@ -44,13 +44,15 @@
         <part crc="24652bc4" name="74s288.ch"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: Config -->
     <rom index="1">
         <part>
-            00 10 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 10 00 00 00 00 F0 FF FF FF 80 80 80 80 80 80
             11 00 03 04 05 00 00 12 13 00 00 00 00 00 00 00
             00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-            00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00
         </part>
     </rom>
 

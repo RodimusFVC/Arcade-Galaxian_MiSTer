@@ -22,12 +22,12 @@
     <flip>yes</flip>
 
     <players>2 (alternating)</players>
-    <joystick>2-way horizontal</joystick>
+    <joystick>2-way</joystick>
     <special_controls></special_controls>
     <num_buttons>1</num_buttons>
-    <buttons names="Fire,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,B,X,Y,Select,Start,R,L"/>
+    <buttons names="Fire,-,-,-,Coin,Start 1P,Start 2P,Pause,-,-,-" default="A,Select,Start,R,L"/>
 
-    <switches default="00,00,02,FF">
+    <switches default="00,00,02">
         <dip name="Cabinet" bits="5" ids="Upright,Cocktail"/>
         <dip name="Service Mode" bits="6" ids="Off,On"/>
         <dip name="Coinage" bits="14,15" ids="A 2C/1C  B 1C/3C,A 1C/1C  B 1C/6C,A 1C/2C  B 1C/12C,Free Play" values="1,0,2,3"/>
@@ -35,7 +35,7 @@
         <dip name="Lives" bits="18" ids="3,5"/>
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: ROM -->
     <rom index="0" md5="none" zip="redufob2.zip|redufo.zip">
         <part crc="ad9930d3" name="5049.7f"/>
         <part crc="9ad86f24" name="5049.7h"/>
@@ -51,23 +51,26 @@
         <part crc="c3ac9467" name="5049.6l"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: Config -->
     <rom index="1">
         <part>
-            00 90 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 90 00 00 00 00 02 FF FF FF 00 01 02 80 80 80
             11 12 03 04 05 00 00 16 13 14 0B 0C 0D 00 00 00
             00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-            00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00
         </part>
     </rom>
 
-    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <!-- Index 3: Hiscore -->
     <rom index="3" md5="none">
         <part>
             06 7A 24 69 00 FF 00 02 00 02 00 01 11 11 00 00
             00 00 40 A8 00 03 00 00
         </part>
     </rom>
+    <!-- Index 4: NVRAM -->
     <rom index="4"></rom>
     <nvram index="4" size="3"></nvram>
 

@@ -25,14 +25,14 @@
     <joystick>4-way</joystick>
     <special_controls></special_controls>
     <num_buttons>0</num_buttons>
-    <buttons names="Not Used,Not Used,Not Used,Not Used,Coin,Start 1P,Start 2P,Pause,Not Used,Not Used" default="A,B,X,Y,Select,Start,R,L"/>
+    <buttons names="-,-,-,-,Coin,Start 1P,Start 2P,Pause,-,-,-" default="Select,Start,R,L"/>
 
-    <switches default="FF,FE,F0,FF">
+    <switches default="FF,FE,F0">
         <dip name="Lives" bits="8,9" ids="5,4,3,2" values="3,1,2,0"/>
         <dip name="Coinage" bits="18,19" ids="A 1/2 B 1/1,A 1/1 B 1/1,A 2/1 B 2/1,A 1/1 B 2/1" values="3,0,2,1"/>
     </switches>
 
-    <!-- Index 0: CPU 0x00000, gfx planes 0x10000 / 0x12000 (sprite ROM in the upper halves), colour PROM 0x14000, sound CPU 0x18000 -->
+    <!-- Index 0: ROM -->
     <rom index="0" md5="none" zip="froggeram.zip|frogger.zip">
         <part crc="b680e622" name="1.d2"/>
         <part crc="32c56a50" name="2.e2"/>
@@ -52,17 +52,19 @@
         <part crc="9d88fd0a" name="c.bin"/>
     </rom>
 
-    <!-- Index 1: memory map, flags, video flags, board flags, ROM top, code extension, board flags 2 and 3, video flags 2, board flags 4, input map (see Arcade-Galaxian.sv) -->
+    <!-- Index 1: Config -->
     <rom index="1">
         <part>
-            0A 91 00 04 00 00 02 00 04 00 06 23 00 00 00 00
+            0A 91 00 00 FF FE F0 FF FF FF 80 01 02 80 80 80
             00 00 00 00 00 00 12 11 00 00 03 04 01 02 14 13
             00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-            00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 04 00 00 02 00 04 00 06 23 00 00 00 00 00 00
+            00 00 00 00
         </part>
     </rom>
 
-    <!-- Index 3: hiscore config (MAME hiscore.dat), index 4: saved scores -->
+    <!-- Index 3: Hiscore -->
     <rom index="3" md5="none">
         <part>
             00 25 1F 62 00 FF 00 02 00 02 00 01 11 11 00 00
@@ -70,6 +72,7 @@
             00 00 83 EF 00 02 63 04
         </part>
     </rom>
+    <!-- Index 4: NVRAM -->
     <rom index="4"></rom>
     <nvram index="4" size="12"></nvram>
 
