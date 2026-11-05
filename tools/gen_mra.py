@@ -164,6 +164,15 @@ class Core(mra_lib.Core):
             segs.sort(key=lambda s: s["addr"])
         return segs, self.cfg(variant)[1:]
 
+    def dsnd_program(self, g):
+        """Galaxian / Moon Cresta discrete sound on the dsnd_engine (index 5), as the dispatcher mixes it: none with
+        B2_NODISC or on Space Battle (bflags12[0], own sound board)."""
+        cfg = self.cfg(self.variant(g))
+        if cfg[5] & B2_NODISC or cfg[19] & 0x01:
+            return None
+        import dsnd_boards
+        return dsnd_boards.program("mooncrst" if cfg[2] & B_MCSND else "galaxian")
+
     def flags2(self, g):
         return (0x01 if g["name"] in MOUSE_SETS else 0) | (0x02 if g["rot"] == "ROT180" else 0)
 

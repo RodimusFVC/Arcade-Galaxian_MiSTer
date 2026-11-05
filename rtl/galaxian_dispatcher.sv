@@ -40,6 +40,8 @@ module galaxian_dispatcher
     input        [24:0] ioctl_addr,
     input         [7:0] ioctl_dout,
     input               ioctl_wr0,
+    input               ds_wr,              // MRA index 5 byte: dsnd_engine program
+    input               ds_on,              // a program arrived with this game
 
     input               crt_flip,
     input  signed [3:0] h_adj,
@@ -388,6 +390,24 @@ digitalker digitalker_0
 
 assign digitalker_0_o.intr = digitalker_0_intr;  assign digitalker_0_o.sample = digitalker_0_sample;
 
+// dsnd_0: discrete sound (program = MRA index 5: Galaxian / Moon Cresta), TICK 1024 = 48 kHz; out muted unless ds_on
+chip_pool_pkg::dsnd_i_t dsnd_0_i;
+chip_pool_pkg::dsnd_o_t dsnd_0_o, dsnd_0_q;
+
+dsnd_engine #(.TICK(1024)) dsnd_0
+(
+    .clk(clk), .reset(reset), .pause(pause),
+    .prog_wr(ds_wr), .prog_addr(ioctl_addr[12:0]), .prog_data(ioctl_dout),
+    .src(dsnd_0_i.src),
+    .out(dsnd_0_q.out), .out_r(dsnd_0_q.out_r), .sample(dsnd_0_q.sample)
+);
+
+always_comb begin
+    dsnd_0_o        = dsnd_0_q;
+    dsnd_0_o.out    = ds_on ? dsnd_0_q.out   : 16'd0;
+    dsnd_0_o.out_r  = ds_on ? dsnd_0_q.out_r : 16'd0;
+end
+
 /////////////////////////////  Shared ROM blocks  /////////////////////////////
 
 wire [15:0] gal_rom_a;
@@ -617,10 +637,10 @@ galaxian_board galaxian
 galaxian_sound galaxian_snd
 (
     .clk(clk),
-    .reset(reset | sbh),
-    .mc(bflags[6]),
+    .reset(reset),
     .pdiv8(bflags2[4]),
     .pause(pause),
+    .sample(dsnd_0_o.sample),
     .v2(gal_vcnt[1]),
     .n3a(gal_n3a),
     .lfo(gal_lfo),
@@ -629,8 +649,9 @@ galaxian_sound galaxian_snd
     .fire(gal_snd[5]),
     .vol(gal_snd[7:6]),
     .pitch(gal_pitch),
-    .out(gal_audio)
+    .src(dsnd_0_i.src)
 );
+assign gal_audio = dsnd_0_o.out;
 
 galaxian_sbsound sbhoei_snd
 (

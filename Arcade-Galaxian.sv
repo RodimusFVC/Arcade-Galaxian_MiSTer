@@ -98,6 +98,13 @@ assign BUTTONS = 0;
 reg [7:0] game_var    = 8'd0;
 reg [7:0] game_flags  = 8'h90;
 reg [7:0] game_flags2 = 8'd0;
+
+// dsnd_engine program (MRA index 5, after index 1): present -> the engine's output is heard
+reg ds_on = 1'b0;
+always @(posedge CLK_49M) if (ioctl_wr) begin
+    if (ioctl_index == 8'd1 && ioctl_addr == 25'd0) ds_on <= 1'b0;
+    if (ioctl_index == 8'd5) ds_on <= 1'b1;
+end
 reg [7:0] vid_flags  = 8'd0;
 reg [7:0] brd_flags  = 8'd0;
 reg [7:0] rom_top    = 8'd0;
@@ -492,6 +499,8 @@ galaxian_dispatcher dispatcher
 	.ioctl_addr(ioctl_addr),
 	.ioctl_dout(ioctl_dout),
 	.ioctl_wr0(ioctl_wr & (ioctl_index == 8'd0)),
+	.ds_wr(ioctl_wr & (ioctl_index == 8'd5)),
+	.ds_on(ds_on),
 
 	.crt_flip(status[22] ^ game_flags2[1]),
 	.h_adj(status[40:37]),

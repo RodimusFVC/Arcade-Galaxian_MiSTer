@@ -25,6 +25,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/rodimus/sp0250/sp0250_coef_ro
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/rodimus/sp0250/sp0250.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/rodimus/i8255/i8255.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/rodimus/digitalker/digitalker.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/rodimus/dsnd_engine/dsnd_engine.sv
 set_global_assignment -name QIP_FILE rtl/sound/jt49/hdl/jt49.qip
 set_global_assignment -name VERILOG_FILE rtl/sound/jt49/hdl/filter/jt49_dcrm2.v
 set_global_assignment -name QIP_FILE rtl/sound/jt89/syn/quartus/jt89_verilog.qip

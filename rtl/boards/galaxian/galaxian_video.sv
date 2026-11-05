@@ -600,6 +600,9 @@ wire [2:0] db_col  = db_side ? db_bg[2:0] : db_bg[6:4];
 wire [23:0] db_bgc = {db_col[0] ? 8'h47 : 8'h00, db_col[1] ? 8'h47 : 8'h00, db_col[2] ? 8'h47 : 8'h00};
 wire       db_hide = db & db_bg[3] & db_side;
 wire [7:0] db_tv   = pal[{1'b0, cur_col, t_pen}];
+// Harem (ext 14): tile layer opaque, pen 0 = PROM colour entry 0 of the tile colour (sky / sand; MAME video_start harem)
+wire       hm_bg   = ext_mode == 4'd14;
+wire [7:0] hm_tv   = pal[{1'b0, cur_col, 2'b00}];
 function [23:0] db_rgb(input [7:0] v);
     db_rgb = {RG_LUT[v[5:3]*8 +: 8], B_LUT[v[7:6]*8 +: 8], RG_LUT[v[2:0]*8 +: 8]};
 endfunction
@@ -615,6 +618,7 @@ always @(*) begin
     else if (pen_on && db)           rgb = db_rgb(pvx);
     else if (pen_on && vflags5[5])   rgb = {RG_LUT[pvx[2:0]*8 +: 8], B_LUT[pvx[7:6]*8 +: 8], RG_LUT[pvx[5:3]*8 +: 8]};
     else if (pen_on)                 rgb = {RG_LUT[pvx[2:0]*8 +: 8], RG_LUT[pvx[5:3]*8 +: 8], B_LUT[pvx[7:6]*8 +: 8]};
+    else if (hm_bg)                  rgb = {RG_LUT[hm_tv[2:0]*8 +: 8], RG_LUT[hm_tv[5:3]*8 +: 8], B_LUT[hm_tv[7:6]*8 +: 8]};
     else if (rcl)                    rgb = rc_rgb;
     else if (st_on)                  rgb = {ST_LUT[{st[4], st[5]}*8 +: 8], ST_LUT[{st[2], st[3]}*8 +: 8], ST_LUT[{st[0], st[1]}*8 +: 8]};
     else if (bg_blue)                rgb = 24'h000047;

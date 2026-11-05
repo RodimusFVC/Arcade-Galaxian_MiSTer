@@ -308,7 +308,8 @@ wire signed [18:0] a3_out = scorpion ? (19'(a3_dcr) >>> 2) * 19'sd3 : 19'sd0;
 
 wire signed [18:0] sum = 19'(ch_out[0]) + 19'(ch_out[1]) + 19'(ch_out[2]) +
                          (two_ay ? 19'(ch_out[3]) + 19'(ch_out[4]) + 19'(ch_out[5]) : 19'sd0) + a3_out;
-wire signed [18:0] amp = (control[4] ? 19'sd0 : -sum) + (scorpion ? 19'(dk_out >>> 3) : 19'sd0) +
+// Digitalker: Scorpion >>> 3 (HW OK 2026-11-04); Harem >>> 2 (user by ear on HW 2026-11-04: speech ~2x)
+wire signed [18:0] amp = (control[4] ? 19'sd0 : -sum) + (scorpion ? 19'(dk_out >>> (harem ? 2 : 3)) : 19'sd0) +
                          (ad2083 ? 19'(tms_out >>> 3) : 19'sd0);
 assign out = amp > 19'sd32767 ? 16'sd32767 : amp < -19'sd32767 ? -16'sd32767 : amp[15:0];
 
