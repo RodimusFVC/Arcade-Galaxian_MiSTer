@@ -600,7 +600,7 @@ wire [2:0] db_col  = db_side ? db_bg[2:0] : db_bg[6:4];
 wire [23:0] db_bgc = {db_col[0] ? 8'h47 : 8'h00, db_col[1] ? 8'h47 : 8'h00, db_col[2] ? 8'h47 : 8'h00};
 wire       db_hide = db & db_bg[3] & db_side;
 wire [7:0] db_tv   = pal[{1'b0, cur_col, t_pen}];
-// Harem (ext 14): tile layer opaque, pen 0 = PROM colour entry 0 of the tile colour (sky / sand; MAME video_start harem)
+// Harem (ext 14): tile layer opaque, pen 0 = PROM colour entry 0 of the tile colour (sky / sand)
 wire       hm_bg   = ext_mode == 4'd14;
 wire [7:0] hm_tv   = pal[{1'b0, cur_col, 2'b00}];
 function [23:0] db_rgb(input [7:0] v);

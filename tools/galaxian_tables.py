@@ -50,6 +50,8 @@ HISCORE_INIT_FRAME = {"galaxian": 132, "starfght": 127, "exodus": 133, "warofbug
 STANDIN = {"kong": ("ckong.zip", "ck6v.bin", "751c3325", "proms", 0x20),
            # Time Fighter (Taito do Brasil): Fantastic's PROM, same conversion board - a guess
            "timefgtr": ("fantastc.zip", "prom-74g138", "800f5718", "proms", 0x20)}
+# BAD_DUMP tile / sprite ROMs: Bagman set 1 takes set 2's (the bootleg gfx MAME says work; user, 2026-11-05)
+REGION_FROM = {"bagmanmc": {"gfx1": "bagmanm2"}}
 # hiscore.dat entries that can't work here: atlantisb's range is live game state, omegab's C060 is unmapped
 HISCORE_SKIP = {"atlantisb", "omegab"}
 CLK_HZ, FRAME_HZ = 49_152_000, 60.61
@@ -184,6 +186,12 @@ SUPPORTED = {
     ("jumpbugbrf", "init_jumpbugbc"): (M_JUMPBUG, V_SCRAMBLE_SHELLS, 0, 0, X_JUMPBUG, B2_NOWDOG | B2_NODISC | B2_STARS232,
                                        0, 0, 0, 0, 0, 0, 0, 0, 0, B9_REV256),
     ("amigo2", "init_turtles"):     (24, 0, 0, 0x40, 0, B2_NODISC, 0, V2_NOSHELLS, 0, V3_TURTLES_BG, B5_KONAMI | B5_TWO_AY),
+    # Sidam explorer board (board flags 12 0x80): Hot Shocker map + 6800 latches, mirrored I/O, no stars; sound Z80 + AY-3-8912
+    # at 1.5 MHz, IRQ set by 9000 / cleared by the latch read, timer on AY #2 port A (Take Off: one AY, timer at I/O 20)
+    ("explorer", "init_explorer"):  (M_HOTSHOCK, V_SCRAMBLE_SHELLS, B_NOSTARS, 0, 0, B2_NODISC, 0, 0, 0, 0,
+                                     B5_KONAMI | B5_TWO_AY, 0, 0, 0, 0, 0, 0, 0, 0, 0x80),
+    ("takeoff", "init_explorer"):   (M_HOTSHOCK, V_SCRAMBLE_SHELLS, B_NOSTARS, 0, 0, B2_NODISC, 0, 0, 0, 0,
+                                     B5_KONAMI, 0, 0, B7_NO_FILTER, 0, 0, 0, 0, 0, 0x80),
     # Mighty Monkey: code extension 9 (latches 0 / 2 = gfx banks, 4 = background, ROM C000-FFFF); 0x08 = program XOR
     ("mimonkey", "init_mimonkey"):  (M_SCOBRA, V_SCRAMBLE_SHELLS, 0, 0x40, 9, B2_NODISC, 0, 0, 0, V3_SCR_BG, SCR[1],
                                      0, 0, 0, 0, 0, 0, 0x08),
@@ -362,6 +370,8 @@ SUPPORTED = {
     ("galaxold.cpp", "scrambleo", "empty_init"):  (M_GAL, V_SCRAMBLE_SHELLS, 0, 0, 0, 0, 0, 0, 0,
                                                    V3_SCR_BG | V3_SCR_STARS, 0, 0, B6_SCRAMBLER),
     ("galaxold.cpp", "tazzmang", "empty_init"):   (M_TZB, 0, 0, 0x60, 0),
+    # galaxold mooncrst machine (Video Pool): the Moon Cresta map, sound and gfx bank, 2K RAM at 8000
+    ("galaxold.cpp", "mooncrst", "empty_init"):   (M_MC, 0, MC | B_RAM2K, 0, X_MC),
     ("galaxold.cpp", "videotron", "empty_init"):  (M_MC, 0, B_RAM2K, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, B7_FLIPSWAP),
     ("galaxold.cpp", "devilfshv", "empty_init"):  (M_GAL, 0, B_RAM2K, 0, X_SPRITE_ROM, 0, 0, 0, 0, 0, 0, 0, 0, B7_FLIPSWAP),
     ("galaxold.cpp", "hunchbkg", "empty_init"):   (M_GAL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, B7_S2650),
@@ -416,11 +426,8 @@ SKIP = {"highroll": NW, "warofbugg": NW, "tenspot": NW, "porterb": NW, "dingoe":
         "fourplay": "multi-game board (4 games, banked ROM / gfx) not implemented",
         "videight": "multi-game board (8 games, banked ROM / gfx, 256-pen palette) not implemented",
         "amidarc": "thepitm map + 2K RAM with the Turtles background (init_turtles): combination not implemented",
-        "takeoff": "deferred: Sidam explorer board (sound CPU + AY-3-8912) not implemented",
-        "explorer": "deferred: Sidam explorer board (sound CPU + 2 x AY-3-8912) not implemented",
         "aracnisb": "scorpnmc map with init_ladybugg2 decode: combination not implemented",
         "namenayo": "namenayo map / gfx layout / 64-pen palette not implemented",
-        "vpool": "deferred: split Lives DIP (non-contiguous, read by the program)",
         "dkongjrm": "32 sprites per line (Galaxian sprite engine: 8); MAME colours wrong",
         "dkongjrmc": "64 sprites per line (Galaxian sprite engine: 8); MAME colours wrong",
         "dingov": "deferred: Nuova Videotron dkingjrv board not implemented",

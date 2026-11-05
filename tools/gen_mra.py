@@ -70,11 +70,12 @@ class Core(mra_lib.Core):
     # user1 PROM tails the hardware never addresses (Mariner / Strategy X background PROM)
     REGION_TRUNCATE = {(k[-2], "user1") for k in SUPPORTED if k[-2] not in REGION_OVERRIDE}
     STANDIN = STANDIN
+    REGION_FROM = REGION_FROM
     ROM_MOVE = ROM_MOVE
     WORD_SWAP_AS_DUMPED = True                          # BMX Stunts: the board swaps the byte pair (A0 inverted)
     SUPPORTED = SUPPORTED
 
-    PORTS = [("IN0",), ("IN1",), ("IN2", "DSW0", "DSW1"), ("IN3", "FAKE", "DSW", "DSW1"), ("IN4", "COINAGE"), ("",)]
+    PORTS = [("IN0",), ("IN1",), ("IN2", "DSW0", "DSW1"), ("IN3", "FAKE", "DSW", "DSW1"), ("IN4", "COINAGE", "LIVES"), ("",)]
     UNIQUE_PORT_TAGS = True
     MAX_DIP_PORTS = 5
     DIP_BYTE_PER_PORT = True
@@ -82,6 +83,7 @@ class Core(mra_lib.Core):
     DIP_SPILL_PORT = 4
     CUSTOM_LINES = {r"azurian_port_r<(\d)>": (3, lambda m: int(m.group(1))),
                     r"muxbit_r": (3, 1),                # King & Balloon Speech DIP; the board swaps in service (B003)
+                    r"vpool_lives_r<0x0?([0-9a-fA-F]+)>": (4, lambda m: 0 if int(m.group(1), 16) == 0x01 else 1),
                     r"(?:stratgyx|ckongs)_coinage_r<0x0?([0-9a-fA-F]+)>": (4, lambda m: int(m.group(1), 16).bit_length() - 1)}
     CTL = {**mra_lib.Core.CTL, ("BILL1", 0): 18}
     TRACKBALL = {}
@@ -165,12 +167,14 @@ class Core(mra_lib.Core):
         return segs, self.cfg(variant)[1:]
 
     def dsnd_program(self, g):
-        """Galaxian / Moon Cresta discrete sound on the dsnd_engine (index 5), as the dispatcher mixes it: none with
-        B2_NODISC or on Space Battle (bflags12[0], own sound board)."""
+        """Discrete sound on the dsnd_engine (index 5), as the dispatcher mixes it: Space Battle board (bflags12[0]),
+        else Galaxian / Moon Cresta; none with B2_NODISC."""
         cfg = self.cfg(self.variant(g))
-        if cfg[5] & B2_NODISC or cfg[19] & 0x01:
-            return None
         import dsnd_boards
+        if cfg[19] & 0x01:
+            return dsnd_boards.program("sbhoei")
+        if cfg[5] & B2_NODISC:
+            return None
         return dsnd_boards.program("mooncrst" if cfg[2] & B_MCSND else "galaxian")
 
     def flags2(self, g):
@@ -179,7 +183,8 @@ class Core(mra_lib.Core):
     def port_fixup(self, g, ports):
         """PORT_CONDITION alternatives of one DIP value become one setting ("A / B"); 4 Fun in 1 DIP packing; a
         non-contiguous DIP on the DIP-only fake port (IN4 / COINAGE) is read by handlers the board does not model
-        (Crazy Kong ckongg_coinage_r): it stays at its default, not selectable."""
+        (Crazy Kong ckongg_coinage_r): it stays at its default, not selectable. Video Pool's LIVES port (mask 0x41)
+        is repacked to DIP byte 4 lines 0 / 1, read back on DSW0 bit 0 / IN1 bit 6 (CUSTOM_LINES)."""
         for fields in ports.values():
             for f in fields:
                 if f["kind"] == "dip":
@@ -189,6 +194,11 @@ class Core(mra_lib.Core):
                     f["settings"] = list(merged.items())
         if g["inputs"] in FIN_DIPS:
             ports = fin_dips(ports, FIN_DIPS[g["inputs"]])
+        for f in ports.get("LIVES", []):            # Video Pool: Lives = two switches, read on DSW0 bit 0 / IN1 bit 6
+            if f["kind"] == "dip" and f["mask"] == 0x41:
+                rp = lambda v: (v & 0x01) | (v >> 5 & 0x02)                # -> DIP byte 4 lines 0 / 1
+                f["mask"], f["default"] = 0x03, rp(f["default"])
+                f["settings"] = [(rp(v), n) for v, n in f["settings"]]
         tag = next((n for n in self.PORTS[4] if n in ports), None)
         for f in ports.get(tag, []):
             hi, lo = f["mask"].bit_length() - 1, (f["mask"] & -f["mask"]).bit_length() - 1

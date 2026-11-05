@@ -44,10 +44,12 @@
         <part crc="159f9433" name="lbuggx.6"/>
         <part crc="f2be06d5" name="lbuggx.7"/>
         <part crc="646fe79f" name="lbuggx.8"/>
-        <part repeat="0xC800">00</part>
-        <part crc="7efb9dc5" name="lbuggx.a"/>
-        <part repeat="0x1800">00</part>
-        <part crc="351d4ddc" name="lbuggx.b"/>
+        <part repeat="0xC000">00</part>
+        <part crc="7efb9dc5" name="lbuggx.a" offset="0x800" length="0x800"/>
+        <part crc="7efb9dc5" name="lbuggx.a" offset="0x0" length="0x800"/>
+        <part repeat="0x1000">00</part>
+        <part crc="351d4ddc" name="lbuggx.b" offset="0x800" length="0x800"/>
+        <part crc="351d4ddc" name="lbuggx.b" offset="0x0" length="0x800"/>
         <part repeat="0x1000">00</part>
         <part crc="4e3caeab" name="lbuggx.clr"/>
     </rom>

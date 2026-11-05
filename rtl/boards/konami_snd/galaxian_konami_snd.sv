@@ -11,6 +11,8 @@ module galaxian_konami_snd
     input               hb_map,
     input               rom12k,
     input               hs_map,
+    input               sdm,            // Sidam explorer / takeoff: 1.5 MHz, IRQ set by the main board and cleared by the
+                                        // latch read, Konami map / AY decode, timer on AY #2 port A (one AY: I/O 20)
     input               irq_set,
     input               scorpion,
     input               harem,
@@ -52,7 +54,7 @@ module galaxian_konami_snd
 reg [9:0] frac = 10'd0;
 reg       cen = 1'b0;
 always @(posedge clk) begin
-    if (frac >= 10'd794) begin frac <= frac - 10'd794; cen <= ~pause; end
+    if (frac >= (sdm ? 10'd953 : 10'd794)) begin frac <= frac - (sdm ? 10'd953 : 10'd794); cen <= ~pause; end
     else                 begin frac <= frac + 10'd30;  cen <= 1'b0;   end
 end
 
@@ -85,17 +87,18 @@ wire      latch_rd;
 always @(posedge clk) begin
     if (latch_we) latch <= latch_d;
     ctl3_d <= control[3];
-    if (reset | (hs_map ? latch_rd : ~iorq_n & ~m1_n)) int_n <= 1'b1;
-    else if (irq_set | (~hs_map & ctl3_d & ~control[3])) int_n <= 1'b0;
+    if (reset | (hs_map | sdm ? latch_rd : ~iorq_n & ~m1_n)) int_n <= 1'b1;
+    else if (irq_set | (~(hs_map | sdm) & ctl3_d & ~control[3])) int_n <= 1'b0;
 end
 
 wire mem = ~mreq_n & rfsh_n;
+wire kmap = two_ay | sdm;                                  // Konami sound-board memory map
 wire io  = ~iorq_n & m1_n;
 
-wire rom_cs = mem && (hb_map ? addr[15:14] == 2'b00 : two_ay ? addr[15:13] == 3'b000 || (rom12k && addr[15:12] == 4'h2) :
+wire rom_cs = mem && (hb_map ? addr[15:14] == 2'b00 : kmap ? addr[15:13] == 3'b000 || (rom12k && addr[15:12] == 4'h2) :
                       addr[14:13] == 2'b00);
-wire ram_cs = mem && (hb_map || harem ? addr[15:12] == 4'h8 : two_ay ? addr[15] && !addr[12] : addr[14:13] == 2'b10);
-wire flt_cs = mem && ~wr_n && !hb_map && !harem && (two_ay ? addr[15] && addr[12] : addr[14:13] == 2'b11);
+wire ram_cs = mem && (hb_map || harem ? addr[15:12] == 4'h8 : kmap ? addr[15] && !addr[12] : addr[14:13] == 2'b10);
+wire flt_cs = mem && ~wr_n && !hb_map && !harem && (kmap ? addr[15] && addr[12] : addr[14:13] == 2'b11);
 
 wire [7:0] rom_q, ram_q;
 wire [7:0] rom_d = rom_swap01 && addr[13:12] == 2'b00 && (swap4k || !addr[11]) ? {rom_q[7:2], rom_q[0], rom_q[1]} : rom_q;
@@ -115,7 +118,7 @@ assign pr_i[8]   = '0;
 
 wire io_w = io & ~wr_n;
 wire io_r = io & ~rd_n;
-wire ay_k    = (two_ay | hb_map) & ~hs_map;
+wire ay_k    = (two_ay | hb_map | sdm) & ~hs_map;
 wire a1_addr_w = io_w & (ay_k ? addr[6] : ~addr[6] & addr[7]);
 wire a1_data_w = io_w & (ay_k ? ~addr[6] & addr[7] : addr[6]);
 wire a1_rd     = io_r & (ay_k ? addr[7] : addr[6]);
@@ -154,7 +157,7 @@ assign ay_3_i.ce     = cen;
 assign ay_3_i.bdir   = a2_addr_w | a2_data_w;
 assign ay_3_i.bc1    = a2_addr_w | a2_rd;
 assign ay_3_i.din    = dout;
-assign ay_3_i.ioa_in = ad2083 ? timer : 8'hFF;
+assign ay_3_i.ioa_in = ad2083 | sdm ? timer : 8'hFF;
 assign ay_3_i.iob_in = 8'hFF;
 assign a2_dout = ay_3_o.dout;  assign a2A = ay_3_o.a;  assign a2B = ay_3_o.b;  assign a2C = ay_3_o.c;
 
@@ -174,7 +177,8 @@ always @(*) begin
     if      (scorpion && mem && addr[15:12] == (harem ? 4'h6 : 4'h3)) din = {7'd0, dk_intr};
     else if (rom_cs) din = rom_d;
     else if (ram_cs) din = ram_q;
-    else if (io_r)   din = (a1_rd ? a1_dout : 8'hFF) & (a2_rd ? a2_dout : 8'hFF) & (a3_rd ? a3_dout : 8'hFF);
+    else if (io_r)   din = (a1_rd ? a1_dout : 8'hFF) & (a2_rd ? a2_dout : 8'hFF) & (a3_rd ? a3_dout : 8'hFF) &
+                           (sdm && !two_ay && addr[5] ? timer : 8'hFF);
     else if (timer_9000 && mem && addr == 16'h9000) din = timer;
 end
 
@@ -200,14 +204,18 @@ assign ch_raw[0] = a1A; assign ch_raw[1] = a1B; assign ch_raw[2] = a1C;
 assign ch_raw[3] = a2A; assign ch_raw[4] = a2B; assign ch_raw[5] = a2C;
 
 wire signed [15:0] ch_out [6];
+wire        [95:0] tpf_in;                                 // per channel the dc-removed level
+wire       [287:0] tpf_out;                                // per channel light / medium / heavy low-pass
+konami_tp_filters tpf(.clk(clk), .reset(reset), .in(tpf_in), .out(tpf_out));
 genvar i;
 generate
     for (i = 0; i < 6; i = i + 1) begin : chan
         wire signed [15:0] dcr, lt, md, hv;
         jt49_dcrm2 #(16) dcrm(.clk(clk), .cen(cen_dc), .rst(reset), .din({3'd0, ch_raw[i], 5'd0}), .dout(dcr));
-        tp_lpf_light  f_l(.clk(clk), .reset(reset), .in(dcr), .out(lt));
-        tp_lpf_medium f_m(.clk(clk), .reset(reset), .in(dcr), .out(md));
-        tp_lpf_heavy  f_h(.clk(clk), .reset(reset), .in(dcr), .out(hv));
+        assign tpf_in[16 * i +: 16] = dcr;
+        assign lt = tpf_out[16 * (3 * i) +: 16];
+        assign md = tpf_out[16 * (3 * i + 1) +: 16];
+        assign hv = tpf_out[16 * (3 * i + 2) +: 16];
         wire [1:0] sel = i < 3 ? {flt[7 + 2 * i], flt[6 + 2 * i]} : {flt[1 + 2 * (i - 3)], flt[2 * (i - 3)]};
         assign ch_out[i] = no_filter ? dcr : pick(sel, dcr, lt, md, hv);
     end
@@ -308,7 +316,7 @@ wire signed [18:0] a3_out = scorpion ? (19'(a3_dcr) >>> 2) * 19'sd3 : 19'sd0;
 
 wire signed [18:0] sum = 19'(ch_out[0]) + 19'(ch_out[1]) + 19'(ch_out[2]) +
                          (two_ay ? 19'(ch_out[3]) + 19'(ch_out[4]) + 19'(ch_out[5]) : 19'sd0) + a3_out;
-// Digitalker: Scorpion >>> 3 (HW OK 2026-11-04); Harem >>> 2 (user by ear on HW 2026-11-04: speech ~2x)
+// Digitalker level: Scorpion >>> 3, Harem >>> 2 (speech twice as loud)
 wire signed [18:0] amp = (control[4] ? 19'sd0 : -sum) + (scorpion ? 19'(dk_out >>> (harem ? 2 : 3)) : 19'sd0) +
                          (ad2083 ? 19'(tms_out >>> 3) : 19'sd0);
 assign out = amp > 19'sd32767 ? 16'sd32767 : amp < -19'sd32767 ? -16'sd32767 : amp[15:0];

@@ -466,6 +466,7 @@ wire        mr      = variant[4:0] == 5'd15;
 wire        mr_lat  = mr && cpu_addr[15:4] == 12'h680;
 wire        mmk_rom = ext_mode[3:0] == 4'd9 && cpu_addr[15:14] == 2'b11;
 wire        hsk     = variant[4:0] == 5'd16;
+wire        sdm     = hsk && bflags12[7];    // Sidam explorer board: Hot Shocker map, 6800 latches, mirrored I/O, wd read
 wire        tp      = variant[4:0] == 5'd17;
 wire        gs      = variant[4:0] == 5'd18;
 wire        sb2     = variant[4:0] == 5'd19;
@@ -501,7 +502,8 @@ wire        k_lat   = (sc && !tnv && cpu_addr[15:11] == 5'b01101) ||
                       (sb && !mmk_rom && cpu_addr[15] && cpu_addr[13:11] == 3'b101) ||
                       (mdk && cpu_addr[15:11] == 5'b10100) ||
                       (ck2 && cpu_addr[15:4] == 12'hA80) ||
-                      (aeu && cpu_addr[15:9] == 7'b0001000) || (aeg && cpu_addr[15:9] == 7'b0010011);
+                      (aeu && cpu_addr[15:9] == 7'b0001000) || (aeg && cpu_addr[15:9] == 7'b0010011) ||
+                      (sdm && cpu_addr[15:11] == 5'b01101);
 wire        fg_wd   = (fg && cpu_addr[15:11] == 5'b10001) ||
                       (sc && (cpu_addr[15:11] == 5'b01110 || (bflags5[4] && cpu_addr[15:11] == 5'b01111))) ||
                       (sb && !mmk_rom && cpu_addr[15] && cpu_addr[13:11] == 3'b110) ||
@@ -512,7 +514,7 @@ wire        fg_wd   = (fg && cpu_addr[15:11] == 5'b10001) ||
                       (sb2 && cpu_addr[15:3] == 13'h0E00) || (tzb && cpu_addr == 16'h9800) ||
                       (mdk && cpu_addr == 16'hA800) || (ck2 && cpu_addr == 16'hB000) || (ami && cpu_addr == 16'hA800) || (sc && bflags9[6] && cpu_addr[15:11] == 5'b01101) ||
                       (aeu && cpu_addr[15:10] == 6'b000101) || (aeg && cpu_addr[15:9] == 7'b1111010) ||
-                      (hm && cpu_addr == 16'h5800) || (ad && cpu_addr == 16'h7000);
+                      (hm && cpu_addr == 16'h5800) || (ad && cpu_addr == 16'h7000) || (sdm && cpu_addr[15:11] == 5'b01110);
 wire        fg_ppi  = (fg && cpu_addr[15:14] == 2'b11) || (sc && cpu_addr[15] && !tnv_rom && !mmk_rom) ||
                       (ff && cpu_addr[15:14] == 2'b11) || (fa && cpu_addr[15:10] == 6'b010000) ||
                       (ts && (cpu_addr[15:2] == 14'h2800 || cpu_addr[15:2] == 14'h3000)) ||
@@ -593,8 +595,8 @@ always @(posedge clk) begin
     end
     else if (wr && fin && cpu_addr == 16'h8000) gfxbank[1:0] <= cpu_dout[1:0];
     else if (wr && sb2 && cpu_addr == 16'h7800) pitch <= cpu_dout;
-    else if (wr && hsk && cpu_addr == 16'h6004) begin ctl_9n[6] <= cpu_dout[0]; ctl_9n[7] <= cpu_dout[0]; end
-    else if (wr && hsk && cpu_addr == 16'h6006) gfxbank[1:0] <= cpu_dout[1:0];
+    else if (wr && hsk && !sdm && cpu_addr == 16'h6004) begin ctl_9n[6] <= cpu_dout[0]; ctl_9n[7] <= cpu_dout[0]; end
+    else if (wr && hsk && !sdm && cpu_addr == 16'h6006) gfxbank[1:0] <= cpu_dout[1:0];
     else if (wr && hsk && cpu_addr == 16'h6801) ctl_9n[1] <= cpu_dout[0];
     else if (wr && ad && cpu_addr == 16'h6803) bg_rgb[0] <= cpu_dout[0];
     else if (wr && ad && cpu_addr == 16'h6806) bg_rgb[2] <= cpu_dout[0];
@@ -680,7 +682,7 @@ always @(posedge clk) begin
 end
 
 wire nmi_en = (bflags[0] ? ctl_9n[0] : ctl_9n[1]) & ~bflags7[4];
-wire wdr    = (mem & ~cpu_rd_n & ((io_cs & io_sel == 2'd3) | fg_wd)) | (wr & hsk & cpu_addr == 16'h7000);
+wire wdr    = (mem & ~cpu_rd_n & ((io_cs & io_sel == 2'd3) | fg_wd)) | (wr & hsk & (sdm ? cpu_addr[15:11] == 5'b01110 : cpu_addr == 16'h7000));
 
 always @(posedge clk) begin
     if (!nmi_en)                  cpu_nmi_n <= 1'b1;
@@ -1257,9 +1259,9 @@ wire [7:0] ay_dout, ay2_dout;
 reg  [7:0] hb6_ctl = 8'd0;
 always @(posedge clk) if (reset) hb6_ctl <= 8'd0; else if (wr && (hb6 || ami) && cpu_addr == 16'h5000) hb6_ctl <= cpu_dout;
 wire       snd_cmd_we = fmc ? wr && cpu_addr[15:11] == 5'b10101 : hb6 ? wr && cpu_addr == 16'h4800 : ami ? wr && cpu_addr == 16'h4000 :
-                        hsk ? wr && cpu_addr == 16'h8000 : wr & ppi1_sel & ppi_a == 2'd0;
+                        hsk ? wr && (sdm ? cpu_addr[15:12] == 4'h8 : cpu_addr == 16'h8000) : wr & ppi1_sel & ppi_a == 2'd0;
 wire [7:0] snd_ctl    = hsk || fmc ? 8'h00 : (hb6 || ami ? hb6_ctl : ppi1_pb) & ~{3'b000, bflags8[3], 4'b0000};
-wire       snd_irq    = (wr & hsk & cpu_addr == 16'h9000) | (wr & fmc & cpu_addr[15:11] == 5'b10110 & cpu_addr[2:0] == 3'd1);
+wire       snd_irq    = (wr & hsk & (sdm ? cpu_addr[15:12] == 4'h9 : cpu_addr == 16'h9000)) | (wr & fmc & cpu_addr[15:11] == 5'b10110 & cpu_addr[2:0] == 3'd1);
 
 function [7:0] hus_decrypt(input [7:0] d, input [7:0] a);
     reg [7:0] m;
@@ -1342,7 +1344,7 @@ always @(*) begin
     else if (bflags7[3] && cpu_addr == 16'hB401) cpu_din = 8'h07;
     else if (ami && cpu_addr[15:2] == 14'h1000)
         cpu_din = cpu_addr[1:0] == 2'd0 ? in0 : cpu_addr[1:0] == 2'd1 ? in1 : cpu_addr[1:0] == 2'd2 ? in2 : in3;
-    else if (hsk && cpu_addr[15:2] == 14'h2000)
+    else if (hsk && (sdm ? cpu_addr[15:12] == 4'h8 : cpu_addr[15:2] == 14'h2000))
         cpu_din = cpu_addr[1:0] == 2'd0 ? in0 : cpu_addr[1:0] == 2'd1 ? in1 : cpu_addr[1:0] == 2'd2 ? in2 : in3;
     else if (hb6 && cpu_addr[15:2] == 14'h1200)
         cpu_din = cpu_addr[1:0] == 2'd0 ? in0 : cpu_addr[1:0] == 2'd1 ? in1 : cpu_addr[1:0] == 2'd3 ? in2 : 8'hFF;

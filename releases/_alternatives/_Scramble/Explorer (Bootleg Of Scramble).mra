@@ -1,0 +1,69 @@
+<misterromdescription>
+    <name>Explorer (Bootleg Of Scramble)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Scramble</series>
+    <year>1981</year>
+    <manufacturer>bootleg (Sidam)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>explorer</setname>
+    <parent>scramble</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>2</num_buttons>
+    <buttons names="Fire,Button 2,-,-,Coin,Start 1P,Start 2P,Pause,-,-,-" default="A,B,Select,Start,R,L"/>
+
+    <switches default="00,00,00,01">
+        <dip name="Coin A" bits="16,19" ids="2C/1C,2C/2C,1C/1C,2C/3C,2C/4C,1C/2C,2C/5C,2C/6C,1C/3C,2C/7C,2C/8C,1C/4C,1C/5C,1C/6C,1C/7C,1C/8C" values="8,9,0,10,11,1,12,13,2,14,15,3,4,5,6,7"/>
+        <dip name="Coin B" bits="20,23" ids="2C/1C,2C/2C,1C/1C,2C/3C,2C/4C,1C/2C,2C/5C,2C/6C,1C/3C,2C/7C,2C/8C,1C/4C,1C/5C,1C/6C,1C/7C,1C/8C" values="8,9,0,10,11,1,12,13,2,14,15,3,4,5,6,7"/>
+        <dip name="Lives" bits="24,25" ids="2,3,4,5"/>
+        <dip name="Bonus Life" bits="26,28" ids="10000,15000,20000,25000,30000,50000,70000,90000" values="1,3,5,7,0,2,4,6"/>
+        <dip name="Service Mode" bits="31" ids="Off,On"/>
+    </switches>
+
+    <!-- Index 0: ROM -->
+    <rom index="0" md5="none" zip="explorer.zip|scramble.zip">
+        <part crc="d5adf626" name="10l.bin"/>
+        <part crc="48e32788" name="9l.bin"/>
+        <part crc="c0dbdbde" name="8l.bin"/>
+        <part crc="9b30d227" name="7l.bin"/>
+        <part repeat="0xC000">00</part>
+        <part crc="4708845b" name="c2.5f"/>
+        <part repeat="0x1800">00</part>
+        <part crc="11fd2887" name="c1.5h"/>
+        <part repeat="0x1800">00</part>
+        <part crc="4e3caeab" name="c01s.6e"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="9faf18cf" name="3f.bin"/>
+        <part crc="e910b5c3" name="4b.bin"/>
+    </rom>
+
+    <!-- Index 1: Config -->
+    <rom index="1">
+        <part>
+            10 90 00 00 00 00 00 01 FF FF 80 80 02 03 80 80
+            01 06 02 05 04 03 12 11 00 00 00 00 00 00 14 13
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            01 04 00 00 02 00 00 00 00 03 00 00 00 00 00 00
+            00 00 80 00
+        </part>
+    </rom>
+
+    <remark>Explorer (Bootleg Of Scramble) (Sidam Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

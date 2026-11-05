@@ -528,6 +528,8 @@ endgenerate
 /////////////////////////////  Boards  /////////////////////////////
 
 wire signed [15:0] gal_audio, sbs_audio, disc_audio, ay_audio, konami_audio, sb_audio;
+wire        [63:0] gal_src, sb_src;                        // dsnd_0 sources: Galaxian / Moon Cresta or Space Battle board
+assign dsnd_0_i.src = sbh ? sb_src : gal_src;
 wire         [7:0] samp_out;
 wire         [3:0] kb_dac;
 
@@ -649,7 +651,7 @@ galaxian_sound galaxian_snd
     .fire(gal_snd[5]),
     .vol(gal_snd[7:6]),
     .pitch(gal_pitch),
-    .src(dsnd_0_i.src)
+    .src(gal_src)
 );
 assign gal_audio = dsnd_0_o.out;
 
@@ -666,8 +668,10 @@ galaxian_sbsound sbhoei_snd
     .fire(gal_snd[5]),
     .vol(gal_snd[7:6]),
     .pitch(gal_pitch),
-    .out(sbs_audio)
+    .sample(dsnd_0_o.sample),
+    .src(sb_src)
 );
+assign sbs_audio = dsnd_0_o.out;
 
 galaxian_sbspeech sbhoei_spch
 (
@@ -746,7 +750,8 @@ galaxian_konami_snd konami_snd
     .no_filter(bflags7[0]),
     .hb_map(bflags7[1]),
     .rom12k(bflags7[2]),
-    .hs_map(hsk),
+    .hs_map(hsk & ~bflags12[7]),
+    .sdm(hsk & bflags12[7]),
     .irq_set(gal_snd_irq),
     .pause(pause),
     .latch_we(gal_snd_cmd_we),

@@ -40,9 +40,9 @@
         <part crc="d67eedde" name="3.7k"/>
         <part crc="e4b038fd" name="4.7l"/>
         <part repeat="0xC000">00</part>
-        <part crc="72e5ca44" name="a.1h"/>
+        <part crc="72e5ca44" name="a.1h" offset="0x0" length="0x800"/>
         <part repeat="0x1800">00</part>
-        <part crc="d3846f2b" name="b.1l"/>
+        <part crc="d3846f2b" name="b.1l" offset="0x0" length="0x800"/>
         <part repeat="0x1800">00</part>
         <part crc="4e3caeab" name="82s123.6l"/>
     </rom>

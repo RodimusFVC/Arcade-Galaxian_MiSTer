@@ -1,7 +1,7 @@
 """dsnd_galaxian.py - Galaxian / Moon Cresta discrete sound (Galaxian.pdf p. 26-27, Moon Cresta.pdf p. 23) as a
 dsnd_engine program, 48 kHz. Structure and values = the board model in verilator/galsnd/galsnd_model.h (MAME
-galaxian_discrete, R40 at its schematic 2.2k), plus step 2 (2026-11-04) Moon Cresta from its schematic: C20 0.01 uF,
-C21 22 uF, no R89 / R90, output C39 0.1 uF into R42 22k + 1k pot; the digital parts (pitch counter + 393, NOISE latch) stay in
+galaxian_discrete, R40 at its schematic 2.2k). Moon Cresta keeps the Galaxian C20 / C21 / output values: its
+schematic values (C20 0.01 uF, C21 22 uF, C39 into R42 22k) were tried and rejected by ear on hardware; the digital parts (pitch counter + 393, NOISE latch) stay in
 rtl/boards/galaxian_snd/galaxian_sound.sv, which delivers per sample:
   byte 0: [3:0] LFO latch, [6:4] FS1-FS3, [7] HIT        byte 1: [0] FIRE, [2:1] VOL1 / VOL2, [3] NOISE
   bytes 2 / 3 / 4: 393 QA / QC / QD high count over the sample (32 fast ticks: 0 .. 32)
@@ -120,6 +120,136 @@ def osc555(p, n, th, tr, kc, kd):
     p.land(j3)
 
 
+def fire(p, b_fire, b_noise, fhp_tau):
+    """Galaxian fire circuit (7S 555 on a CV swept by !FIRE through R47 / C28 / R48 plus NOISE through R46, C25 drained
+    through R41 while the 555 output is high), sources (byte, bit) b_fire / b_noise. Leaves fire_o (high-passed)."""
+    par = dsnd.par
+    # fire: !FIRE -> R47 2.2k / C28 47 uF -> R48 into the 7S CV, NOISE through R46 10k
+    p.op("BIT", 0, p.src(*b_fire))
+    p.op("LDI", imm=q(TTL))
+    p.op("LDIF", imm=0)
+    p.op("RC", "rc173", imm=q(k(2.2e3 * 47e-6)))
+    p.op("MULI", imm=q(par(10e3, 2.2e3) / 2.2e3))
+    p.op("ST", "cvf")
+    p.op("BIT", 0, p.src(*b_noise))
+    p.op("LDI", imm=0)
+    p.op("LDIF", imm=q(TTL * par(10e3, 2.2e3) / 10e3))
+    p.op("ADD", "cvf")
+    p.op("ST", "cvf")
+    p.op("MULI", imm=q(0.5))
+    p.op("ST", "cvf2")
+    p.op("LD", "cvf")                                 # 7S runs while its CV is above 0.25 V
+    p.op("CMPI", imm=q(0.25))
+    s = p.skip_if(True)
+    p.op("LD", "fi_ff")
+    p.op("ST", "fi_d")
+    j = p.jump()
+    p.land(s)
+    osc555(p, "fi", "cvf", "cvf2", k(32e3 * 0.01e-6), k(22e3 * 0.01e-6))
+    p.land(j)
+    # C25 1 uF charged to FIRE - 0.7 V, drained through R41 100k while the 7S output is high
+    p.op("BIT", 0, p.src(*b_fire))
+    p.op("LDI", imm=0)
+    p.op("LDIF", imm=q(VU))
+    p.op("ST", "fi_u")
+    p.op("CMP", "fi_cap")
+    s = p.skip_if(False)
+    p.op("LD", "fi_u")                                # charge: instant
+    p.op("ST", "fi_cap")
+    j = p.jump()
+    p.land(s)
+    p.op("LD", "fi_cap")
+    p.op("SUB", "fi_u")
+    p.op("MULI", imm=q(k(100e3 * 1e-6)))
+    p.op("MUL", "fi_d")
+    p.op("ADDI", imm=1)                               # rounded up: drains fully (no residual 7S buzz)
+    p.op("ST", "_t")
+    p.op("LD", "fi_cap")
+    p.op("SUB", "_t")
+    p.op("MAXI", imm=0)
+    p.op("ST", "fi_cap")
+    p.land(j)
+    p.op("LD", "fi_cap")
+    p.op("MUL", "fi_d")
+    p.op("ST", "fr")
+    # output coupling cap into the mix (high-pass, time constant fhp_tau)
+    p.op("RC", "fhp", imm=q(k(fhp_tau)))
+    p.op("LD", "fr")
+    p.op("SUB", "fhp")
+    p.op("ST", "fire_o")
+
+
+
+def noise_bp(p, pre, b_en, b_noise, r1, cdis, vref, r2=22e3, rf=470e3, c1=0.01e-6, c2=0.01e-6):
+    """Galaxian HIT channel: EN -> diode -> cap cdis (charge instant), switched by NOISE (4066) into an LM324 MFB
+    band-pass (input R1 / R2 to vref, feedback rf, c1 / c2), bilinear biquad (MAME form). Registers pre_*; leaves
+    pre_o = op-amp output (V, clamped 0 .. 3.5)."""
+    par = dsnd.par
+    p.op("BIT", 0, p.src(*b_en))
+    p.op("LDI", imm=0)
+    p.op("LDIF", imm=q(VU))
+    p.op("ST", pre + "_u")
+    p.op("BIT", 0, p.src(*b_noise))
+    s = p.skip_if(True)
+    p.op("LD", pre + "_u")                               # NOISE low: switch open, cap only charges
+    p.op("CMP", pre + "_cap")
+    p.op("LD", pre + "_cap")
+    p.op("LDF", pre + "_u")
+    p.op("ST", pre + "_cap")
+    p.op("LDI", imm=0)
+    p.op("ST", pre + "_h")
+    j = p.jump()
+    p.land(s)
+    p.op("LD", pre + "_u")
+    p.op("CMP", pre + "_cap")
+    s2 = p.skip_if(True)
+    p.op("LD", pre + "_u")                               # discharging through R35 + R36
+    p.op("RC", pre + "_cap", imm=q(k((r1 + r2) * cdis)))
+    j2 = p.jump()
+    p.land(s2)
+    p.op("LD", pre + "_u")
+    p.op("ST", pre + "_cap")
+    p.land(j2)
+    p.op("LD", pre + "_cap")
+    p.op("ST", pre + "_h")
+    p.land(j)
+    rt = par(r1, r2)
+    vpmax = 5.0 - 1.5
+    fc = 1.0 / (2 * 3.141592653589793 * (rt * rf * c1 * c2) ** 0.5)
+    dd = (c1 + c2) / (rf / rt * c1 * c2) ** 0.5
+    gain = -rf / rt * c1 / (c1 + c2)
+    import math
+    wc = FS * 2.0 * math.tan(math.pi * fc / FS)
+    tT = 2 * FS
+    den = tT * tT + dd * wc * tT + wc * wc
+    a1 = 2.0 * (-tT * tT + wc * wc) / den
+    a2 = (tT * tT - dd * wc * tT + wc * wc) / den
+    b0 = dd * wc * tT / den * gain
+    p.op("LD", pre + "_h")                               # input divider R35 / R36, biquad (MAME bilinear form)
+    p.op("ADDI", imm=q(-vref))
+    p.op("MULI", imm=q(rt / r1))
+    p.op("ADDI", imm=q(-vref * (1.0 - rt / r1)))
+    p.op("ST", pre + "_bx")
+    p.op("MULI", imm=q(b0))
+    p.op("MACI", pre + "_bx2", imm=q(-b0))
+    p.op("MACI", pre + "_by1", imm=q(-a1))
+    p.op("MACI", pre + "_by2", imm=q(-a2))
+    p.op("ADDI", imm=q(vref))
+    p.op("MAXI", imm=0)
+    p.op("MINI", imm=q(vpmax))
+    p.op("ST", pre + "_o")
+    p.op("LD", pre + "_by1")
+    p.op("ST", pre + "_by2")
+    p.op("LD", pre + "_o")
+    p.op("ADDI", imm=q(-vref))
+    p.op("ST", pre + "_by1")
+    p.op("LD", pre + "_bx1")
+    p.op("ST", pre + "_bx2")
+    p.op("LD", pre + "_bx")
+    p.op("ST", pre + "_bx1")
+
+
+
 def board(mc):
     """Galaxian (mc = False) or Moon Cresta (mc = True) sound board"""
     p = Board("mooncrst" if mc else "galaxian")
@@ -177,129 +307,15 @@ def board(mc):
         p.op("ADD", "bg_in")
         p.op("ST", "bg_in")
         p.land(j)
-    # 3 x 10k into C20 (Galaxian 0.1 uF, Moon Cresta 0.01 uF); the 555 output high = 4.5 V
+    # 3 x 10k into C20 (0.1 uF); the 555 output high = 4.5 V
     p.op("LD", "bg_in")
     p.op("MULI", imm=q(4.5 / 3))
-    p.op("RC", "bgmix", imm=q(k(par(10e3, 10e3, 10e3) * (0.01e-6 if mc else 0.1e-6))))
+    p.op("RC", "bgmix", imm=q(k(par(10e3, 10e3, 10e3) * 0.1e-6)))
 
-    # fire: !FIRE -> R47 2.2k / C28 47 uF -> R48 into the 7S CV, NOISE through R46 10k
-    p.op("BIT", 0, p.src(B1, 0))
-    p.op("LDI", imm=q(TTL))
-    p.op("LDIF", imm=0)
-    p.op("RC", "rc173", imm=q(k(2.2e3 * 47e-6)))
-    p.op("MULI", imm=q(par(10e3, 2.2e3) / 2.2e3))
-    p.op("ST", "cvf")
-    p.op("BIT", 0, p.src(B1, 3))
-    p.op("LDI", imm=0)
-    p.op("LDIF", imm=q(TTL * par(10e3, 2.2e3) / 10e3))
-    p.op("ADD", "cvf")
-    p.op("ST", "cvf")
-    p.op("MULI", imm=q(0.5))
-    p.op("ST", "cvf2")
-    p.op("LD", "cvf")                                 # 7S runs while its CV is above 0.25 V
-    p.op("CMPI", imm=q(0.25))
-    s = p.skip_if(True)
-    p.op("LD", "fi_ff")
-    p.op("ST", "fi_d")
-    j = p.jump()
-    p.land(s)
-    osc555(p, "fi", "cvf", "cvf2", k(32e3 * 0.01e-6), k(22e3 * 0.01e-6))
-    p.land(j)
-    # C25 1 uF charged to FIRE - 0.7 V, drained through R41 100k while the 7S output is high
-    p.op("BIT", 0, p.src(B1, 0))
-    p.op("LDI", imm=0)
-    p.op("LDIF", imm=q(VU))
-    p.op("ST", "fi_u")
-    p.op("CMP", "fi_cap")
-    s = p.skip_if(False)
-    p.op("LD", "fi_u")                                # charge: instant
-    p.op("ST", "fi_cap")
-    j = p.jump()
-    p.land(s)
-    p.op("LD", "fi_cap")
-    p.op("SUB", "fi_u")
-    p.op("MULI", imm=q(k(100e3 * 1e-6)))
-    p.op("MUL", "fi_d")
-    p.op("ADDI", imm=1)                               # rounded up: drains fully (no residual 7S buzz)
-    p.op("ST", "_t")
-    p.op("LD", "fi_cap")
-    p.op("SUB", "_t")
-    p.op("MAXI", imm=0)
-    p.op("ST", "fi_cap")
-    p.land(j)
-    p.op("LD", "fi_cap")
-    p.op("MUL", "fi_d")
-    p.op("ST", "fr")
-    # C26 0.01 uF into R43 (Galaxian: || R91 10k node; Moon Cresta: into the resistor node)
-    p.op("RC", "fhp", imm=q(k((2.2e3 if mc else par(2.2e3, 10e3)) * 0.01e-6)))
-    p.op("LD", "fr")
-    p.op("SUB", "fhp")
-    p.op("ST", "fire_o")
+    fire(p, (B1, 0), (B1, 3), (2.2e3 if mc else par(2.2e3, 10e3)) * 0.01e-6)   # C26 into R43 (|| R91 on Galaxian)
 
-    # hit: HIT -> C21 (Galaxian 2.2 uF via R89 1k, Moon Cresta 22 uF direct), gated by NOISE (4066 7R) into the
-    # R35 150k MFB band-pass; charge modelled instant on both
-    p.op("BIT", 0, p.src(B0, 7))
-    p.op("LDI", imm=0)
-    p.op("LDIF", imm=q(VU))
-    p.op("ST", "hit_u")
-    p.op("BIT", 0, p.src(B1, 3))
-    s = p.skip_if(True)
-    p.op("LD", "hit_u")                               # NOISE low: switch open, cap only charges
-    p.op("CMP", "hit_cap")
-    p.op("LD", "hit_cap")
-    p.op("LDF", "hit_u")
-    p.op("ST", "hit_cap")
-    p.op("LDI", imm=0)
-    p.op("ST", "hit_h")
-    j = p.jump()
-    p.land(s)
-    p.op("LD", "hit_u")
-    p.op("CMP", "hit_cap")
-    s2 = p.skip_if(True)
-    p.op("LD", "hit_u")                               # discharging through R35 + R36
-    p.op("RC", "hit_cap", imm=q(k((150e3 + 22e3) * (22e-6 if mc else 2.2e-6))))
-    j2 = p.jump()
-    p.land(s2)
-    p.op("LD", "hit_u")
-    p.op("ST", "hit_cap")
-    p.land(j2)
-    p.op("LD", "hit_cap")
-    p.op("ST", "hit_h")
-    p.land(j)
-    rt = par(150e3, 22e3)
-    vref, vpmax = 2.0, 5.0 - 1.5
-    fc = 1.0 / (2 * 3.141592653589793 * (rt * 470e3 * 0.01e-6 * 0.01e-6) ** 0.5)
-    dd = 0.02e-6 / (470e3 / rt * 0.01e-6 * 0.01e-6) ** 0.5
-    gain = -470e3 / rt * 0.01e-6 / 0.02e-6
-    import math
-    wc = FS * 2.0 * math.tan(math.pi * fc / FS)
-    tT = 2 * FS
-    den = tT * tT + dd * wc * tT + wc * wc
-    a1 = 2.0 * (-tT * tT + wc * wc) / den
-    a2 = (tT * tT - dd * wc * tT + wc * wc) / den
-    b0 = dd * wc * tT / den * gain
-    p.op("LD", "hit_h")                               # input divider R35 / R36, biquad (MAME bilinear form)
-    p.op("ADDI", imm=q(-vref))
-    p.op("MULI", imm=q(rt / 150e3))
-    p.op("ADDI", imm=q(-vref * (1.0 - rt / 150e3)))
-    p.op("ST", "bx")
-    p.op("MULI", imm=q(b0))
-    p.op("MACI", "bx2", imm=q(-b0))
-    p.op("MACI", "by1", imm=q(-a1))
-    p.op("MACI", "by2", imm=q(-a2))
-    p.op("ADDI", imm=q(vref))
-    p.op("MAXI", imm=0)
-    p.op("MINI", imm=q(vpmax))
-    p.op("ST", "hit_o")
-    p.op("LD", "by1")
-    p.op("ST", "by2")
-    p.op("LD", "hit_o")
-    p.op("ADDI", imm=q(-vref))
-    p.op("ST", "by1")
-    p.op("LD", "bx1")
-    p.op("ST", "bx2")
-    p.op("LD", "bx")
-    p.op("ST", "bx1")
+    # hit: HIT -> C21 2.2 uF, gated by NOISE (4066 7R) into the R35 150k MFB band-pass
+    noise_bp(p, "hit", (B0, 7), (B1, 3), 150e3, 2.2e-6, 2.0)
 
     # pitch: 393 QA -> R51 33k, QC -> R50 22k + R49 10k (VOL1), QD -> R52 15k (VOL2); conductances in 1/kohm
     cnt = 1.0 / 32 * 256                              # LDL = count << 16 = count / 256 V; duty = count / 32
@@ -357,12 +373,88 @@ def board(mc):
         p.op("MULI", imm=q(1 / 2.2 / gf))
         p.op("ADD", "_t")
     p.op("ST", "mix")
-    if mc:
-        # C39 0.1 uF from the node (source ~1/_t kohm) into R42 22k + 1k volume pot; MB3712 not modelled
-        p.op("RC", "amp", imm=q(k((22e3 + 1e3 + 1e3 / (1 / 33 + 1 / 22 + 1 / 15 + 2 / 2.2)) * 0.1e-6)))
-    else:
-        # C46 0.1 uF into R92 100k (LM377 bridge: flat, gain 101)
-        p.op("RC", "amp", imm=q(k(100e3 * 0.1e-6)))
+    p.op("RC", "amp", imm=q(k(100e3 * 0.1e-6)))       # C46 output coupling
+    p.op("LD", "mix")
+    p.op("SUB", "amp")
+    p.op("OUT")
+    p.finish()
+    return p
+
+
+def sbhoei():
+    """Space Battle (Hoei / Sun SB-002U) discrete sound, step 1 = exact port of the pre-dsnd RTL (MAME sbhoei_discrete):
+    three Galaxian-HIT noise band-passes, the Galaxian fire circuit, the pitch DAC, one resistor mix node. Sources from
+    rtl/boards/sbhoei_snd/galaxian_sbsound.sv:
+      byte 0: [0] noise 3 enable (A803), [1] noise 1 enable (A000), [2] noise 2 enable (A001), [3] NOISE 2V latch,
+              [4] NOISE 64H latch, [5] NOISE 4V latch, [6] FIRE (A805)      byte 1: [1:0] VOL1 / VOL2 (A806 / A807)
+      bytes 2 / 3 / 4: 393 QA / QC / QD high count over the sample (0 .. 32)"""
+    p = Board("sbhoei")
+    par = dsnd.par
+    p.init("fi_ff", 1.0)
+    vref = 5.0 * 33e3 / (22e3 + 33e3)                    # R76 / R77 band-pass bias
+    # noise 3 (R62 150k, C22 2.2 uF, NOISE 2V), noise 1 (R68 100k, C26 1 uF, 64H), noise 2 (R64 100k, C19 1 uF, 4V)
+    noise_bp(p, "n3", (B0, 0), (B0, 3), 150e3, 2.2e-6, vref)
+    noise_bp(p, "n1", (B0, 1), (B0, 4), 100e3, 1.0e-6, vref)
+    noise_bp(p, "n2", (B0, 2), (B0, 5), 100e3, 1.0e-6, vref)
+    # each band-pass into the mix through 0.1 uF + 2.2k (|| R91 10k): high-pass, summed
+    khp = q(k(par(2.2e3, 10e3) * 0.1e-6))
+    p.op("LD", "n3_o")
+    p.op("RC", "n3_hp", imm=khp)
+    p.op("LD", "n3_o")
+    p.op("SUB", "n3_hp")
+    p.op("ST", "hs")
+    for c in ("n1", "n2"):
+        p.op("LD", c + "_o")
+        p.op("RC", c + "_hp", imm=khp)
+        p.op("LD", c + "_o")
+        p.op("SUB", c + "_hp")
+        p.op("ADD", "hs")
+        p.op("ST", "hs")
+    # fire: the Galaxian circuit, CV noise = the 2V latch; into the mix through 0.1 uF + 4.7k (|| R91)
+    fire(p, (B0, 6), (B0, 3), par(4.7e3, 10e3) * 0.1e-6)
+    # pitch: QA -> 120k, QC -> 82k (+ 39k on VOL1), QD -> 62k on VOL2; conductances in 1/kohm
+    cnt = 1.0 / 32 * 256
+    p.op("LDL", 0, p.src(BQA, 0))
+    p.op("MULI", imm=q(cnt * TTL / 120))
+    p.op("ST", "num")
+    p.op("BIT", 0, p.src(B1, 0))
+    p.op("LDI", imm=q(1 / 82))
+    p.op("LDIF", imm=q(1 / 82 + 1 / 39))
+    p.op("ST", "_t")
+    p.op("LDL", 0, p.src(BQC, 0))
+    p.op("MULI", imm=q(cnt * TTL))
+    p.op("MUL", "_t")
+    p.op("ADD", "num")
+    p.op("ST", "num")
+    p.op("LDL", 0, p.src(BQD, 0))
+    p.op("MULI", imm=q(cnt * TTL / 62))
+    p.op("ST", "_t")
+    p.op("BIT", 0, p.src(B1, 1))
+    p.op("LDI", imm=0)
+    p.op("LDF", "_t")
+    p.op("ADD", "num")
+    p.op("ST", "num")
+    p.op("LD", "hs")
+    p.op("MULI", imm=q(1 / 2.2))
+    p.op("ADD", "num")
+    p.op("ST", "num")
+    p.op("LD", "fire_o")
+    p.op("MULI", imm=q(1 / 4.7))
+    p.op("ADD", "num")
+    p.op("ST", "num")
+    gfix = 1 / 120 + 1 / 82 + 3 / 2.2 + 1 / 4.7 + 1 / 10
+    p.op("BIT", 0, p.src(B1, 0))
+    p.op("LDI", imm=q(gfix))
+    p.op("LDIF", imm=q(gfix + 1 / 39))
+    p.op("ST", "_t")
+    p.op("BIT", 0, p.src(B1, 1))
+    p.op("LDI", imm=0)
+    p.op("LDIF", imm=q(1 / 62))
+    p.op("ADD", "_t")
+    p.op("RCP")
+    p.op("MUL", "num")
+    p.op("ST", "mix")
+    p.op("RC", "amp", imm=q(k(100e3 * 0.1e-6)))       # C46 output coupling (MAME 100k)
     p.op("LD", "mix")
     p.op("SUB", "amp")
     p.op("OUT")

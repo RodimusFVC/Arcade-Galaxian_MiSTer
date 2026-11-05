@@ -1,13 +1,9 @@
-92725c2686d7f7b05176dbd867362bad  rtl/chip_pool_pkg.sv
+6387d78ead22d759e81d44a66d567167  rtl/chip_pool_pkg.sv
 90c86afff5d538e18fe2494694a598f1  rtl/mister_custom/controllers.sv
 bab2fb9019c45977cd047d2cd94bd7ea  rtl/mister_custom/hiscore.v
 895850debf17ba33e5625674ed1c6141  rtl/mister_custom/pause.v
 b47469e471c1de93851bcd4371a8b459  rtl/ram_pool_pkg.sv
 ff9d427a20fefc818ee476c16b5f08d9  rtl/ram_rom/dpram_dc.sv
-b72e8175c8142587896a1021618fbb54  rtl/sound/Filters/audio_iir_filter.v
-f27e3a8793e786e3d178ad5849b6c7b7  rtl/sound/Filters/tp_lpf_heavy.v
-59f0a2790e3c2fc1a0798bcc38c552f6  rtl/sound/Filters/tp_lpf_light.v
-c2455fd8d58eb34ef3df9e936b17128c  rtl/sound/Filters/tp_lpf_medium.v
 9eaf021673e7420682f7cdf2ac78dabe  sys/alsa.sv
 a10466e20716f4b6b1d40388ccf50bd5  sys/arcade_video.v
 efc9d8f6bf2c21abc89913c3d7f722a8  sys/ascal.vhd

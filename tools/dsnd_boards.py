@@ -18,6 +18,7 @@ import dsnd_galaxian                                        # noqa: E402
 BOARDS = {
     "galaxian": dsnd_galaxian.galaxian,     # Galaxian sound (Galaxian.pdf p. 27)
     "mooncrst": dsnd_galaxian.mooncrst,     # Moon Cresta mixer (MOONCRST_SOUND)
+    "sbhoei": dsnd_galaxian.sbhoei,         # Space Battle sound (SB-002U, sbhoei_discrete)
 }
 
 

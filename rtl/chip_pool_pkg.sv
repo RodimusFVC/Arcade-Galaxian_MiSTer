@@ -711,35 +711,6 @@ typedef struct packed {
     logic  [9:0] sound;                 // jt49 A+B+C mix; cores that don't read it leave it undriven
 } jt49_o_t;
 
-// MCL86 8088 execution unit (mcl86_eu_core, TEST_N inactive). The bus unit (biu_max) stays on each board: its timing
-// parameters differ per board. reset_n is on the bus: Dragon's Lair II holds its CPU in reset during the SDRAM phase sweep
-typedef struct packed {
-    logic        reset_n;
-    logic        biu_done;
-    logic        biu_clk_counter_zero;
-    logic        biu_nmi_caught;
-    logic        biu_intr;
-    logic  [7:0] pfq_top_byte;
-    logic        pfq_empty;
-    logic [15:0] pfq_addr_out;
-    logic [15:0] biu_es;
-    logic [15:0] biu_ss;
-    logic [15:0] biu_cs;
-    logic [15:0] biu_ds;
-    logic [15:0] biu_rm;
-    logic [15:0] biu_reg;
-    logic [15:0] biu_ret;
-} mcl86eu_i_t;
-
-typedef struct packed {
-    logic [15:0] eu_biu_command;
-    logic [15:0] eu_biu_dataout;
-    logic [15:0] eu_register_r3;
-    logic        eu_prefix_lock;
-    logic        eu_flag_i;
-    logic        biu_nmi_debounce;
-} mcl86eu_o_t;
-
 // Laserdisc player HLE (rtl/ldp/ldp_top.sv: shared transport + LD-V1000 / PR-7820 / PR-8210 / LDP-1450 front-ends)
 typedef struct packed {
     logic  [3:0] player_sel;
@@ -987,7 +958,7 @@ typedef struct packed {
     logic [15:0] audio;                 // signed
 } tms5220rsws_o_t;
 
-// MC6845 CRTC (rtl/video/mc6845.vhd, David Banks / Mike Stirling; no generics; CURSOR unused, LPSTB low). reset_n is on the bus:
+// MC6845 CRTC (rtl/rodimus/crtc6845sv crtc6845sv_pool, VARIANT 0; CURSOR unused, LPSTB low). reset_n is on the bus:
 // each board holds the chip in reset while it is not the active one (Castle: reset | ~dcastle, TMS: reset | ~tms).
 // Castle writes only (r_nw 0, do unused); the TMS board reads registers back through do.
 typedef struct packed {
@@ -1455,7 +1426,7 @@ typedef struct packed {
     logic  [7:0] p2;
 } i8035_o_t;
 
-// MCL86 8088 as one CPU (rtl/cpu/MCL86/mcl86_cpu.sv: BIU + EU + bus glue): request / acknowledge bus
+// 8088 as one CPU on a request / acknowledge bus (x86sv, rtl/rodimus/x86sv x86sv_mcl86; the type keeps its mcl86 name)
 typedef struct packed {
     logic        reset;
     logic        cpu_clk;               // 8088 pin clock
@@ -1611,5 +1582,28 @@ typedef struct packed {
     logic        intr;                  // 1 = idle
     logic [15:0] sample;                // signed
 } digitalker_o_t;
+
+// MC68705P3 MCU (rtl/rodimus/mc68705p3, ours; every port). reset is on the bus. ce_4m = the 4 MHz oscillator pulse.
+// rom_wr / rom_addr / rom_data load the internal 2K EPROM (the core's MCU download)
+typedef struct packed {
+    logic        reset;
+    logic        ce_4m;
+    logic        irq_n;
+    logic  [7:0] pa_in;
+    logic  [7:0] pb_in;
+    logic  [3:0] pc_in;
+    logic        rom_wr;
+    logic [10:0] rom_addr;
+    logic  [7:0] rom_data;
+} mc68705p3_i_t;
+typedef struct packed {
+    logic  [7:0] pa_out;
+    logic  [7:0] pa_latch_out;          // raw PA latch
+    logic        pa_wr_stb;             // 1 clk when the MCU writes PA
+    logic  [7:0] pb_out;
+    logic  [7:0] pb_ddr;
+    logic  [3:0] pc_out;
+    logic  [3:0] pc_ddr;
+} mc68705p3_o_t;
 
 endpackage
