@@ -27,6 +27,9 @@ module galaxian_video
     input               bg_en,
     input         [2:0] bg_rgb,
     input         [3:0] gfxbank,
+    input               wide,           // Video Eight: 32K planes, tile code = {wide_bank, code}, sprite = {wide_bank, code}
+    input         [3:0] wide_bank,
+    input         [2:0] col_hi,         // colour bank: palette index bits 7:5 (Video Eight game, Ghostmuncher Galaxian game)
     input               gfxbank4,
     input               stars_232,
 
@@ -43,6 +46,7 @@ module galaxian_video
     input               gfx1_we,
     input               gfx2_we,
     input               gfxh_we,
+    input               gfxw_we,
     input               tb_we,
     input         [4:0] tb_addr,
     input         [2:0] tb_d,
@@ -113,7 +117,7 @@ assign vr_i[2].b_d    = 8'd0;
 assign vr_i[2].b_we   = 1'b0;
 assign os_q = vr_o[2].b_q;
 
-reg  [13:0] gs_addr, gt_addr;
+reg  [14:0] gs_addr, gt_addr;
 wire  [7:0] g0s_q, g1s_q, g0t_q, g1t_q;
 wire  [7:0] g1s_raw, g1t_raw;
 function [12:0] gfx_remap(input [12:0] i);
@@ -153,27 +157,28 @@ function [12:0] pk_addr(input [12:0] a, input hi);
     pk_addr = gfx_packed ? {1'b0, a[10:3], hi, a[2:0]} : a;
 endfunction
 
-wire [13:0] gs_rd = {gs_addr[13], gfx_remap(gs_addr[12:0])};
-wire [13:0] gt_rd = {gt_addr[13], gfx_remap(gt_addr[12:0])};
-wire        ld0 = gfx0_we | (gfxh_we & ~ioctl_addr[13]);
-wire        ld1 = gfx1_we | (gfxh_we & ioctl_addr[13]);
-wire [13:0] ga0 = ld0 | ld1 ? {gfxh_we, ioctl_addr[12:0]} : {gs_rd[13], pk_addr(gs_rd[12:0], 1'b1)};
-wire [13:0] ga1 = ld0 | ld1 ? {gfxh_we, ioctl_addr[12:0]} : {gs_rd[13], pk_addr(gs_rd[12:0], 1'b0)};
+wire [14:0] gs_rd = {gs_addr[14:13], gfx_remap(gs_addr[12:0])};
+wire [14:0] gt_rd = {gt_addr[14:13], gfx_remap(gt_addr[12:0])};
+wire        ld0 = gfx0_we | (gfxh_we & ~ioctl_addr[13]) | (gfxw_we & ~ioctl_addr[15]);
+wire        ld1 = gfx1_we | (gfxh_we & ioctl_addr[13]) | (gfxw_we & ioctl_addr[15]);
+wire [14:0] gld = gfxw_we ? ioctl_addr[14:0] : {1'b0, gfxh_we, ioctl_addr[12:0]};
+wire [14:0] ga0 = ld0 | ld1 ? gld : {gs_rd[14:13], pk_addr(gs_rd[12:0], 1'b1)};
+wire [14:0] ga1 = ld0 | ld1 ? gld : {gs_rd[14:13], pk_addr(gs_rd[12:0], 1'b0)};
 wire  [7:0] g0s_raw, g0t_raw;
 
-assign gr_i[0].a_addr = {2'b0, ga0};
+assign gr_i[0].a_addr = {1'b0, ga0};
 assign gr_i[0].a_d    = ioctl_dout;
 assign gr_i[0].a_we   = ld0;
-assign gr_i[0].b_addr = {2'b0, gt_rd[13], pk_addr(gt_rd[12:0], 1'b1)};
+assign gr_i[0].b_addr = {1'b0, gt_rd[14:13], pk_addr(gt_rd[12:0], 1'b1)};
 assign gr_i[0].b_d    = 8'd0;
 assign gr_i[0].b_we   = 1'b0;
 assign g0s_raw = gr_o[0].a_q;
 assign g0t_raw = gr_o[0].b_q;
 
-assign gr_i[1].a_addr = {2'b0, ga1};
+assign gr_i[1].a_addr = {1'b0, ga1};
 assign gr_i[1].a_d    = ioctl_dout;
 assign gr_i[1].a_we   = ld1;
-assign gr_i[1].b_addr = {2'b0, gt_rd[13], pk_addr(gt_rd[12:0], 1'b0)};
+assign gr_i[1].b_addr = {1'b0, gt_rd[14:13], pk_addr(gt_rd[12:0], 1'b0)};
 assign gr_i[1].b_d    = 8'd0;
 assign gr_i[1].b_we   = 1'b0;
 assign g1s_raw = gr_o[1].a_q;
@@ -195,18 +200,18 @@ assign g2t_q = gr_o[2].b_q;
 
 wire [7:0] g1s_sw = vflags3[3] ? {g1s_raw[7:2], g1s_raw[0], g1s_raw[1]} : g1s_raw;
 wire [7:0] g1t_sw = vflags3[3] ? {g1t_raw[7:2], g1t_raw[0], g1t_raw[1]} : g1t_raw;
-reg  [13:0] gs_rd_d, gt_rd_d;
+reg  [14:0] gs_rd_d, gt_rd_d;
 always @(posedge clk) begin gs_rd_d <= gs_rd; gt_rd_d <= gt_rd; end
 function bd_zero(input [13:0] a);
     bd_zero = a < 14'h0008 || (a >= 14'h1000 && a < 14'h10D8) || (a >= 14'h1180 && a < 14'h11D0);
 endfunction
-assign g0s_q = gfx_packed ? {g0s_raw[7:4], g1s_raw[7:4]} : bd_patch && bd_zero(gs_rd_d) ? 8'd0 : g0s_raw;
+assign g0s_q = gfx_packed ? {g0s_raw[7:4], g1s_raw[7:4]} : bd_patch && bd_zero(gs_rd_d[13:0]) ? 8'd0 : g0s_raw;
 assign g1s_q = gfx_packed ? {g0s_raw[3:0], g1s_raw[3:0]} : g1s_sw;
-assign g0t_q = gfx_packed ? {g0t_raw[7:4], g1t_raw[7:4]} : bd_patch && bd_zero(gt_rd_d) ? 8'd0 : g0t_raw;
+assign g0t_q = gfx_packed ? {g0t_raw[7:4], g1t_raw[7:4]} : bd_patch && bd_zero(gt_rd_d[13:0]) ? 8'd0 : g0t_raw;
 assign g1t_q = gfx_packed ? {g0t_raw[3:0], g1t_raw[3:0]} : g1t_sw;
 
-reg [7:0] pal[64];
-always @(posedge clk) if (pal_we) pal[ioctl_addr[5:0]] <= ioctl_dout;
+reg [7:0] pal[256];
+always @(posedge clk) if (pal_we) pal[ioctl_addr[7:0]] <= ioctl_dout;
 wire c4 = vflags5[6];
 
 reg [3:0] bgp[128];
@@ -283,8 +288,10 @@ always @(posedge clk) begin
             3'd2: ot_addr <= {2'b00, xn[7:3], 1'b1};
             3'd3: begin vr_addr <= {t_sum[7:3], xn[7:3]}; t_line <= t_sum[2:0]; end
             3'd4: begin nxt_col <= col_fix(ot_q[2:0]); nxt_c3 <= c4 & ot_q[6]; end
-            3'd5: if (db) gt_addr <= {1'b0, ~db_bg[7] || xn[7:3] == 5'd28 ? 2'b11 : 2'b00, vr_q, t_line};
-                  else gt_addr <= {tile_code(vr_q, ot_q, ext_mode == 4'd14 ? {1'b0, col_bank[xn[7:5]], 1'b0} : tbank[xn[7:3]]) | {2'b00, mar & bgp[{2'b10, xn[7:3]}][0], 8'd0}, t_line};
+            3'd5: if (db) gt_addr <= {2'b00, ~db_bg[7] || xn[7:3] == 5'd28 ? 2'b11 : 2'b00, vr_q, t_line};
+                  else gt_addr <= {wide ? {wide_bank, vr_q} :
+                                   {1'b0, tile_code(vr_q, ot_q, ext_mode == 4'd14 ? {1'b0, col_bank[xn[7:5]], 1'b0} : tbank[xn[7:3]]) |
+                                          {2'b00, mar & bgp[{2'b10, xn[7:3]}][0], 8'd0}}, t_line};
             3'd7: begin nxt_p0 <= g0t_q; nxt_p1 <= g1t_q; nxt_p2 <= g2t_q; end
             default: ;
         endcase
@@ -388,8 +395,8 @@ always @(posedge clk) begin
                 default: ;
             endcase
             4'd1: case (ph)
-                3'd1: gs_addr <= {spr_hi, spr_code, s_row[3], 1'b0, s_row[2:0]};
-                3'd2: gs_addr <= {spr_hi, spr_code, s_row[3], 1'b1, s_row[2:0]};
+                3'd1: gs_addr <= {wide ? {wide_bank, s_code} : {1'b0, spr_hi, spr_code}, s_row[3], 1'b0, s_row[2:0]};
+                3'd2: gs_addr <= {wide ? {wide_bank, s_code} : {1'b0, spr_hi, spr_code}, s_row[3], 1'b1, s_row[2:0]};
                 3'd3: begin sp0h0 <= g0s_q; sp1h0 <= g1s_q; sp2h0 <= g2s_q; end
                 3'd4: begin sp0h1 <= g0s_q; sp1h1 <= g1s_q; sp2h1 <= g2s_q; end
                 default: ;
@@ -414,8 +421,8 @@ always @(posedge clk) begin
                 default: ;
             endcase
             4'd5: case (ph)
-                3'd1: gs_addr <= {spr2_code, s2_row[3], 1'b0, s2_row[2:0]};
-                3'd2: gs_addr <= {spr2_code, s2_row[3], 1'b1, s2_row[2:0]};
+                3'd1: gs_addr <= {2'b00, spr2_code, s2_row[3], 1'b0, s2_row[2:0]};
+                3'd2: gs_addr <= {2'b00, spr2_code, s2_row[3], 1'b1, s2_row[2:0]};
                 3'd3: begin s2p0h0 <= g0s_q; s2p1h0 <= g1s_q; end
                 3'd4: begin s2p0h1 <= g0s_q; s2p1h1 <= g1s_q; end
                 default: ;
@@ -562,9 +569,9 @@ end
 wire [4:0] mix = spr2[4:3] != 2'b00 ? spr2 : lb_merge(spr, t_pen, cur_col);
 wire [1:0] pen = mix[4:3];
 wire       mc3 = spr[4:3] != 2'b00 ? spr_c3 : cur_c3;
-wire [7:0] pv  = pal[{c4 & mc3, mix[2:0], pen}];
+wire [7:0] pv  = pal[{col_hi | {2'b00, c4 & mc3}, mix[2:0], pen}];
 wire [4:0] m3  = spr[4:2] != 3'd0 ? spr : {t_pen3, cur_col[1:0]};
-wire [7:0] pv3 = pal[{m3[1:0], m3[4:2]}];
+wire [7:0] pv3 = pal[{3'b000, m3[1:0], m3[4:2]}];
 wire       pen_on = bpp3 ? m3[4:2] != 3'd0 : pen != 2'd0;
 wire [7:0] pvx = bpp3 ? pv3 : pv;
 
@@ -599,10 +606,10 @@ wire       db_side = flip_x ? {1'b0, x} >= db_edge : {1'b0, x} < db_edge;
 wire [2:0] db_col  = db_side ? db_bg[2:0] : db_bg[6:4];
 wire [23:0] db_bgc = {db_col[0] ? 8'h47 : 8'h00, db_col[1] ? 8'h47 : 8'h00, db_col[2] ? 8'h47 : 8'h00};
 wire       db_hide = db & db_bg[3] & db_side;
-wire [7:0] db_tv   = pal[{1'b0, cur_col, t_pen}];
+wire [7:0] db_tv   = pal[{3'b000, cur_col, t_pen}];
 // Harem (ext 14): tile layer opaque, pen 0 = PROM colour entry 0 of the tile colour (sky / sand)
 wire       hm_bg   = ext_mode == 4'd14;
-wire [7:0] hm_tv   = pal[{1'b0, cur_col, 2'b00}];
+wire [7:0] hm_tv   = pal[{3'b000, cur_col, 2'b00}];
 function [23:0] db_rgb(input [7:0] v);
     db_rgb = {RG_LUT[v[5:3]*8 +: 8], B_LUT[v[7:6]*8 +: 8], RG_LUT[v[2:0]*8 +: 8]};
 endfunction

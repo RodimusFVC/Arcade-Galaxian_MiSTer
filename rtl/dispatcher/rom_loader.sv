@@ -17,15 +17,18 @@ module selector
     output logic        gfxh_cs,
     output logic        tms_cs,
     output logic        tmsp_cs,
-    output logic        rcg_cs
+    output logic        rcg_cs,
+    output logic        progh_cs,
+    output logic        gfxw_cs
 );
     always_comb begin
-        {prog_cs, gfx0_cs, gfx1_cs, gfx2_cs, pal_cs, snd_cs, bgp_cs, samp_cs, sbp_cs, sbd_cs, dk_cs, gfxh_cs, tms_cs, tmsp_cs, rcg_cs} = '0;
+        {prog_cs, gfx0_cs, gfx1_cs, gfx2_cs, pal_cs, snd_cs, bgp_cs, samp_cs, sbp_cs, sbd_cs, dk_cs, gfxh_cs, tms_cs, tmsp_cs, rcg_cs,
+         progh_cs, gfxw_cs} = '0;
 
         if      (ioctl_addr < 25'h10000) prog_cs = 1'b1;
         else if (ioctl_addr < 25'h12000) gfx0_cs = 1'b1;
         else if (ioctl_addr < 25'h14000) gfx1_cs = 1'b1;
-        else if (ioctl_addr < 25'h14040) pal_cs  = 1'b1;
+        else if (ioctl_addr < 25'h14100) pal_cs  = 1'b1;              // 256 entries (Video Eight)
         else if (ioctl_addr >= 25'h14100 && ioctl_addr < 25'h14160) bgp_cs = 1'b1;
         else if (ioctl_addr >= 25'h16000 && ioctl_addr < 25'h17000) gfx2_cs = 1'b1;
         else if (ioctl_addr >= 25'h18000 && ioctl_addr < 25'h1C000) snd_cs = 1'b1;
@@ -37,5 +40,7 @@ module selector
         else if (ioctl_addr >= 25'h28000 && ioctl_addr < 25'h2A000) tms_cs  = 1'b1;
         else if (ioctl_addr >= 25'h2A000 && ioctl_addr < 25'h2A020) tmsp_cs = 1'b1;
         else if (ioctl_addr >= 25'h2C000 && ioctl_addr < 25'h2E000) rcg_cs  = 1'b1;
+        else if (ioctl_addr >= 25'h30000 && ioctl_addr < 25'h40000) progh_cs = 1'b1;   // program ROM 10000-1FFFF
+        else if (ioctl_addr >= 25'h40000 && ioctl_addr < 25'h50000) gfxw_cs = 1'b1;    // 32K planes 0 / 1 (Video Eight)
     end
 endmodule

@@ -77,6 +77,9 @@ REGIONS = {
     "i8039": (0x1E000, 0x00800),                                  # Space Battle speech CPU
     "sbhoei_sound_rom": (0x1F000, 0x01000),                       # Space Battle speech data
     "bg_gfx": (0x2C000, 0x02000),                                 # Rock Climber background tiles (lc13 / lc14)
+    "maincpu_hi": (0x30000, 0x10000),                             # program ROM 10000-1FFFF (Video Eight)
+    "gfx1_w0": (0x40000, 0x08000),                                # 32K bitplanes (WIDE_GFX: Video Eight)
+    "gfx1_w1": (0x48000, 0x08000),
     "bg_proms": (0x14020, 0x00020),                               # Rock Climber background PROM: colour PROM entries 20-3F
 }
 
@@ -87,7 +90,11 @@ IGNORED_REGIONS = {"plds", "pld", "unknown", "unk", "unused_proms",   # dumps MA
                    "unk_prom",                                 # Dambusters timing PROM
                    "extraproms"}                               # aracnisa PROM board (not read by MAME)
 # region placement where MAME's region name means something else: Dambusters program (address-swapped, read path)
-REGION_OVERRIDE = {"dambustr": {"user1": (0, 0x08000, 0x04000)}}
+REGION_OVERRIDE = {"dambustr": {"user1": (0, 0x08000, 0x04000)},
+                   "videight": {"proms": (0, 0x14000, 0x00100)}}  # 256-entry palette (8 games x 32)
+# Video Eight: 32K bitplanes in their own load window (gfx1_w0 / gfx1_w1), not split into 8K + upper 8K; program ROM
+# 10000-1FFFF in maincpu_hi
+WIDE_GFX = {"videight"}
 
 # (machine config, init) pairs the board implements -> (memory map, video flags, board flags, ROM top >> 8, code
 # extension); see rtl/galaxian_board.sv
@@ -163,6 +170,12 @@ SUPPORTED = {
     ("ckongmc", "init_ckongs"):     (M_CKONG, V_SCRAMBLE_SHELLS, B_MCSND | B_NOSTARS, 0x60, X_MSHUTTLE),
     ("pisces", "init_pisces"):      (M_GAL, 0, B_BANK2, 0, X_PISCES),
     ("pisces", "init_batman2"):     (M_GAL, 0, B_BANK2, 0, X_BATMAN2),
+    # multi-game boards, code extension bits 5:4 (0000-3FFF banked, galaxian_board.sv mg): Four Play (4 games, Pisces
+    # tile extension), Video Eight (8 games, 32K planes, 256-entry palette), Ghostmuncher Galaxian (Game Select DIP
+    # = bank, Bagman tile extension, colour bank; Galaxian's DIPs in DIP byte 3, see gen_mra.py gmgalax_ports)
+    ("fourplay", "init_fourplay"):  (M_GAL, 0, B_RAM2K, 0, X_PISCES | 0x10),
+    ("videight", "init_videight"):  (M_GAL, 0, B_RAM2K, 0, 0x20),
+    ("gmgalax", "init_gmgalax"):    (M_GAL, 0, 0, 0, 10 | 0x30),
     ("pacmanbl", "init_pacmanbl"):  (M_GAL, 0, 0, 0, X_SPRITE_ROM),   # coin lockout replaced by a no-op latch
     ("pacmanbl", "init_galaxian"):  (M_GAL, 0, 0, 0, X_SPRITE_ROM),
     ("pacmanbl", "init_ghostmun"):  (M_GAL, 0, 0, 0, X_SPRITE_ROM),
@@ -422,9 +435,6 @@ SUPPORTED.update(SUPPORTED_PARKED)
 NW = "MAME MACHINE_NOT_WORKING; board not implemented"
 SKIP = {"highroll": NW, "warofbugg": NW, "tenspot": NW, "porterb": NW, "dingoe": NW, "ncentury": NW, "scrammr": NW,
         "scramblebun": NW, "jungsub": NW, "dkingjrv": NW, "spcwarp": NW, "conquer": NW, "rescuefe": NW,
-        "gmgalax": "multi-game board (Ghostmuncher / Galaxian switch, banked gfx + 64-pen palette) not implemented",
-        "fourplay": "multi-game board (4 games, banked ROM / gfx) not implemented",
-        "videight": "multi-game board (8 games, banked ROM / gfx, 256-pen palette) not implemented",
         "amidarc": "thepitm map + 2K RAM with the Turtles background (init_turtles): combination not implemented",
         "aracnisb": "scorpnmc map with init_ladybugg2 decode: combination not implemented",
         "namenayo": "namenayo map / gfx layout / 64-pen palette not implemented",

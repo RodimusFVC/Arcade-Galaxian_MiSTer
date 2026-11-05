@@ -38,6 +38,27 @@ def fin_dips(ports, table):
     return out
 
 
+def gmgalax_ports(ports):
+    """Ghostmuncher Galaxian: MAME reads GMIN0-2 or GLIN0-2 by the Game Select switch; the board has one set of
+    wires. IN0-IN2 = Ghost Muncher's controls + Galaxian's fire buttons on Ghost Muncher's unused bits (Galaxian's coin 2 /
+    service on Ghost Muncher's P2 up / P1 up / down are dropped); Ghost Muncher's DIPs stay on IN1 / IN2, Galaxian's and
+    Game Select go to DIP byte 3 (the board reads them there when Galaxian is selected)."""
+    out = fin_dips(ports, {"GLIN1": [(0xC0, 3, 0x03)], "GLIN2": [(0x03, 3, 0x0C), (0x04, 3, 0x10)],
+                           "GAMESEL": [(0x01, 3, 0x80)]})
+    for i in range(3):
+        gl = {f["mask"]: f for f in ports[f"GLIN{i}"]} if f"GLIN{i}" in ports else {}
+        fields = []
+        for f in out.pop(f"GMIN{i}"):
+            if f["kind"] == "unused" and f["mask"] == 0x10 and gl.get(0x10, {}).get("type") == "BUTTON1":
+                f = gl[0x10]
+            elif f["kind"] == "dip" and f["name"] == "Ghost Muncher - Cabinet":
+                f = dict(f, name="Cabinet")
+            fields.append(f)
+        out[f"IN{i}"] = fields
+    out.pop("GLIN0", None)
+    return out
+
+
 class Core(mra_lib.Core):
     RBF = RBF
     MAME_VERSION = MAME_VERSION
@@ -103,7 +124,21 @@ class Core(mra_lib.Core):
                     if s["dst"] & 0x1000 or (s["dst"] & 0xFFF) + s["len"] > 0x1000:
                         raise SystemExit(f"{name}: S2650 page")
                     s["dst"] = (s["dst"] >> 13 << 12) | (s["dst"] & 0xFFF)
-        return self.split_high(self.split_planes(segs, bool(cfg[1] & V_PACKED), bool(cfg[11] & V4_BPP3), name))
+        hi = []                                         # WIDE_GFX: program ROM past 64K in its own load window
+        for s in segs:
+            if s["region"] == "maincpu" and s["dst"] + s["len"] > 0x10000 and g["machine"] in WIDE_GFX:
+                lo = max(s["dst"], 0x10000)
+                if s["dst"] < 0x10000:
+                    hi.append(dict(s, len=0x10000 - s["dst"]))
+                hi.append(dict(s, region="maincpu_hi", src=s["src"] + lo - s["dst"], dst=lo - 0x10000,
+                               len=s["dst"] + s["len"] - lo))
+            else:
+                hi.append(s)
+        planes = self.split_planes(hi, bool(cfg[1] & V_PACKED), bool(cfg[11] & V4_BPP3), name)
+        if g["machine"] in WIDE_GFX:                    # 32K planes: gfx1_w0 / gfx1_w1
+            return [dict(s, region={"gfx1_p0": "gfx1_w0", "gfx1_p1": "gfx1_w1"}.get(s["region"], s["region"]))
+                    for s in planes]
+        return self.split_high(planes)
 
     @staticmethod
     def split_planes(segs, packed, bpp3, setname):
@@ -194,6 +229,8 @@ class Core(mra_lib.Core):
                     f["settings"] = list(merged.items())
         if g["inputs"] in FIN_DIPS:
             ports = fin_dips(ports, FIN_DIPS[g["inputs"]])
+        if g["inputs"] == "gmgalax":
+            ports = gmgalax_ports(ports)
         for f in ports.get("LIVES", []):            # Video Pool: Lives = two switches, read on DSW0 bit 0 / IN1 bit 6
             if f["kind"] == "dip" and f["mask"] == 0x41:
                 rp = lambda v: (v & 0x01) | (v >> 5 & 0x02)                # -> DIP byte 4 lines 0 / 1

@@ -63,7 +63,8 @@ module galaxian_dispatcher
     input               hs_write
 );
 
-wire prog_cs, gfx0_cs, gfx1_cs, gfx2_cs, pal_cs, snd_cs, bgp_cs, samp_cs, sbp_cs, sbd_cs, dk_cs, gfxh_cs, tms_cs, tmsp_cs, rcg_cs;
+wire prog_cs, gfx0_cs, gfx1_cs, gfx2_cs, pal_cs, snd_cs, bgp_cs, samp_cs, sbp_cs, sbd_cs, dk_cs, gfxh_cs, tms_cs, tmsp_cs, rcg_cs,
+     progh_cs, gfxw_cs;
 
 selector rom_selector
 (
@@ -82,7 +83,9 @@ selector rom_selector
     .gfxh_cs(gfxh_cs),
     .tms_cs(tms_cs),
     .tmsp_cs(tmsp_cs),
-    .rcg_cs(rcg_cs)
+    .rcg_cs(rcg_cs),
+    .progh_cs(progh_cs),
+    .gfxw_cs(gfxw_cs)
 );
 
 wire snd_board = bflags3[0];
@@ -410,16 +413,17 @@ end
 
 /////////////////////////////  Shared ROM blocks  /////////////////////////////
 
-wire [15:0] gal_rom_a;
+wire [16:0] gal_rom_a;
 wire [13:0] sc_r0a, kb_r0a, ko_r0a;
 wire [12:0] msh_rom_a;
 wire [10:0] sb_prog_a;
 wire [11:0] sb_data_a;
 wire  [7:0] prog_q, rom0_d, samp_q, sb_prog_q, sb_data_q;
 
-dpram_dc #(.widthad_a(16)) prog_rom
+// prog_rom: 128K main CPU ROM, ioctl 0x00000-0x0FFFF + 0x30000-0x3FFFF (upper 64K: Video Eight's 8 banks)
+dpram_dc #(.widthad_a(17)) prog_rom
 (
-    .clock_a(clk), .address_a(ioctl_addr[15:0]), .data_a(ioctl_dout), .wren_a(ioctl_wr0 & prog_cs), .q_a(),
+    .clock_a(clk), .address_a({progh_cs, ioctl_addr[15:0]}), .data_a(ioctl_dout), .wren_a(ioctl_wr0 & (prog_cs | progh_cs)), .q_a(),
     .clock_b(clk), .address_b(gal_rom_a), .data_b(8'd0), .wren_b(1'b0), .q_b(prog_q)
 );
 
@@ -460,8 +464,8 @@ dpram_dc #(.widthad_a(14)) dk_rom
     .clock_b(clk), .address_b(dk_rom_a), .data_b(8'd0), .wren_b(1'b0), .q_b(dk_rom_q)
 );
 
-//   block 0 (16K) gfx plane 0 (ioctl 0x10000 + upper 8K at 0x24000)
-//   block 1 (16K) gfx plane 1 (ioctl 0x12000 + upper 8K at 0x26000)
+//   block 0 (32K) gfx plane 0 (ioctl 0x10000 + upper 8K at 0x24000; 32K planes at 0x40000)
+//   block 1 (32K) gfx plane 1 (ioctl 0x12000 + upper 8K at 0x26000; 32K planes at 0x48000)
 //   block 2 (4K)  gfx plane 2 (ioctl 0x16000)
 //   block 3 (8K)  Rock Climber background gfx (ioctl 0x2C000)
 localparam int GFX_BLOCKS = 4;
@@ -470,7 +474,7 @@ ram_pool_pkg::pram_i_t [GFX_BLOCKS-1:0] gr_i;
 ram_pool_pkg::pram_o_t [GFX_BLOCKS-1:0] gr_o;
 
 function automatic int gfx_aw(input int n);
-    gfx_aw = n < 2 ? 14 : n == 2 ? 12 : 13;
+    gfx_aw = n < 2 ? 15 : n == 2 ? 12 : 13;
 endfunction
 
 genvar gn;
@@ -573,6 +577,7 @@ galaxian_board galaxian
     .gfx1_we(ioctl_wr0 & gfx1_cs),
     .gfx2_we(ioctl_wr0 & gfx2_cs),
     .gfxh_we(ioctl_wr0 & gfxh_cs),
+    .gfxw_we(ioctl_wr0 & gfxw_cs),
     .pal_we(ioctl_wr0 & pal_cs),
     .bgp_we(ioctl_wr0 & bgp_cs),
     .rcg_we(ioctl_wr0 & rcg_cs),

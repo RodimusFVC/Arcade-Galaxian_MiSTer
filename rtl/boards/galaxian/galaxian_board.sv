@@ -28,7 +28,8 @@ module galaxian_board
     input         [7:0] bflags13,       // [0] Rack + Roll (racknrol_map: objects 1400-14FF, INT from VBLANK, SENSE =
     input         [7:0] bflags11,
     input         [7:0] rom_top,        // end of program ROM >> 8 (0 = 40)
-    input         [7:0] ext_mode,
+    input         [7:0] ext_mode,       // [3:0] code extension; [5:4] multi-game board: 1 Four Play, 2 Video Eight,
+                                        //       3 Ghostmuncher Galaxian (0000-3FFF banked)
 
     input         [7:0] in0,
     input         [7:0] dial1,
@@ -44,6 +45,7 @@ module galaxian_board
     input               gfx1_we,
     input               gfx2_we,
     input               gfxh_we,
+    input               gfxw_we,
     input               pal_we,
     input               bgp_we,
     input               rcg_we,
@@ -105,7 +107,7 @@ module galaxian_board
     input  chip_pool_pkg::i8255_o_t   i8255_1_o,
     input               ppi1_pc_we,
 
-    output       [15:0] rom_a,
+    output       [16:0] rom_a,
     input         [7:0] rom_q,
     output ram_pool_pkg::pram_i_t [3:0] gr_i,
     input  ram_pool_pkg::pram_o_t [3:0] gr_o,
@@ -487,6 +489,18 @@ wire        db      = variant[4:0] == 5'd29;
 wire        rc      = variant[4:0] == 5'd30;
 wire        fin     = bflags13[6];
 wire        ad      = hsk && bflags13[7];
+wire  [1:0] mg      = ext_mode[5:4];
+wire        v8      = mg == 2'd2;
+wire        gm      = mg == 2'd3;
+wire        gm_game = gm & in3[7];                 // Game Select DIP: 0 Ghost Muncher, 1 Galaxian
+reg       gm_game_d = 1'b0;
+reg [5:0] gm_rcnt = 6'd0;
+always @(posedge clk) begin
+    gm_game_d <= gm_game;
+    if (gm && gm_game != gm_game_d) gm_rcnt <= 6'd63;
+    else if (gm_rcnt != 6'd0)       gm_rcnt <= gm_rcnt - 6'd1;
+end
+wire        gm_rst = gm_rcnt != 6'd0;
 wire        hb_lat  = (hb || hb6) && cpu_addr[15:4] == 12'hA80;
 wire        st2_lat = st2 && cpu_addr[15:4] == 12'hB00;
 wire        tnv     = sc && bflags5[7];
@@ -547,6 +561,7 @@ always @(posedge clk) begin
         gfxbank4 <= 1'b0;
         bg_rgb   <= 3'd0;
     end
+    else if (gm_rst) ctl_9n[4] <= 1'b0;
     else if (wr && k_lat) ctl_9n[cpu_addr[2:0]] <= cpu_dout[0];
     else if (wr && ff_lat) begin
         case (cpu_addr[3:1])
@@ -740,7 +755,46 @@ wire       db_dsw = cpu_addr[14:12] == 3'h1 || cpu_addr[14:12] == 3'h4 || cpu_ad
 wire        gts3_hi = bflags11[1] & cpu_addr[15:11] == 5'b10000;
 wire [15:0] fin_a = gfxbank[1:0] != 2'd3 ? {gfxbank[1:0], cpu_addr[13:0]} :
                     cpu_addr[13:12] == 2'd0 ? {4'hB, cpu_addr[11:0]} : 16'hD000 + {2'b00, cpu_addr[13:0]};
-assign rom_a = db ? db_a :
+// Multi-game boards: 0000-3FFF is a 16K window into the program ROM
+//   Four Play: 7002 / 7003 = bank bits 0 / 1, gfx bank 1 on game 4
+//   Video Eight: 7002 / 7003 / 7005 = bank bits 0 / 1 / 2, each sets the gfx bank from a table; 6000-6002 (data 0 / 1)
+//   = sub-banks of games 3 (Moon Cresta), 2 (Uniwar S) and 6 (Pisces);
+//   colour bank = game bank
+//   Ghostmuncher Galaxian: bank = Game Select DIP; a change resets the CPU and turns the stars off
+reg  [1:0] fp_bank = 2'd0;
+reg  [2:0] v8_rb = 3'd0, v8_sub = 3'd0;
+reg  [3:0] v8_gb = 4'd0;
+function [3:0] v8_tab(input [2:0] b);
+    case (b)
+        3'd0: v8_tab = 4'd0;  3'd1: v8_tab = 4'd10; 3'd2: v8_tab = 4'd2; 3'd3: v8_tab = 4'd8;
+        3'd4: v8_tab = 4'd1;  3'd5: v8_tab = 4'd9;  3'd6: v8_tab = 4'd4; default: v8_tab = 4'd11;
+    endcase
+endfunction
+function [3:0] v8_mc(input [2:0] b);
+    v8_mc = b[0] ? {2'b11, b[1], b[2]} : 4'd8;          // 8, 12, 8, 14, 8, 13, 8, 15
+endfunction
+wire [2:0] v8_rbn = cpu_addr[2:0] == 3'd2 ? {v8_rb[2:1], cpu_dout[0]} :
+                    cpu_addr[2:0] == 3'd3 ? {v8_rb[2], cpu_dout[0], v8_rb[0]} : {cpu_dout[0], v8_rb[1:0]};
+wire [2:0] v8_subn = cpu_addr[1:0] == 2'd0 ? {v8_sub[2:1], cpu_dout[0]} :
+                     cpu_addr[1:0] == 2'd1 ? {v8_sub[2], cpu_dout[0], v8_sub[0]} : {cpu_dout[0], v8_sub[1:0]};
+wire       v8_small = cpu_dout[7:1] == 7'd0;
+always @(posedge clk) begin
+    if (reset) begin
+        fp_bank <= 2'd0; v8_rb <= 3'd0; v8_sub <= 3'd0; v8_gb <= 4'd0;
+    end
+    else if (wr && mg == 2'd1 && (cpu_addr == 16'h7002 || cpu_addr == 16'h7003)) fp_bank[cpu_addr[0]] <= cpu_dout[0];
+    else if (wr && v8 && (cpu_addr == 16'h7002 || cpu_addr == 16'h7003 || cpu_addr == 16'h7005)) begin
+        v8_rb <= v8_rbn;
+        v8_gb <= v8_tab(v8_rbn);
+    end
+    else if (wr && v8 && v8_small && cpu_addr[15:2] == 14'h1800 && cpu_addr[1:0] != 2'd3) begin
+        if (v8_rb == 3'd3) begin v8_sub <= v8_subn; v8_gb <= v8_mc(v8_subn); end
+        else if (v8_rb == 3'd2 && cpu_addr[1:0] == 2'd2) v8_gb <= {3'b001, cpu_dout[0]};
+        else if (v8_rb == 3'd6 && cpu_addr[1:0] == 2'd2) v8_gb <= {3'b010, cpu_dout[0]};
+    end
+end
+wire [2:0] mg_bank = mg == 2'd1 ? {1'b0, fp_bank} : v8 ? v8_rb : {2'b00, gm_game};
+wire [15:0] gal_a = db ? db_a :
                     fin && cpu_addr[15:14] == 2'b00 ? fin_a :
                     tnv_rom ? {4'h4, cpu_addr[11:0]} :
                     bflags8[0] ? {cpu_addr[15:4], cpu_addr[2], cpu_addr[0], cpu_addr[3], cpu_addr[1]} :
@@ -754,6 +808,7 @@ assign rom_a = db ? db_a :
                     bflags4[2] && !cpu_addr[15] ? {1'b0, fa_lut(cpu_addr[14:10]), cpu_addr[11:10], cpu_addr[9:0]} :
                     bflags4[1] && cpu_addr[15:13] == 3'b001 ? {cpu_addr[15:13], cpu_addr[12] ^ ctl_9n[2], cpu_addr[11:0]} :
                     cpu_addr;
+assign rom_a = mg != 2'd0 && cpu_addr[15:14] == 2'b00 ? {mg_bank, cpu_addr[13:0]} : {1'b0, gal_a};
 
 reg  [8:0] rc_h = 9'd0;
 reg  [7:0] rc_v = 8'd0;
@@ -1363,9 +1418,14 @@ always @(*) begin
     else if (vid_cs) cpu_din = vram_q;
     else if (obj_cs) cpu_din = obj_q;
     else if (io_cs) case (io_sel)
-        2'd0: cpu_din = kb ? {in0[7], ctl_9n[3] ? in0[6] : in3[0], in0[5:0]} : in0;
-        2'd1: cpu_din = kb ? {in1[7:6], kb_noise[16], in1[4:0]} : fin ? {fin_dip[7:6], in1[5:0]} : in1;
-        2'd2: cpu_din = bflags2[3] ? in3 : fin ? {in2[7:6], fin_dip[5:3], in2[2], fin_dip[1:0]} : in2;
+        // Ghostmuncher Galaxian: one set of wires, each game sees only its own bits (the other game's are 0);
+        // Galaxian's DIPs come from DIP byte 3
+        2'd0: cpu_din = kb ? {in0[7], ctl_9n[3] ? in0[6] : in3[0], in0[5:0]} :
+                        gm_game ? {2'b00, in0[5:2], 1'b0, in0[0]} : gm ? {in0[7:5], 1'b0, in0[3:0]} : in0;
+        2'd1: cpu_din = kb ? {in1[7:6], kb_noise[16], in1[4:0]} : fin ? {fin_dip[7:6], in1[5:0]} :
+                        gm_game ? {in3[1:0], 1'b0, in1[4:0]} : gm ? {in1[7:5], 1'b0, in1[3:0]} : in1;
+        2'd2: cpu_din = bflags2[3] ? in3 : fin ? {in2[7:6], fin_dip[5:3], in2[2], fin_dip[1:0]} :
+                        gm_game ? {in2[7:4], 1'b0, in3[4:2]} : in2;
         2'd3: cpu_din = 8'hFF;
     endcase
 end
@@ -1398,7 +1458,11 @@ galaxian_video video
     .vflags5(vflags5[6:0]),
     .bg_en(mmk ? ctl_9n[4] : ctl_9n[3]),
     .bg_rgb(bg_rgb),
-    .gfxbank(mmk ? {ctl_9n[2], 2'b00, ctl_9n[0]} : ext_mode[3:0] == 4'd10 ? {3'b000, ctl_9n[2]} : gfxbank),
+    .gfxbank(mmk ? {ctl_9n[2], 2'b00, ctl_9n[0]} : mg == 2'd1 ? {3'b000, fp_bank == 2'd3} : gm ? {3'b000, gm_game} :
+             ext_mode[3:0] == 4'd10 ? {3'b000, ctl_9n[2]} : gfxbank),
+    .wide(v8),
+    .wide_bank(v8_gb),
+    .col_hi(v8 ? v8_rb : {2'b00, gm_game}),
     .gfxbank4(gfxbank4),
     .stars_232(bflags2[5]),
 
@@ -1415,6 +1479,7 @@ galaxian_video video
     .gfx1_we(gfx1_we),
     .gfx2_we(gfx2_we),
     .gfxh_we(gfxh_we),
+    .gfxw_we(gfxw_we),
     .tb_we(rk_tb_we),
     .tb_addr(s26_a[4:0]),
     .tb_d(s26_d[2:0]),
@@ -1480,7 +1545,7 @@ wire ay2_bc1  = (fa_w & cpu_addr[3:0] == 4'hC) | (fa_r & cpu_addr[3:0] == 4'hD);
 
 wire cmd_wr = snd_board & (bflags3[2] ? io_wr & wr_d : wr & io_cs & io_sel == 2'd3);
 
-assign z80sed_0_i.reset_n = ~(reset | watchdog_reset | s26 | m65);
+assign z80sed_0_i.reset_n = ~(reset | watchdog_reset | s26 | m65 | gm_rst);
 assign z80sed_0_i.ce      = ce6 & hcnt[0] & ~pause;
 assign z80sed_0_i.wait_n  = wait_n;
 assign z80sed_0_i.int_n   = bflags9[4] ? cpu_nmi_n : cpu_int_n;
