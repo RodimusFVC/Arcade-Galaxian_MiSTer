@@ -182,7 +182,8 @@ typedef struct packed {
     logic        inte;                    // IFF1 (an 8080 board's INTE pin)
 } z80pa_o_t;
 
-// SN76489 (jt89, INTERPOL16 0, MODE 0). rst is on the bus: Lady Bug resets its pair on power-on only
+// SN76489 family PSG: chips-repo sn76489sv (VARIANT = the chip) or jt89 (INTERPOL16 0, MODE 0), same pins. sn76489sv's
+// sound is the real chip's 0..1020 (jt89: +-1020). rst is on the bus: some boards reset their PSGs on power-on only
 typedef struct packed {
     logic        rst;
     logic        ce;

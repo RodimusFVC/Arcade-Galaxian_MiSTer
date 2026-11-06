@@ -399,14 +399,15 @@ generate
 	end
 endgenerate
 
-// Moon War dials: player 1 reversed in cocktail (IN2 bit 3), player 2 always reversed
+// Moon War dials: player 1 reversed in cocktail (IN2 bit 3), player 2 always reversed; Dark Planet (board flags 2 bit 7):
+// player 1 dial at sensitivity 25 / key delta 10, never reversed (its IN2 bit 3 is a DIP)
 reg        dial_vbl = 1'b0;
 always @(posedge CLK_49M) dial_vbl <= vblank;
 wire [7:0] dial1, dial2;
 ctl_dial_mame u_dial1
 (
-	.clk(CLK_49M), .reset(reset), .pause(pause_cpu), .frame(vblank & ~dial_vbl), .sens(8'd32), .keyd(8'd4),
-	.reverse(in_port[2][3]), .osd_sens(3'd0), .wheel(1'b0), .spinner(spinner_0), .mouse_ev(mouse_seen != ps2_mouse[24]),
+	.clk(CLK_49M), .reset(reset), .pause(pause_cpu), .frame(vblank & ~dial_vbl), .sens(brd_flags2[7] ? 8'd25 : 8'd32),
+	.keyd(brd_flags2[7] ? 8'd10 : 8'd4), .reverse(in_port[2][3] & ~brd_flags2[7]), .osd_sens(3'd0), .wheel(1'b0), .spinner(spinner_0), .mouse_ev(mouse_seen != ps2_mouse[24]),
 	.mouse_d(mouse_dx), .stick(8'd0), .paddle(8'd0), .use_paddle(1'b0), .dec(dir1_raw[1]), .inc(dir1_raw[0]),
 	.pos(dial1)
 );

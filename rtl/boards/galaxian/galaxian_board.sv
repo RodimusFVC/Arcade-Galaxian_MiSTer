@@ -261,7 +261,7 @@ function [16:0] decode(input [15:0] a);
                 ri  = {1'b0, a[10:0]};
                 vid = a[15] && a[13:11] == 3'b001;
                 obj = a[15] && a[13:11] == 3'b010;
-                io  = 1'b0;
+                io  = bflags2[6] && a[15:13] == 3'b011;     // U.Games Mighty Monkey: IN0-IN2 at 6000 / 6800 / 7000
             end
             5'd25, 5'd26: begin
                 rom = a < 16'h0400 || (a >= 16'h4000 && a < 16'hC000 && !(variant[4:0] == 5'd26 && a[15:10] == 6'b011111));
@@ -302,6 +302,24 @@ function [16:0] decode(input [15:0] a);
                 vid = a[15:11] == 5'b01001;
                 obj = a[15:11] == 5'b01010;
                 io  = a[15:13] == 3'b011;
+            end
+            5'd31: begin
+                if (variant[5]) begin                   // Namennayo: RAM 4000-4FFF, ROM 5000-6FFF, objects C800, video D000
+                    rom = a < 16'h4000 || (a >= 16'h5000 && a < 16'h7000);
+                    ram = a[15:12] == 4'h4;
+                    ri  = a[11:0];
+                    vid = a[15:10] == 6'b110100;
+                    obj = a[15:8] == 8'hC8;
+                end
+                else begin                              // Minefield (Logicshop): scattered ROM, objects 0C00, video 4200
+                    rom = a < 16'h0C00 || (a >= 16'h2200 && a < 16'h4000) || (a >= 16'h5800 && a < 16'h6E00) ||
+                          (a >= 16'h8A00 && a < 16'h9200);
+                    ram = a >= 16'h0C80 && a < 16'h1800;
+                    ri  = a[11:0];
+                    vid = a >= 16'h4200 && a < 16'h4600;
+                    obj = a[15:7] == 9'b000011000;
+                end
+                io  = 1'b0;
             end
             default: begin
                 rom = a[15:8] < top || (bflags9[7] && a >= 16'hD400 && a < 16'hE400);
@@ -481,6 +499,10 @@ wire        kb      = bflags11[5];
 wire        scp     = bflags11[6];
 wire        sbh     = bflags12[0];
 wire        stn     = variant[4:0] == 5'd27;
+wire        mfe     = variant[5:0] == 6'd31;    // Minefield (Logicshop bootleg)
+wire        nmy     = variant[5:0] == 6'd63;    // Namennayo
+wire        dp      = bflags2[7];               // Dark Planet: dial on IN1 7:2, red / blue palette, bullet colour latch
+wire        v9x     = stn | mfe;                // video RAM starts at x200
 wire        aeu     = variant[4:0] == 5'd25;
 wire        aeg     = variant[4:0] == 5'd26;
 wire        mdk     = variant[4:0] == 5'd21;
@@ -517,7 +539,9 @@ wire        k_lat   = (sc && !tnv && cpu_addr[15:11] == 5'b01101) ||
                       (mdk && cpu_addr[15:11] == 5'b10100) ||
                       (ck2 && cpu_addr[15:4] == 12'hA80) ||
                       (aeu && cpu_addr[15:9] == 7'b0001000) || (aeg && cpu_addr[15:9] == 7'b0010011) ||
-                      (sdm && cpu_addr[15:11] == 5'b01101);
+                      (sdm && cpu_addr[15:11] == 5'b01101) || (nmy && cpu_addr[15:11] == 5'b11101) ||
+                      (mfe && (cpu_addr == 16'h7621 || cpu_addr == 16'h7673 || cpu_addr == 16'h7704 ||
+                               cpu_addr == 16'h7616 || cpu_addr == 16'h7617));
 wire        fg_wd   = (fg && cpu_addr[15:11] == 5'b10001) ||
                       (sc && (cpu_addr[15:11] == 5'b01110 || (bflags5[4] && cpu_addr[15:11] == 5'b01111))) ||
                       (sb && !mmk_rom && cpu_addr[15] && cpu_addr[13:11] == 3'b110) ||
@@ -528,7 +552,8 @@ wire        fg_wd   = (fg && cpu_addr[15:11] == 5'b10001) ||
                       (sb2 && cpu_addr[15:3] == 13'h0E00) || (tzb && cpu_addr == 16'h9800) ||
                       (mdk && cpu_addr == 16'hA800) || (ck2 && cpu_addr == 16'hB000) || (ami && cpu_addr == 16'hA800) || (sc && bflags9[6] && cpu_addr[15:11] == 5'b01101) ||
                       (aeu && cpu_addr[15:10] == 6'b000101) || (aeg && cpu_addr[15:9] == 7'b1111010) ||
-                      (hm && cpu_addr == 16'h5800) || (ad && cpu_addr == 16'h7000) || (sdm && cpu_addr[15:11] == 5'b01110);
+                      (hm && cpu_addr == 16'h5800) || (ad && cpu_addr == 16'h7000) || (sdm && cpu_addr[15:11] == 5'b01110) ||
+                      (mfe && cpu_addr == 16'h1D98) || (nmy && cpu_addr == 16'hF000);
 wire        fg_ppi  = (fg && cpu_addr[15:14] == 2'b11) || (sc && cpu_addr[15] && !tnv_rom && !mmk_rom) ||
                       (ff && cpu_addr[15:14] == 2'b11) || (fa && cpu_addr[15:10] == 6'b010000) ||
                       (ts && (cpu_addr[15:2] == 14'h2800 || cpu_addr[15:2] == 14'h3000)) ||
@@ -541,7 +566,8 @@ wire        fg_ppi  = (fg && cpu_addr[15:14] == 2'b11) || (sc && cpu_addr[15] &&
                       (sb && !mmk_rom && cpu_addr[15] && (cpu_addr[13:11] == 3'b011 || cpu_addr[13:11] == 3'b100)) ||
                       (tu && cpu_addr[15] && cpu_addr[13:12] == 2'b11) || (aeu && cpu_addr[15:14] == 2'b11) ||
                       (aeg && (cpu_addr[15:9] == 7'b0010010 || cpu_addr[15:9] == 7'b1111011)) ||
-                      (hm && (cpu_addr[15:8] == 8'h61 || cpu_addr[15:8] == 8'h62));
+                      (hm && (cpu_addr[15:8] == 8'h61 || cpu_addr[15:8] == 8'h62)) ||
+                      (mfe && (cpu_addr[15:8] == 8'h4B || cpu_addr[15:8] == 8'h4C)) || (nmy && cpu_addr[15:10] == 6'b111110);
 
 reg  wr_d = 1'b1;
 always @(posedge clk) wr_d <= cpu_wr_n;
@@ -1216,11 +1242,41 @@ always @(posedge clk) begin
         else if (mw_d[p] != 8'd0) begin mw_cnt[p] <= mw_cnt[p] + mw_mag[p][3:0]; mw_dir[p] <= ~mw_d[p][7]; end
 end
 
+// Dark Planet: the dial's 6-bit position reaches IN1 7:2 through a scrambling table; B00A = bullet colour (0 red, 1 blue)
+function [5:0] dp_dial(input [5:0] p);
+    case (p)
+        6'd0:  dp_dial = 6'h03; 6'd1:  dp_dial = 6'h02; 6'd2:  dp_dial = 6'h00; 6'd3:  dp_dial = 6'h01;
+        6'd4:  dp_dial = 6'h21; 6'd5:  dp_dial = 6'h20; 6'd6:  dp_dial = 6'h22; 6'd7:  dp_dial = 6'h23;
+        6'd8:  dp_dial = 6'h33; 6'd9:  dp_dial = 6'h32; 6'd10: dp_dial = 6'h30; 6'd11: dp_dial = 6'h31;
+        6'd12: dp_dial = 6'h11; 6'd13: dp_dial = 6'h10; 6'd14: dp_dial = 6'h12; 6'd15: dp_dial = 6'h13;
+        6'd16: dp_dial = 6'h17; 6'd17: dp_dial = 6'h16; 6'd18: dp_dial = 6'h14; 6'd19: dp_dial = 6'h15;
+        6'd20: dp_dial = 6'h35; 6'd21: dp_dial = 6'h34; 6'd22: dp_dial = 6'h36; 6'd23: dp_dial = 6'h37;
+        6'd24: dp_dial = 6'h3F; 6'd25: dp_dial = 6'h3E; 6'd26: dp_dial = 6'h3C; 6'd27: dp_dial = 6'h3D;
+        6'd28: dp_dial = 6'h1D; 6'd29: dp_dial = 6'h1C; 6'd30: dp_dial = 6'h1E; 6'd31: dp_dial = 6'h1F;
+        6'd32: dp_dial = 6'h1B; 6'd33: dp_dial = 6'h1A; 6'd34: dp_dial = 6'h18; 6'd35: dp_dial = 6'h19;
+        6'd36: dp_dial = 6'h39; 6'd37: dp_dial = 6'h38; 6'd38: dp_dial = 6'h3A; 6'd39: dp_dial = 6'h3B;
+        6'd40: dp_dial = 6'h2B; 6'd41: dp_dial = 6'h2A; 6'd42: dp_dial = 6'h28; 6'd43: dp_dial = 6'h29;
+        6'd44: dp_dial = 6'h09; 6'd45: dp_dial = 6'h08; 6'd46: dp_dial = 6'h0A; 6'd47: dp_dial = 6'h0B;
+        6'd48: dp_dial = 6'h0F; 6'd49: dp_dial = 6'h0E; 6'd50: dp_dial = 6'h0C; 6'd51: dp_dial = 6'h0D;
+        6'd52: dp_dial = 6'h2D; 6'd53: dp_dial = 6'h2C; 6'd54: dp_dial = 6'h2E; 6'd55: dp_dial = 6'h2F;
+        6'd56: dp_dial = 6'h27; 6'd57: dp_dial = 6'h26; 6'd58: dp_dial = 6'h24; 6'd59: dp_dial = 6'h25;
+        6'd60: dp_dial = 6'h05; 6'd61: dp_dial = 6'h04; 6'd62: dp_dial = 6'h06; default: dp_dial = 6'h07;
+    endcase
+endfunction
+reg dp_bc = 1'b0;
+always @(posedge clk) begin
+    if (reset) dp_bc <= 1'b0;
+    else if (wr && dp && cpu_addr == 16'hB00A) dp_bc <= cpu_dout[0];
+end
+// Namennayo: E000-E01F = one attribute byte per tile row (code bank 5:3, colour 2:0), held in the video
+wire       nm_xa_cs = nmy && cpu_addr[15:5] == 11'h700;
+wire [7:0] nm_xa_q;
+
 wire [7:0] ppi0_q, ppi1_q, ppi1_pa, ppi1_pb;
-wire       ppi0_sel = fg_ppi & (fg ? cpu_addr[13] : ff ? cpu_addr[12] : sc | fa | hb | mr | tp | hm ? cpu_addr[8] : tu ? ~cpu_addr[11] :
+wire       ppi0_sel = fg_ppi & (fg ? cpu_addr[13] : ff ? cpu_addr[12] : mfe ? ~cpu_addr[10] : sc | fa | hb | mr | tp | hm | nmy ? cpu_addr[8] : tu ? ~cpu_addr[11] :
                                 ts ? cpu_addr[15:13] == 3'b101 : st2 | mdk | ck2 ? ~cpu_addr[11] : aeu ? cpu_addr[8] : aeg ? cpu_addr[15] :
                                 cpu_addr[13:11] == 3'b011);
-wire       ppi1_sel = fg_ppi & (fg ? cpu_addr[12] : ff ? cpu_addr[13] : sc | fa | hb | mr | tp | hm ? cpu_addr[9] : tu ?  cpu_addr[11] :
+wire       ppi1_sel = fg_ppi & (fg ? cpu_addr[12] : ff ? cpu_addr[13] : mfe ? cpu_addr[10] : sc | fa | hb | mr | tp | hm | nmy ? cpu_addr[9] : tu ?  cpu_addr[11] :
                                 ts ? cpu_addr[15:13] == 3'b110 : st2 | mdk | ck2 ?  cpu_addr[11] : aeu ? ~cpu_addr[8] : aeg ? ~cpu_addr[15] :
                                 cpu_addr[13:11] == 3'b100);
 wire [1:0] ppi_a    = fg ? cpu_addr[2:1] : ff ? cpu_addr[4:3] : tu ? cpu_addr[5:4] : mr ? {cpu_addr[3], cpu_addr[1]} :
@@ -1284,7 +1340,7 @@ assign i8255_0_i.wr      = wr & ppi0_sel;
 assign i8255_0_i.a       = ppi_a;
 assign i8255_0_i.din     = ppi_din;
 assign i8255_0_i.pa_in   = bflags11[2] ? {in0[7:5], mw_dir[mw_sel], mw_cnt[mw_sel]} : in0;
-assign i8255_0_i.pb_in   = in1;
+assign i8255_0_i.pb_in   = dp ? {dp_dial(dial1[7:2]), in1[1:0]} : in1;
 assign i8255_0_i.pc_in   = in2_k;
 assign i8255_0_i.stb_a_n = 1'b1;
 assign i8255_0_i.ack_a_n = 1'b1;
@@ -1413,6 +1469,7 @@ always @(*) begin
     else if (rc_vr) cpu_din = rc_q;
     else if (rc && cpu_addr == 16'h5800) cpu_din = in3;
     else if (rc && cpu_addr == 16'h8800) cpu_din = dip4;
+    else if (nm_xa_cs) cpu_din = nm_xa_q;
     else if (rom_cs) cpu_din = rom_d;
     else if (ram_cs) cpu_din = ram_q;
     else if (vid_cs) cpu_din = vram_q;
@@ -1463,10 +1520,17 @@ galaxian_video video
     .wide(v8),
     .wide_bank(v8_gb),
     .col_hi(v8 ? v8_rb : {2'b00, gm_game}),
+    .nmy(nmy),
+    .xa_we(wr & nm_xa_cs),
+    .xa_a(cpu_addr[4:0]),
+    .xa_d(cpu_dout),
+    .xa_q(nm_xa_q),
+    .dp(dp),
+    .dp_bc(dp_bc),
     .gfxbank4(gfxbank4),
     .stars_232(bflags2[5]),
 
-    .cpu_addr(pause ? {hs_address[9] ^ stn, hs_address[8:0]} : obj_cs ? obj_idx : {cpu_addr[9] ^ stn, cpu_addr[8:0]}),
+    .cpu_addr(pause ? {hs_address[9] ^ v9x, hs_address[8:0]} : obj_cs ? obj_idx : {cpu_addr[9] ^ v9x, cpu_addr[8:0]}),
     .cpu_dout(pause ? hs_data_in : cpu_dout),
     .vram_we(pause ? hs_write & hs_vid : wr & vid_cs),
     .obj_we(wr & obj_cs),

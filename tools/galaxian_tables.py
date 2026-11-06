@@ -105,6 +105,8 @@ M_JUMPBUG = 4
 X_MC, X_MQ, X_PISCES, X_UPPER, X_BATMAN2, X_MSHUTTLE, X_JUMPBUG = 1, 2, 3, 4, 5, 6, 7
 # board flags 2 (optional 6th field)
 B2_NOWDOG, B2_NODISC, B2_AYIO, B2_IN2DSW, B2_PDIV8, B2_STARS232 = 0x01, 0x02, 0x04, 0x08, 0x10, 0x20
+B2_GALIN, B2_DARKPLNT = 0x40, 0x80        # IN0-IN2 at 6000 / 6800 / 7000 on the Super Cobra map; Dark Planet dial / palette
+M_MINEFLDFE, M_NAMENAYO = 31, 63          # galaxian_board.sv decode 5'd31 (variant bit 5 = Namennayo)
 # board flags 3 (optional 7th field): Check Man sound board
 S_BOARD, S_JAPAN, S_CMD_OUT, S_DECRYPT, S_PROT_CM, S_PROT_DINGO = 0x01, 0x02, 0x04, 0x08, 0x10, 0x20
 # video flags 2 (8th field), board flags 4 (9th field)
@@ -170,6 +172,13 @@ SUPPORTED = {
     ("ckongmc", "init_ckongs"):     (M_CKONG, V_SCRAMBLE_SHELLS, B_MCSND | B_NOSTARS, 0x60, X_MSHUTTLE),
     ("pisces", "init_pisces"):      (M_GAL, 0, B_BANK2, 0, X_PISCES),
     ("pisces", "init_batman2"):     (M_GAL, 0, B_BANK2, 0, X_BATMAN2),
+    # Amidar (Cirsa bootleg): The Pit map + 2K RAM (8400-87FF); init_turtles adds no tile extension, no background writer
+    ("amidarc", "init_turtles"):    (M_MC, 0, B_MCSND | B_NOSTARS | B_RAM2K, 0x48, 0),
+    # Aracnis set 3: Scorpion on Moon Cresta + the Lady Bug 2 address scramble (A7-A0 inverted)
+    ("scorpnmc", "init_ladybugg2"): (M_SCORP, 0, B_MCSND, 0, X_BATMAN2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, B9_REV256),
+    # Namennayo (Cat's): own map (M_NAMENAYO), E000 row attributes, sprites on the second PROM, Konami 2-AY sound
+    ("namenayo", "init_namenayo"):  (M_NAMENAYO, V_SCRAMBLE_SHELLS, B_NOSTARS, 0, 0, B2_NODISC, 0, 0, 0, 0,
+                                     B5_KONAMI | B5_TWO_AY),
     # multi-game boards, code extension bits 5:4 (0000-3FFF banked, galaxian_board.sv mg): Four Play (4 games, Pisces
     # tile extension), Video Eight (8 games, 32K planes, 256-entry palette), Ghostmuncher Galaxian (Game Select DIP
     # = bank, Bagman tile extension, colour bank; Galaxian's DIPs in DIP byte 3, see gen_mra.py gmgalax_ports)
@@ -305,6 +314,16 @@ SUPPORTED = {
     ("scobra.cpp", "minefld", "init_minefld"): (M_SCOBRA, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, V3_SCR_STARS,
                                                 B5_KONAMI | B5_TWO_AY,
                                                 V4_RESCUE_BG | V4_MINEFLD_BG | V4_STARS_LEFT | V4_GFX_MINEFLD),
+    # Minefield (The Logicshop bootleg): own scattered map (M_MINEFLDFE), plain gfx (no init_minefld descramble)
+    ("scobra.cpp", "minefldfe", "empty_init"): (M_MINEFLDFE, V_SCRAMBLE_SHELLS, 0, 0, 0, B2_NODISC, 0, 0, 0, V3_SCR_STARS,
+                                                B5_KONAMI | B5_TWO_AY, V4_RESCUE_BG | V4_MINEFLD_BG | V4_STARS_LEFT),
+    # Mighty Monkey (U.Games bootleg): Super Cobra map without PPIs (inputs at 6000 / 6800 / 7000), ROM 4000-47FF; no
+    # sound board (discrete sound not documented, MAME NO_SOUND)
+    ("scobra.cpp", "mimonkeyug", "empty_init"): (M_SCOBRA, V_SCRAMBLE_SHELLS, 0, 0x48, 9, B2_NODISC | B2_GALIN, 0, 0, 0,
+                                                 V3_SCR_BG),
+    # Dark Planet: Stern type 2 + dial (IN1 7:2, scrambled), red / blue palette, bullet colour latch B00A
+    ("scobra.cpp", "darkplnt", "init_darkplnt"): (M_STERN2, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC | B2_DARKPLNT, 0, 0, 0,
+                                                  0, B5_KONAMI | B5_TWO_AY),
     ("scobra.cpp", "stratgyx", "init_stratgyx"): (M_STERN2, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, 0,
                                                   B5_KONAMI | B5_TWO_AY, V4_STRAT_BG, B6_STRAT_RGB),
     ("scobra.cpp", "type2", "init_tazmani2"):  (M_STERN2, V_SCRAMBLE_SHELLS, 0, 0x80, 0, B2_NODISC, 0, 0, 0, SCR[0],
@@ -435,13 +454,8 @@ SUPPORTED.update(SUPPORTED_PARKED)
 NW = "MAME MACHINE_NOT_WORKING; board not implemented"
 SKIP = {"highroll": NW, "warofbugg": NW, "tenspot": NW, "porterb": NW, "dingoe": NW, "ncentury": NW, "scrammr": NW,
         "scramblebun": NW, "jungsub": NW, "dkingjrv": NW, "spcwarp": NW, "conquer": NW, "rescuefe": NW,
-        "amidarc": "thepitm map + 2K RAM with the Turtles background (init_turtles): combination not implemented",
-        "aracnisb": "scorpnmc map with init_ladybugg2 decode: combination not implemented",
-        "namenayo": "namenayo map / gfx layout / 64-pen palette not implemented",
         "dkongjrm": "32 sprites per line (Galaxian sprite engine: 8); MAME colours wrong",
         "dkongjrmc": "64 sprites per line (Galaxian sprite engine: 8); MAME colours wrong",
         "dingov": "deferred: Nuova Videotron dkingjrv board not implemented",
         "junglekv": "deferred: Nuova Videotron dkingjrv board not implemented",
-        "darkplnt": "Stern Dark Planet: dial + own palette / video not implemented",
-        "minefldfe": "minefldfe map (Logicshop bootleg) not implemented",
-        "mimonkeyug": "U.Games bootleg board (own map, MAME NO_SOUND) not implemented"}
+}

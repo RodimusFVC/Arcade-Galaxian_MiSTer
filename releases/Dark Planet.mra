@@ -1,0 +1,71 @@
+<misterromdescription>
+    <name>Dark Planet</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>no</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Dark Planet</series>
+    <year>1982</year>
+    <manufacturer>Stern Electronics</manufacturer>
+    <category>Shooter</category>
+
+    <setname>darkplnt</setname>
+    <parent>darkplnt</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>horizontal</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>3</num_buttons>
+    <buttons names="Fire,Button 2,Button 3,-,Coin,Start 1P,Start 2P,Pause,-,-,-" default="A,B,X,Select,Start,R,L"/>
+
+    <switches default="FF,01,F3">
+        <dip name="Bonus Occurrence" bits="8" ids="Once,Every" values="1,0"/>
+        <dip name="Lives" bits="9" ids="3,5"/>
+        <dip name="Coinage" bits="17,18" ids="1C/1C,Coin A 1/2 Coin B 2/1,Coin A 1/3 Coin B 3/1,Coin A 1/4 Coin B 4/1" values="1,0,2,3"/>
+        <dip name="Bonus Life" bits="19" ids="100k,200k"/>
+    </switches>
+
+    <!-- Index 0: ROM -->
+    <rom index="0" md5="none" zip="darkplnt.zip">
+        <part crc="5a0ca559" name="drkplt2c.dat"/>
+        <part crc="52e2117d" name="drkplt2e.dat"/>
+        <part crc="4093219c" name="drkplt2g.dat"/>
+        <part crc="b974c78d" name="drkplt2j.dat"/>
+        <part crc="71a37385" name="drkplt2k.dat"/>
+        <part crc="5ad25154" name="drkplt2l.dat"/>
+        <part crc="8d2f0122" name="drkplt2m.dat"/>
+        <part crc="2d66253b" name="drkplt2p.dat"/>
+        <part repeat="0x8000">00</part>
+        <part crc="2af0ee66" name="drkplt5f.dat"/>
+        <part repeat="0x1800">00</part>
+        <part crc="66ef3225" name="drkplt5h.dat"/>
+        <part repeat="0x1800">00</part>
+        <part crc="86b6e124" name="6e.cpu"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="672b9454" name="5c.snd"/>
+    </rom>
+
+    <!-- Index 1: Config -->
+    <rom index="1">
+        <part>
+            0C 00 00 02 FF 01 F3 FF FF FF 80 01 02 80 80 80
+            07 05 06 00 00 00 12 11 00 00 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            01 00 80 00 82 00 00 00 00 03 00 00 00 00 00 00
+            00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Dark Planet (Stern Electronics)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

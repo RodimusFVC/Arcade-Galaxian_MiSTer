@@ -30,6 +30,13 @@ module galaxian_video
     input               wide,           // Video Eight: 32K planes, tile code = {wide_bank, code}, sprite = {wide_bank, code}
     input         [3:0] wide_bank,
     input         [2:0] col_hi,         // colour bank: palette index bits 7:5 (Video Eight game, Ghostmuncher Galaxian game)
+    input               nmy,            // Namennayo: row attributes, sprites on PROM 2, opaque playfield
+    input               xa_we,
+    input         [4:0] xa_a,
+    input         [7:0] xa_d,
+    output        [7:0] xa_q,
+    input               dp,             // Dark Planet: red / blue palette, bullet colour
+    input               dp_bc,
     input               gfxbank4,
     input               stars_232,
 
@@ -78,6 +85,7 @@ module galaxian_video
 
 localparam [63:0] RG_LUT = {8'd224, 8'd195, 8'd162, 8'd133, 8'd91, 8'd62, 8'd29, 8'd0};
 localparam [31:0] B_LUT  = {8'd217, 8'd148, 8'd69, 8'd0};
+localparam [63:0] DP_LUT = {8'hFF, 8'hDE, 8'hB8, 8'h97, 8'h68, 8'h47, 8'h21, 8'h00};   // Dark Planet R / B: 21 / 47 / 97 weights
 localparam [31:0] ST_LUT = {8'd255, 8'd214, 8'd194, 8'd0};
 
 wire [7:0] x = hcnt[7:0];
@@ -273,6 +281,10 @@ reg  [7:0] cur_p0 = 8'd0, cur_p1 = 8'd0, nxt_p0 = 8'd0, nxt_p1 = 8'd0, cur_p2 = 
 reg  [2:0] cur_col = 3'd0, nxt_col = 3'd0;
 reg        cur_c3 = 1'b0, nxt_c3 = 1'b0;
 reg  [2:0] t_line;
+reg  [7:0] nm_xa[32];                                          // Namennayo row attributes (E000-E01F)
+always @(posedge clk) if (xa_we) nm_xa[xa_a] <= xa_d;
+assign xa_q = nm_xa[xa_a];
+wire [7:0] xa_row = nm_xa[vr_addr[9:5]];
 wire [7:0] xn    = {x[7:3] + 5'd1, 3'b000} ^ {8{flip_x}};
 wire [7:0] vf    = y ^ {8{flip_y}};
 wire [7:0] ot_sc = vflags3[0] ? {ot_q[3:0], ot_q[7:4]} : ot_q;
@@ -287,8 +299,9 @@ always @(posedge clk) begin
             3'd1: ot_addr <= {2'b00, xn[7:3], 1'b0};
             3'd2: ot_addr <= {2'b00, xn[7:3], 1'b1};
             3'd3: begin vr_addr <= {t_sum[7:3], xn[7:3]}; t_line <= t_sum[2:0]; end
-            3'd4: begin nxt_col <= col_fix(ot_q[2:0]); nxt_c3 <= c4 & ot_q[6]; end
+            3'd4: begin nxt_col <= nmy && !ot_q[0] ? xa_row[2:0] : col_fix(ot_q[2:0]); nxt_c3 <= c4 & ot_q[6]; end
             3'd5: if (db) gt_addr <= {2'b00, ~db_bg[7] || xn[7:3] == 5'd28 ? 2'b11 : 2'b00, vr_q, t_line};
+                  else if (nmy) gt_addr <= {1'b0, ot_q[0] ? {ot_q[7:1] == 7'b0010000, 2'b00} : xa_row[5:3], vr_q, t_line};
                   else gt_addr <= {wide ? {wide_bank, vr_q} :
                                    {1'b0, tile_code(vr_q, ot_q, ext_mode == 4'd14 ? {1'b0, col_bank[xn[7:5]], 1'b0} : tbank[xn[7:3]]) |
                                           {2'b00, mar & bgp[{2'b10, xn[7:3]}][0], 8'd0}}, t_line};
@@ -357,7 +370,7 @@ function [7:0] spr_ext(input [5:0] code, input [7:0] attr);
 endfunction
 
 reg  [7:0] s_code8;
-wire [7:0] spr_code = db ? {2'b01, s_code} : vflags5[3] ? s_code8 : spr_ad ? {s_attr[5], s_attr[4] | s_code8[6], s_code8[5:0]} :
+wire [7:0] spr_code = db ? {2'b01, s_code} : nmy ? {1'b0, s_attr[3], s_code} : vflags5[3] ? s_code8 : spr_ad ? {s_attr[5], s_attr[4] | s_code8[6], s_code8[5:0]} :
                       spr_ext(s_code, s_attr);
 
 wire [7:0] y16   = y + 8'd16;
@@ -569,7 +582,8 @@ end
 wire [4:0] mix = spr2[4:3] != 2'b00 ? spr2 : lb_merge(spr, t_pen, cur_col);
 wire [1:0] pen = mix[4:3];
 wire       mc3 = spr[4:3] != 2'b00 ? spr_c3 : cur_c3;
-wire [7:0] pv  = pal[{col_hi | {2'b00, c4 & mc3}, mix[2:0], pen}];
+wire       nm_spr = nmy & (spr[4:3] != 2'b00);                // Namennayo sprites: second PROM (entries 32-63)
+wire [7:0] pv  = pal[{col_hi | {2'b00, (c4 & mc3) | nm_spr}, mix[2:0], pen}];
 wire [4:0] m3  = spr[4:2] != 3'd0 ? spr : {t_pen3, cur_col[1:0]};
 wire [7:0] pv3 = pal[{3'b000, m3[1:0], m3[4:2]}];
 wire       pen_on = bpp3 ? m3[4:2] != 3'd0 : pen != 2'd0;
@@ -608,7 +622,7 @@ wire [23:0] db_bgc = {db_col[0] ? 8'h47 : 8'h00, db_col[1] ? 8'h47 : 8'h00, db_c
 wire       db_hide = db & db_bg[3] & db_side;
 wire [7:0] db_tv   = pal[{3'b000, cur_col, t_pen}];
 // Harem (ext 14): tile layer opaque, pen 0 = PROM colour entry 0 of the tile colour (sky / sand)
-wire       hm_bg   = ext_mode == 4'd14;
+wire       hm_bg   = ext_mode == 4'd14 || (nmy && (flip_x ? x >= 8'd72 : x < 8'd184));  // + Namennayo playfield
 wire [7:0] hm_tv   = pal[{3'b000, cur_col, 2'b00}];
 function [23:0] db_rgb(input [7:0] v);
     db_rgb = {RG_LUT[v[5:3]*8 +: 8], B_LUT[v[7:6]*8 +: 8], RG_LUT[v[2:0]*8 +: 8]};
@@ -620,9 +634,11 @@ always @(*) begin
                                            st_on ? {ST_LUT[{st[4], st[5]}*8 +: 8], ST_LUT[{st[2], st[3]}*8 +: 8], ST_LUT[{st[0], st[1]}*8 +: 8]} :
                                            db_bgc;
     else if ((missile_on | shell_on) && vflags5[4]) rgb = bx[6] ? 24'hFF00FF : MSH_BUL[bx[4:2]*24 +: 24];
+    else if ((missile_on | shell_on) && dp) rgb = dp_bc ? 24'h0000EF : 24'hEF0000;
     else if (missile_on)             rgb = vflags3[6] ? 24'hFF00FF : 24'hFFFF00;
     else if (shell_on)               rgb = bullet_mode ? 24'hFFFF00 : 24'hFFFFFF;
     else if (pen_on && db)           rgb = db_rgb(pvx);
+    else if (pen_on && dp)           rgb = {DP_LUT[pvx[2:0]*8 +: 8], 8'h00, DP_LUT[pvx[5:3]*8 +: 8]};
     else if (pen_on && vflags5[5])   rgb = {RG_LUT[pvx[2:0]*8 +: 8], B_LUT[pvx[7:6]*8 +: 8], RG_LUT[pvx[5:3]*8 +: 8]};
     else if (pen_on)                 rgb = {RG_LUT[pvx[2:0]*8 +: 8], RG_LUT[pvx[5:3]*8 +: 8], B_LUT[pvx[7:6]*8 +: 8]};
     else if (hm_bg)                  rgb = {RG_LUT[hm_tv[2:0]*8 +: 8], RG_LUT[hm_tv[5:3]*8 +: 8], B_LUT[hm_tv[7:6]*8 +: 8]};
