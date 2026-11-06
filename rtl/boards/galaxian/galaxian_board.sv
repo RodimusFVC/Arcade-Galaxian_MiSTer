@@ -31,6 +31,10 @@ module galaxian_board
     input         [7:0] ext_mode,       // [3:0] code extension; [5:4] multi-game board: 1 Four Play, 2 Video Eight,
                                         //       3 Ghostmuncher Galaxian (0000-3FFF banked)
 
+    input               vt_gb0_we,      // Nuova Videotron: gfx bank writes from the sound CPU (Donkey King Jr.)
+    input               vt_gb1_we,
+    input         [7:0] vt_gb_d,
+
     input         [7:0] in0,
     input         [7:0] dial1,
     input         [7:0] dial2,
@@ -503,6 +507,9 @@ wire        mfe     = variant[5:0] == 6'd31;    // Minefield (Logicshop bootleg)
 wire        nmy     = variant[5:0] == 6'd63;    // Namennayo
 wire        dp      = bflags2[7];               // Dark Planet: dial on IN1 7:2, red / blue palette, bullet colour latch
 wire        v9x     = stn | mfe;                // video RAM starts at x200
+wire        vtr     = bflags3[6];               // Nuova Videotron: sound board on OUT C0, gfx banks on OUT 80
+wire        vtb     = bflags3[7];               // Donkey King Jr.: B001 = bank of 4000-47FF / 6000-67FF
+reg   [1:0] vt_gb0  = 2'd0, vt_gb1 = 2'd0;    // Videotron tile / sprite gfx banks (written near cmd_wr)
 wire        aeu     = variant[4:0] == 5'd25;
 wire        aeg     = variant[4:0] == 5'd26;
 wire        mdk     = variant[4:0] == 5'd21;
@@ -820,7 +827,9 @@ always @(posedge clk) begin
     end
 end
 wire [2:0] mg_bank = mg == 2'd1 ? {1'b0, fp_bank} : v8 ? v8_rb : {2'b00, gm_game};
-wire [15:0] gal_a = db ? db_a :
+wire [15:0] gal_a = vtb && !ctl_9n[1] && cpu_addr[15:11] == 5'b01000 ? {5'b10000, cpu_addr[10:0]} :
+                    vtb && !ctl_9n[1] && cpu_addr[15:11] == 5'b01100 ? {5'b10100, cpu_addr[10:0]} :
+                    db ? db_a :
                     fin && cpu_addr[15:14] == 2'b00 ? fin_a :
                     tnv_rom ? {4'h4, cpu_addr[11:0]} :
                     bflags8[0] ? {cpu_addr[15:4], cpu_addr[2], cpu_addr[0], cpu_addr[3], cpu_addr[1]} :
@@ -1521,6 +1530,9 @@ galaxian_video video
     .wide_bank(v8_gb),
     .col_hi(v8 ? v8_rb : {2'b00, gm_game}),
     .nmy(nmy),
+    .vt(ext_mode[6]),
+    .vt_gb0(vt_gb0),
+    .vt_gb1(vt_gb1),
     .xa_we(wr & nm_xa_cs),
     .xa_a(cpu_addr[4:0]),
     .xa_d(cpu_dout),
@@ -1607,7 +1619,16 @@ wire m_bc1   = (jb_ay & cpu_addr[8]) | (bongo & io_wr & cpu_addr[7:0] == 8'h00) 
 wire ay2_bdir = fa_w & (cpu_addr[3:0] == 4'hC || cpu_addr[3:0] == 4'hE);
 wire ay2_bc1  = (fa_w & cpu_addr[3:0] == 4'hC) | (fa_r & cpu_addr[3:0] == 4'hD);
 
-wire cmd_wr = snd_board & (bflags3[2] ? io_wr & wr_d : wr & io_cs & io_sel == 2'd3);
+wire cmd_wr = snd_board & (bflags3[2] ? io_wr & wr_d : wr & io_cs & io_sel == 2'd3) | (vtr & io_wr & wr_d & cpu_addr[7:0] == 8'hC0);
+// Nuova Videotron gfx banks: tile bank 1:0, sprite bank 3:2 on OUT 80 (Jungle King), or from the sound CPU (6001 / 6000)
+always @(posedge clk) begin
+    if (reset) begin vt_gb0 <= 2'd0; vt_gb1 <= 2'd0; end
+    else if (vtr & io_wr & wr_d & cpu_addr[7:0] == 8'h80) begin vt_gb0 <= cpu_dout[1:0]; vt_gb1 <= cpu_dout[3:2]; end
+    else begin
+        if (vt_gb0_we) vt_gb0 <= vt_gb_d[1:0];
+        if (vt_gb1_we) vt_gb1 <= vt_gb_d[1:0];
+    end
+end
 
 assign z80sed_0_i.reset_n = ~(reset | watchdog_reset | s26 | m65 | gm_rst);
 assign z80sed_0_i.ce      = ce6 & hcnt[0] & ~pause;

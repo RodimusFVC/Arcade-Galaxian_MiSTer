@@ -1,0 +1,75 @@
+<misterromdescription>
+    <name>Donkey King Jr. (Nuova Videotron Bootleg)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Donkey King Jr.</series>
+    <year>198?</year>
+    <manufacturer>bootleg (Nuova Videotron)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>dkingjrv</setname>
+    <parent>dkongjr</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,-,-,-,Coin,Start 1P,Start 2P,Pause,-,-,-" default="A,Select,Start,R,L"/>
+
+    <switches default="00,00,08">
+        <dip name="Half Coinage" bits="14" ids="Off,On"/>
+        <dip name="Cabinet" bits="15" ids="Upright,Cocktail"/>
+        <dip name="Coin A" bits="16" ids="2C/1C / 1C/1C,1C/3C / 1C/6C"/>
+        <dip name="Coin B" bits="17" ids="2C/1C / 1C/1C,1C/3C / 1C/6C"/>
+        <dip name="Lives" bits="18,19" ids="1,2,3,Infinite (Cheat)"/>
+    </switches>
+
+    <!-- Index 0: ROM -->
+    <rom index="0" md5="none" zip="dkingjrv.zip|dkongjr.zip">
+        <part crc="f68e137b" name="junior_ic4.ic4"/>
+        <part crc="016d4f99" name="junior_ic3.ic3"/>
+        <part crc="50ae60f1" name="junior_ic2.ic2"/>
+        <part crc="b6cf8458" name="junior_ic1.ic1"/>
+        <part crc="74336f6e" name="junior_ic5.ic5"/>
+        <part repeat="0x1800">00</part>
+        <part crc="01d5916f" name="junior_ic6.ic6"/>
+        <part repeat="0x5800">00</part>
+        <part crc="546b0ecf" name="junior_ic11.ic11"/>
+        <part repeat="0x1000">00</part>
+        <part crc="70d087b7" name="junior_ic12.ic12"/>
+        <part repeat="0x1000">00</part>
+        <part crc="3da9cccb" name="ic10"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="8dba8b12" name="junior_ic8.ic8"/>
+        <part repeat="0xA000">00</part>
+        <part crc="da659b6d" name="junior_ic13.ic13"/>
+        <part repeat="0x1000">00</part>
+        <part crc="ecd97259" name="junior_ic14.ic14"/>
+    </rom>
+
+    <!-- Index 1: Config -->
+    <rom index="1">
+        <part>
+            01 90 00 00 00 00 08 FF FF FF 80 01 02 80 80 80
+            12 11 03 04 01 02 05 00 13 14 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 07 80 40 02 C0 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Donkey King Jr. (Nuova Videotron Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

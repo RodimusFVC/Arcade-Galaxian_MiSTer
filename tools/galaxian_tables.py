@@ -48,6 +48,9 @@ HISCORE_INIT_FRAME = {"galaxian": 132, "starfght": 127, "exodus": 133, "warofbug
 # colour PROMs never dumped: stand-in from a related set, (zip, file, crc, region, length). Kong (Taito do Brasil) takes
 # Crazy Kong's first palette PROM (user, 2026-09-29) - same byte layout; which colour group goes where is a guess
 STANDIN = {"kong": ("ckong.zip", "ck6v.bin", "751c3325", "proms", 0x20),
+           # Jungle King (Nuova Videotron): Donkey King Jr.'s PROM, same Videotron board - a guess (user, 2026-11-05: "implement
+           # what we can"; MAME: NO_DUMP, wrong colours)
+           "junglekv": ("dkongjr.zip", "ic10", "3da9cccb", "proms", 0x20),
            # Time Fighter (Taito do Brasil): Fantastic's PROM, same conversion board - a guess
            "timefgtr": ("fantastc.zip", "prom-74g138", "800f5718", "proms", 0x20)}
 # BAD_DUMP tile / sprite ROMs: Bagman set 1 takes set 2's (the bootleg gfx MAME says work; user, 2026-11-05)
@@ -91,6 +94,7 @@ IGNORED_REGIONS = {"plds", "pld", "unknown", "unk", "unused_proms",   # dumps MA
                    "extraproms"}                               # aracnisa PROM board (not read by MAME)
 # region placement where MAME's region name means something else: Dambusters program (address-swapped, read path)
 REGION_OVERRIDE = {"dambustr": {"user1": (0, 0x08000, 0x04000)},
+                   "dkingjrv": {"user1": None},                 # address-decode PROM (ic7): not read
                    "videight": {"proms": (0, 0x14000, 0x00100)}}  # 256-entry palette (8 games x 32)
 # Video Eight: 32K bitplanes in their own load window (gfx1_w0 / gfx1_w1), not split into 8K + upper 8K; program ROM
 # 10000-1FFFF in maincpu_hi
@@ -109,6 +113,8 @@ B2_GALIN, B2_DARKPLNT = 0x40, 0x80        # IN0-IN2 at 6000 / 6800 / 7000 on the
 M_MINEFLDFE, M_NAMENAYO = 31, 63          # galaxian_board.sv decode 5'd31 (variant bit 5 = Namennayo)
 # board flags 3 (optional 7th field): Check Man sound board
 S_BOARD, S_JAPAN, S_CMD_OUT, S_DECRYPT, S_PROT_CM, S_PROT_DINGO = 0x01, 0x02, 0x04, 0x08, 0x10, 0x20
+S_VTR, S_VTBANK = 0x40, 0x80              # Nuova Videotron sound board (OUT C0 / 80); Donkey King Jr. ROM bank on B001
+X_VTR = 0x40                              # code extension bit 6: Videotron gfx (sprite ROM in the planes' upper 8K, banks)
 # video flags 2 (8th field), board flags 4 (9th field)
 V2_SPR2, V2_SHELLS_C0, V2_NOSHELLS, V2_PAGE = 0x01, 0x02, 0x04, 0x08
 B4_OBJ1K, B4_ROMSWAP, B4_UNSCRAMBLE, B4_AY2, B4_ZZAY, B4_AY3M = 0x01, 0x02, 0x04, 0x08, 0x10, 0x20
@@ -405,6 +411,12 @@ SUPPORTED = {
     # galaxold mooncrst machine (Video Pool): the Moon Cresta map, sound and gfx bank, 2K RAM at 8000
     ("galaxold.cpp", "mooncrst", "empty_init"):   (M_MC, 0, MC | B_RAM2K, 0, X_MC),
     ("galaxold.cpp", "videotron", "empty_init"):  (M_MC, 0, B_RAM2K, 0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, B7_FLIPSWAP),
+    # Nuova Videotron (Donkey King Jr., Dingo, Jungle King): Moon Cresta-style map + sound Z80 / AY board (S_VTR); separate
+    # sprite ROMs and gfx banks (X_VTR); MAME marks dkingjrv NOT_WORKING (banking / colours / sound unverified) - built as MAME
+    ("galaxold.cpp", "dkingjrv", "init_dkingjrv"): (M_MC, 0, B_NMI0 | B_RAM2K | B_NOSTARS, 0x80, X_VTR, B2_NODISC,
+                                                    S_VTR | S_VTBANK),
+    ("galaxold.cpp", "junglekv", "empty_init"):   (M_MC, 0, B_NMI0 | B_RAM2K | B_NOSTARS, 0x80, X_VTR, B2_NODISC, S_VTR),
+    ("galaxold.cpp", "dingov", "empty_init"):     (M_MC, 0, B_RAM2K | B_NOSTARS, 0x40, 0, B2_NODISC, S_VTR),
     ("galaxold.cpp", "devilfshv", "empty_init"):  (M_GAL, 0, B_RAM2K, 0, X_SPRITE_ROM, 0, 0, 0, 0, 0, 0, 0, 0, B7_FLIPSWAP),
     ("galaxold.cpp", "hunchbkg", "empty_init"):   (M_GAL, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, B7_S2650),
     # Driving Force: S2650 3.072 MHz (board flags 12 0x04), drivfrcg_program (0x20), port 00 protection (0x40), tile and
@@ -450,12 +462,12 @@ SUPPORTED_PARKED = {
 }
 SUPPORTED.update(SUPPORTED_PARKED)
 
+# MAME MACHINE_NOT_WORKING sets built anyway (user, 2026-11-05: "'not working' is often not that well defined")
+WORKING_HERE = {"dkingjrv"}
 # sets deliberately not built (gen_mra.py --check): the reason
 NW = "MAME MACHINE_NOT_WORKING; board not implemented"
 SKIP = {"highroll": NW, "warofbugg": NW, "tenspot": NW, "porterb": NW, "dingoe": NW, "ncentury": NW, "scrammr": NW,
-        "scramblebun": NW, "jungsub": NW, "dkingjrv": NW, "spcwarp": NW, "conquer": NW, "rescuefe": NW,
+        "scramblebun": NW, "jungsub": NW, "spcwarp": NW, "conquer": NW, "rescuefe": NW,
         "dkongjrm": "32 sprites per line (Galaxian sprite engine: 8); MAME colours wrong",
         "dkongjrmc": "64 sprites per line (Galaxian sprite engine: 8); MAME colours wrong",
-        "dingov": "deferred: Nuova Videotron dkingjrv board not implemented",
-        "junglekv": "deferred: Nuova Videotron dkingjrv board not implemented",
 }

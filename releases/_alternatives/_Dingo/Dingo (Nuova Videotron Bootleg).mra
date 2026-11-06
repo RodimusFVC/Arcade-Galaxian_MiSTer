@@ -1,0 +1,66 @@
+<misterromdescription>
+    <name>Dingo (Nuova Videotron Bootleg)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Dingo</series>
+    <year>1983</year>
+    <manufacturer>bootleg (Nuova Videotron)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>dingov</setname>
+    <parent>dingo</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,-,-,-,Coin,Start 1P,Start 2P,Pause,-,-,-" default="A,Select,Start,R,L"/>
+
+    <switches default="00,00,08">
+        <dip name="Half Coinage" bits="14" ids="Off,On"/>
+        <dip name="Cabinet" bits="15" ids="Upright,Cocktail"/>
+        <dip name="Coin A" bits="16" ids="2C/1C / 1C/1C,1C/3C / 1C/6C"/>
+        <dip name="Coin B" bits="17" ids="2C/1C / 1C/1C,1C/3C / 1C/6C"/>
+        <dip name="Lives" bits="18,19" ids="1,2,3,Infinite (Cheat)"/>
+    </switches>
+
+    <!-- Index 0: ROM -->
+    <rom index="0" md5="none" zip="dingov.zip|dingo.zip">
+        <part crc="e834700a" name="ic4"/>
+        <part crc="ac95cbef" name="ic3"/>
+        <part repeat="0xC000">00</part>
+        <part crc="37e50c48" name="ic11" offset="0x0" length="0x800"/>
+        <part repeat="0x1800">00</part>
+        <part crc="9e6e6c6d" name="ic12" offset="0x0" length="0x800"/>
+        <part repeat="0x1800">00</part>
+        <part crc="02b11865" name="ic10"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="e7be5d33" name="ic8"/>
+    </rom>
+
+    <!-- Index 1: Config -->
+    <rom index="1">
+        <part>
+            01 90 00 00 00 00 08 FF FF FF 80 01 02 80 80 80
+            12 11 03 04 01 02 05 00 13 14 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 06 40 00 02 40 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Dingo (Nuova Videotron Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

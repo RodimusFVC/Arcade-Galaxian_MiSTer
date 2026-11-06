@@ -11,6 +11,7 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/boards/galaxian_snd/galaxian_
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/boards/konami_snd/galaxian_konami_snd.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/boards/konami_snd/konami_tp_filters.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/boards/checkman_snd/galaxian_sndcpu.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/boards/videotron_snd/galaxian_vtsnd.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/boards/kingball_snd/galaxian_kbsnd.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/boards/sbhoei_snd/galaxian_sbsound.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/boards/sbhoei_snd/galaxian_sbspeech.sv

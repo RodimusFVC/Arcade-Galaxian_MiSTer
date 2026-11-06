@@ -1,0 +1,69 @@
+<misterromdescription>
+    <name>Jungle King (Nuova Videotron Bootleg)</name>
+    <region>World</region>
+    <homebrew>no</homebrew>
+    <bootleg>yes</bootleg>
+    <version></version>
+    <alternative></alternative>
+    <platform></platform>
+    <series>Jungle King</series>
+    <year>198?</year>
+    <manufacturer>bootleg (Nuova Videotron)</manufacturer>
+    <category>Shooter</category>
+
+    <setname>junglekv</setname>
+    <parent>junglek</parent>
+    <mameversion>0289</mameversion>
+    <rbf>Galaxian</rbf>
+    <about></about>
+
+    <resolution>15kHz</resolution>
+    <rotation>vertical (cw)</rotation>
+    <flip>yes</flip>
+
+    <players>2 (alternating)</players>
+    <joystick>8-way</joystick>
+    <special_controls></special_controls>
+    <num_buttons>1</num_buttons>
+    <buttons names="Fire,-,-,-,Coin,Start 1P,Start 2P,Pause,-,-,-" default="A,Select,Start,R,L"/>
+
+    <switches default="00,00,08">
+        <dip name="Half Coinage" bits="14" ids="Off,On"/>
+        <dip name="Cabinet" bits="15" ids="Upright,Cocktail"/>
+        <dip name="Coin A" bits="16" ids="2C/1C / 1C/1C,1C/3C / 1C/6C"/>
+        <dip name="Coin B" bits="17" ids="2C/1C / 1C/1C,1C/3C / 1C/6C"/>
+        <dip name="Lives" bits="18,19" ids="1,2,3,Infinite (Cheat)"/>
+    </switches>
+
+    <!-- Index 0: ROM -->
+    <rom index="0" md5="none" zip="junglekv.zip|junglek.zip|dkongjr.zip">
+        <part crc="cecd1a3b" name="ta_1"/>
+        <part crc="c4ce5fa6" name="ta_2"/>
+        <part crc="ce8dcf52" name="ta_3"/>
+        <part crc="b071be55" name="ta_4"/>
+        <part repeat="0x8000">00</part>
+        <part crc="b53c7225" name="ta_16"/>
+        <part crc="2631fd84" name="ta_15"/>
+        <part crc="3da9cccb" name="ic10"/>
+        <part repeat="0x3FE0">00</part>
+        <part crc="9ee7fb71" name="ta_12"/>
+        <part repeat="0xA000">00</part>
+        <part crc="bda72f7c" name="ta_14"/>
+        <part crc="50e120fb" name="ta_13"/>
+    </rom>
+
+    <!-- Index 1: Config -->
+    <rom index="1">
+        <part>
+            01 90 00 00 00 00 08 FF FF FF 80 01 02 80 80 80
+            12 11 03 04 01 02 05 00 13 14 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+            00 07 80 40 02 40 00 00 00 00 00 00 00 00 00 00
+            00 00 00 00
+        </part>
+    </rom>
+
+    <remark>Jungle King (Nuova Videotron Bootleg)</remark>
+    <mratimestamp>20260928000000</mratimestamp>
+</misterromdescription>

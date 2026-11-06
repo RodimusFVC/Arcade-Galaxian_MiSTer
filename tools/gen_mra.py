@@ -59,6 +59,13 @@ def gmgalax_ports(ports):
     return out
 
 
+def vtr_coins(ports):
+    """Nuova Videotron (dkingjrv / dingov / junglekv): only MAME's 'Coin 2' line (IN0 bit 1) credits - Coin 1 is ignored in
+    MAME too (2026-11-05 test). The two coin types swap so the MRA's Coin button reaches the working line."""
+    swap = {"COIN1": "COIN2", "COIN2": "COIN1"}
+    return {t: [dict(f, type=swap.get(f.get("type"), f.get("type"))) for f in fs] for t, fs in ports.items()}
+
+
 class Core(mra_lib.Core):
     RBF = RBF
     MAME_VERSION = MAME_VERSION
@@ -67,7 +74,7 @@ class Core(mra_lib.Core):
     PER_DRIVER = True
     # drivers that only hold parent sets of our clones (dockman, thepit, ckong, scorpion ...)
     PARENT_DRIVERS = ["bagman.cpp", "cclimber.cpp", "centiped.cpp", "cvs.cpp", "ladybug.cpp", "pacman.cpp", "phoenix.cpp",
-                      "rallyx.cpp", "roundup.cpp"]
+                      "rallyx.cpp", "roundup.cpp", "dkong.cpp", "taitosj.cpp"]
     # Main_MiSTer's names.txt lookup is a substring search for "<file name>:": a bare "Scramble" matches another core's
     # line (user, 2026-09-29); "Victory" clashes with Exidy's Victory.mra in _RodimusCores/_Arcade/ (2026-10-22)
     FILE_NAME = {"scramble": "Scramble (Konami)", "victoryc": "Victory (Comsoft)"}
@@ -91,6 +98,8 @@ class Core(mra_lib.Core):
     # user1 PROM tails the hardware never addresses (Mariner / Strategy X background PROM)
     REGION_TRUNCATE = {(k[-2], "user1") for k in SUPPORTED if k[-2] not in REGION_OVERRIDE}
     STANDIN = STANDIN
+    WORKING_HERE = WORKING_HERE
+    PORT_REWRITE = {m: vtr_coins for m in ("dkingjrv", "dingov", "junglekv")}
     REGION_FROM = REGION_FROM
     ROM_MOVE = ROM_MOVE
     WORD_SWAP_AS_DUMPED = True                          # BMX Stunts: the board swaps the byte pair (A0 inverted)
@@ -135,6 +144,9 @@ class Core(mra_lib.Core):
             else:
                 hi.append(s)
         planes = self.split_planes(hi, bool(cfg[1] & V_PACKED), bool(cfg[11] & V4_BPP3), name)
+        if cfg[4] & X_VTR:                              # Videotron: sprite ROM (gfx2) in the upper 8K of each plane
+            planes = [dict(s, region={"gfx2_p0": "gfx1_p0h", "gfx2_p1": "gfx1_p1h"}.get(s["region"], s["region"]))
+                      for s in planes]
         if g["machine"] in WIDE_GFX:                    # 32K planes: gfx1_w0 / gfx1_w1
             return [dict(s, region={"gfx1_p0": "gfx1_w0", "gfx1_p1": "gfx1_w1"}.get(s["region"], s["region"]))
                     for s in planes]

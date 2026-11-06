@@ -31,6 +31,9 @@ module galaxian_video
     input         [3:0] wide_bank,
     input         [2:0] col_hi,         // colour bank: palette index bits 7:5 (Video Eight game, Ghostmuncher Galaxian game)
     input               nmy,            // Namennayo: row attributes, sprites on PROM 2, opaque playfield
+    input               vt,             // Nuova Videotron: tiles {vt_gb0, code} in the lower 8K, sprites {vt_gb1, code} upper
+    input         [1:0] vt_gb0,
+    input         [1:0] vt_gb1,
     input               xa_we,
     input         [4:0] xa_a,
     input         [7:0] xa_d,
@@ -301,6 +304,7 @@ always @(posedge clk) begin
             3'd3: begin vr_addr <= {t_sum[7:3], xn[7:3]}; t_line <= t_sum[2:0]; end
             3'd4: begin nxt_col <= nmy && !ot_q[0] ? xa_row[2:0] : col_fix(ot_q[2:0]); nxt_c3 <= c4 & ot_q[6]; end
             3'd5: if (db) gt_addr <= {2'b00, ~db_bg[7] || xn[7:3] == 5'd28 ? 2'b11 : 2'b00, vr_q, t_line};
+                  else if (vt) gt_addr <= {2'b00, vt_gb0, vr_q, t_line};
                   else if (nmy) gt_addr <= {1'b0, ot_q[0] ? {ot_q[7:1] == 7'b0010000, 2'b00} : xa_row[5:3], vr_q, t_line};
                   else gt_addr <= {wide ? {wide_bank, vr_q} :
                                    {1'b0, tile_code(vr_q, ot_q, ext_mode == 4'd14 ? {1'b0, col_bank[xn[7:5]], 1'b0} : tbank[xn[7:3]]) |
@@ -373,6 +377,7 @@ reg  [7:0] s_code8;
 wire [7:0] spr_code = db ? {2'b01, s_code} : nmy ? {1'b0, s_attr[3], s_code} : vflags5[3] ? s_code8 : spr_ad ? {s_attr[5], s_attr[4] | s_code8[6], s_code8[5:0]} :
                       spr_ext(s_code, s_attr);
 
+wire [9:0] s_sel = wide ? {wide_bank, s_code} : vt ? {2'b01, vt_gb1, s_code} : {1'b0, spr_hi, spr_code};
 wire [7:0] y16   = y + 8'd16;
 wire [1:0] spage = vflags2[3] ? y16[7:6] : 2'b00;
 wire [2:0] shb   = vflags2[1] ? 3'b110 : 3'b011;
@@ -408,8 +413,8 @@ always @(posedge clk) begin
                 default: ;
             endcase
             4'd1: case (ph)
-                3'd1: gs_addr <= {wide ? {wide_bank, s_code} : {1'b0, spr_hi, spr_code}, s_row[3], 1'b0, s_row[2:0]};
-                3'd2: gs_addr <= {wide ? {wide_bank, s_code} : {1'b0, spr_hi, spr_code}, s_row[3], 1'b1, s_row[2:0]};
+                3'd1: gs_addr <= {s_sel, s_row[3], 1'b0, s_row[2:0]};
+                3'd2: gs_addr <= {s_sel, s_row[3], 1'b1, s_row[2:0]};
                 3'd3: begin sp0h0 <= g0s_q; sp1h0 <= g1s_q; sp2h0 <= g2s_q; end
                 3'd4: begin sp0h1 <= g0s_q; sp1h1 <= g1s_q; sp2h1 <= g2s_q; end
                 default: ;

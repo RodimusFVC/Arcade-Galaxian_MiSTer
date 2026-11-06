@@ -89,6 +89,7 @@ selector rom_selector
 );
 
 wire snd_board = bflags3[0];
+wire vt        = bflags3[6];          // Nuova Videotron sound board
 wire ko        = bflags5[0];
 wire kb        = bflags11[5];
 wire msh       = bflags11[3];
@@ -110,7 +111,7 @@ wire [4:0] gal_msh_vol;
 
 chip_pool_pkg::z80sed_i_t     z80sed_0_i;
 chip_pool_pkg::z80sed_o_t     z80sed_0_o;
-chip_pool_pkg::z80sed_i_t     sc_z80sed_1_i, kb_z80sed_1_i, ko_z80sed_1_i, z80sed_1_idle, z80sed_1_i;
+chip_pool_pkg::z80sed_i_t     sc_z80sed_1_i, kb_z80sed_1_i, ko_z80sed_1_i, vt_z80sed_1_i, z80sed_1_idle, z80sed_1_i;
 chip_pool_pkg::z80sed_o_t     z80sed_1_o;
 chip_pool_pkg::s2650_i_t      s2650_0_i;
 chip_pool_pkg::s2650_o_t      s2650_0_o;
@@ -120,7 +121,7 @@ chip_pool_pkg::mcs48bus_i_t   mcs48bus_0_i;
 chip_pool_pkg::mcs48bus_o_t   mcs48bus_0_o;
 chip_pool_pkg::sn76489_i_t    sn76489_0_i;
 chip_pool_pkg::sn76489_o_t    sn76489_0_o;
-chip_pool_pkg::ayr_i_t        gal_ay_0_i, sc_ay_0_i, ay_0_i;
+chip_pool_pkg::ayr_i_t        gal_ay_0_i, sc_ay_0_i, vt_ay_0_i, ay_0_i;
 chip_pool_pkg::ayio_o_t       ay_0_o;
 chip_pool_pkg::ayr_i_t        ay_1_i, ay_2_i, ay_3_i, ay_4_i;
 chip_pool_pkg::ay_o_t         ay_1_o, ay_2_o, ay_3_o, ay_4_o;
@@ -157,10 +158,10 @@ assign z80sed_0_o.a = z80sed_0_a;           assign z80sed_0_o.dout = z80sed_0_do
 assign z80sed_0_o.m1_n = z80sed_0_m1_n;     assign z80sed_0_o.mreq_n = z80sed_0_mreq_n; assign z80sed_0_o.iorq_n = z80sed_0_iorq_n;
 assign z80sed_0_o.rd_n = z80sed_0_rd_n;     assign z80sed_0_o.wr_n = z80sed_0_wr_n;     assign z80sed_0_o.rfsh_n = z80sed_0_rfsh_n;
 
-// z80sed_1: sound CPU - Konami, King & Balloon, Check Man / Dingo sound boards; held in reset on sets with none of them
+// z80sed_1: sound CPU - Konami, King & Balloon, Check Man / Dingo, Nuova Videotron sound boards; held in reset on sets with none
 assign z80sed_1_idle.reset_n = 1'b0;  assign z80sed_1_idle.ce = 1'b0;     assign z80sed_1_idle.wait_n = 1'b1;
 assign z80sed_1_idle.int_n = 1'b1;    assign z80sed_1_idle.nmi_n = 1'b1;  assign z80sed_1_idle.di = 8'hFF;
-assign z80sed_1_i = ko ? ko_z80sed_1_i : kb ? kb_z80sed_1_i : snd_board ? sc_z80sed_1_i : z80sed_1_idle;
+assign z80sed_1_i = ko ? ko_z80sed_1_i : kb ? kb_z80sed_1_i : snd_board ? sc_z80sed_1_i : vt ? vt_z80sed_1_i : z80sed_1_idle;
 
 wire [15:0] z80sed_1_a;
 wire  [7:0] z80sed_1_do;
@@ -244,7 +245,7 @@ jt89 sn76489_0
 assign sn76489_0_o.sound = sn76489_0_sound;  assign sn76489_0_o.ready = sn76489_0_ready;
 
 // ay_0: Galaxian board AY (Jump Bug, Bongo, Zig Zag, Fantastic, Moon Shuttle, Triple Punch), or the Check Man sound board's
-assign ay_0_i = snd_board ? sc_ay_0_i : gal_ay_0_i;
+assign ay_0_i = snd_board ? sc_ay_0_i : vt ? vt_ay_0_i : gal_ay_0_i;
 
 wire [7:0] ay_0_dout, ay_0_a, ay_0_b, ay_0_c, ay_0_ioa, ay_0_iob;
 wire [9:0] ay_0_snd;
@@ -414,7 +415,7 @@ end
 /////////////////////////////  Shared ROM blocks  /////////////////////////////
 
 wire [16:0] gal_rom_a;
-wire [13:0] sc_r0a, kb_r0a, ko_r0a;
+wire [13:0] sc_r0a, kb_r0a, ko_r0a, vt_r0a;
 wire [12:0] msh_rom_a;
 wire [10:0] sb_prog_a;
 wire [11:0] sb_data_a;
@@ -431,7 +432,7 @@ dpram_dc #(.widthad_a(17)) prog_rom
 dpram_dc #(.widthad_a(14)) rom0
 (
     .clock_a(clk), .address_a(ioctl_addr[13:0]), .data_a(ioctl_dout), .wren_a(ioctl_wr0 & snd_cs), .q_a(),
-    .clock_b(clk), .address_b(ko ? ko_r0a : kb ? kb_r0a : sc_r0a), .data_b(8'd0), .wren_b(1'b0), .q_b(rom0_d)
+    .clock_b(clk), .address_b(ko ? ko_r0a : kb ? kb_r0a : vt ? vt_r0a : sc_r0a), .data_b(8'd0), .wren_b(1'b0), .q_b(rom0_d)
 );
 
 dpram_dc #(.widthad_a(13)) samp_rom
@@ -504,12 +505,12 @@ endgenerate
 //   block 8 (1K)   Check Man sound board work RAM
 localparam int RAM_BLOCKS = 9;
 
-ram_pool_pkg::pram_i_t [RAM_BLOCKS-1:0] gal_pr_i, ko_pr_i, sc_pr_i, pool_i;
+ram_pool_pkg::pram_i_t [RAM_BLOCKS-1:0] gal_pr_i, ko_pr_i, sc_pr_i, vt_pr_i, pool_i;
 ram_pool_pkg::pram_o_t [RAM_BLOCKS-1:0] pool_o;
 
 assign pool_i[6:0] = gal_pr_i[6:0];
 assign pool_i[7]   = ko_pr_i[7];
-assign pool_i[8]   = sc_pr_i[8];
+assign pool_i[8]   = vt ? vt_pr_i[8] : sc_pr_i[8];
 
 function automatic int ram_aw(input int n);
     ram_aw = n == 0 || n == 7 ? 12 : n == 4 || n == 5 ? 8 : n == 6 ? 11 : 10;
@@ -564,6 +565,9 @@ galaxian_board galaxian
     .bflags13(bflags13),
     .rom_top(rom_top),
     .ext_mode(ext_mode),
+    .vt_gb0_we(vt_gb0_we),
+    .vt_gb1_we(vt_gb1_we),
+    .vt_gb_d(vt_gb_d),
     .in0(in0),
     .dial1(dial1),
     .dial2(dial2),
@@ -714,6 +718,30 @@ galaxian_sndcpu checkman_snd
     .rom0_a(sc_r0a),
     .rom0_d(rom0_d),
     .pr_i(sc_pr_i),
+    .pr_o(pool_o)
+);
+
+wire       vt_gb0_we, vt_gb1_we;
+wire [7:0] vt_gb_d;
+
+galaxian_vtsnd videotron_snd
+(
+    .clk(clk),
+    .reset(reset | ~vt),
+    .pause(pause),
+    .cmd_wr(gal_cmd_wr),
+    .cmd(gal_cpu_dout),
+    .vblank_irq(gal_vbl_irq),
+    .gb1_we(vt_gb1_we),
+    .gb0_we(vt_gb0_we),
+    .gb_d(vt_gb_d),
+    .z80sed_1_i(vt_z80sed_1_i),
+    .z80sed_1_o(z80sed_1_o),
+    .ay_0_i(vt_ay_0_i),
+    .ay_0_o(ay_0_o),
+    .rom0_a(vt_r0a),
+    .rom0_d(rom0_d),
+    .pr_i(vt_pr_i),
     .pr_o(pool_o)
 );
 

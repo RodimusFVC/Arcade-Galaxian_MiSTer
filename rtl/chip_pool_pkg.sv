@@ -193,7 +193,7 @@ typedef struct packed {
 } sn76489_i_t;
 
 typedef struct packed {
-    logic [10:0] sound;                 // signed
+    logic [10:0] sound;                 // signed field: sn76489sv 0..1020, jt89 +-1020
     logic        ready;
 } sn76489_o_t;
 
